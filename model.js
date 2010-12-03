@@ -7,10 +7,12 @@ var persistence = require('persistencejs/persistence').persistence;
 exports.Node = persistence.define('Node', {
     node: "TEXT"
 });
+exports.Node.index('node');
 exports.Affiliation = persistence.define('Affiliation', {
     jid: "TEXT",
     affiliation: "TEXT"
 });
+exports.Affiliation.index('jid');
 exports.Node.hasMany('affiliations', exports.Affiliation, 'node');
 
 
