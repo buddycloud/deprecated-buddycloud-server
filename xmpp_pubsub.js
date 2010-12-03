@@ -62,9 +62,9 @@ function handleIqSet(iq) {
 	    var owner = new xmpp.JID(iq.attrs.from).bare().toString();
 	    controller.createNode(createEl.attrs.node, owner, function(err) {
 		if (!err)
-		    conn.send(errorReply(err));
-		else
 		    conn.send(reply);
+		else
+		    conn.send(errorReply(err));
 	    });
 	    return;
 	}
