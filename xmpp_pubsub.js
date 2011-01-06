@@ -44,6 +44,12 @@ function handleIqSet(iq) {
 	reply.c('error', { type: 'cancel' });
 	return reply;
     };
+    var replyCb = function(err) {
+	if (!err)
+	    conn.send(reply);
+	else
+	    conn.send(errorReply(err));
+    };
 
     var pubsubEl = iq.getChild('pubsub', NS_PUBSUB);
     if (pubsubEl) {
@@ -58,14 +64,26 @@ function handleIqSet(iq) {
 	 * </iq>
 	 */
 	var createEl = pubsubEl.getChild('create');
-	if (createEl) {
+	if (createEl && createEl.attrs.node) {
 	    var owner = new xmpp.JID(iq.attrs.from).bare().toString();
-	    controller.createNode(createEl.attrs.node, owner, function(err) {
-		if (!err)
-		    conn.send(reply);
-		else
-		    conn.send(errorReply(err));
-	    });
+	    controller.createNode(createEl.attrs.node, owner, replyCb);
+	    return;
+	}
+	/*
+	 * <iq type='set'
+	 *     from='francisco@denmark.lit/barracks'
+	 *     to='pubsub.shakespeare.lit'
+	 *     id='sub1'>
+	 *   <pubsub xmlns='http://jabber.org/protocol/pubsub'>
+	 *     <subscribe node='princely_musings'/>
+	 *   </pubsub>
+	 * </iq>
+	 */
+	var subscribeEl = pubsubEl.getChild('subscribe');
+	if (subscribeEl && subscribeEl.attrs.node) {
+	    var subscriber = new xmpp.JID(iq.attrs.from).bare().toString();
+	    /* TODO: reply is more complex */
+	    controller.subscribeNode(subscribeNode.attrs.node, owner, replyCb);
 	    return;
 	}
     }
