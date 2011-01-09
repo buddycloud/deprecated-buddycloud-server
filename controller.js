@@ -54,3 +54,10 @@ exports.subscribeNode = function(node, subscriber, cb) {
 	});
     });
 };
+
+exports.publishItems = function(publisher, node, items) {
+    model.getSession(function(session) {
+	session.transaction(function(tx) {
+	    model.Item.all(session).
+		    filter("")
+};

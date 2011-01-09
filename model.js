@@ -15,6 +15,12 @@ exports.Affiliation = persistence.define('Affiliation', {
 exports.Affiliation.index('jid');
 exports.Node.hasMany('affiliations', exports.Affiliation, 'node');
 
+exports.Item = persistence.define('Item', {
+    itemId: "TEXT",
+    body: "TEXT"
+});
+exports.Node.hasMany('items', exports.Item, 'node');
+
 
 /**
  * Backend

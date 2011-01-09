@@ -86,6 +86,28 @@ function handleIqSet(iq) {
 	    controller.subscribeNode(subscribeNode.attrs.node, owner, replyCb);
 	    return;
 	}
+	/*
+	 * <iq type='set'
+	 *     from='hamlet@denmark.lit/blogbot'
+	 *     to='pubsub.shakespeare.lit'
+	 *     id='publish1'>
+	 *   <pubsub xmlns='http://jabber.org/protocol/pubsub'>
+	 *     <publish node='princely_musings'>
+	 *       <item id='bnd81g37d61f49fgn581'>
+	 * ...
+	 */
+	var publishEl = pubsubEl.getChild('publish');
+	var publishNode = publishEl && publishEl.attrs.node;
+	if (publishEl && publishNode) {
+	    var publisher = new xmpp.JID(iq.attrs.from).bare().toString();
+	    var items = {};
+	    publishEl.getChildren('item').forEach(function(itemEl) {
+		var itemNode = itemEl.attrs.node;  /* TODO: generate if absent */
+		items[itemNode] = itemEl.children;
+	    });
+	    controller.publishItems(publisher, publishNode, items, replyCb);
+	    return;
+	}
     }
 }
 
