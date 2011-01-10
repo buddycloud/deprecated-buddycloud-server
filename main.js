@@ -1,6 +1,6 @@
 var config = require('./config');
 
-var model = require('./model');
+var model = require('./model_couchdb');
 var controller = require('./controller');
 controller.setModel(model);
 

@@ -51,6 +51,7 @@ function handleIqSet(iq) {
 	    conn.send(errorReply(err));
     };
 
+    var jid = new xmpp.JID(iq.attrs.from).bare().toString();
     var pubsubEl = iq.getChild('pubsub', NS_PUBSUB);
     if (pubsubEl) {
 	/*
@@ -64,9 +65,9 @@ function handleIqSet(iq) {
 	 * </iq>
 	 */
 	var createEl = pubsubEl.getChild('create');
-	if (createEl && createEl.attrs.node) {
-	    var owner = new xmpp.JID(iq.attrs.from).bare().toString();
-	    controller.createNode(createEl.attrs.node, owner, replyCb);
+	var createNode = createEl && createEl.attrs.node;
+	if (createEl && createNode) {
+	    controller.createNode(jid, createNode, replyCb);
 	    return;
 	}
 	/*
@@ -80,10 +81,11 @@ function handleIqSet(iq) {
 	 * </iq>
 	 */
 	var subscribeEl = pubsubEl.getChild('subscribe');
-	if (subscribeEl && subscribeEl.attrs.node) {
+	var subscribeNode = subscribeEl && subscribeEl.attrs.node;
+	if (subscribeEl && subscribeNode) {
 	    var subscriber = new xmpp.JID(iq.attrs.from).bare().toString();
 	    /* TODO: reply is more complex */
-	    controller.subscribeNode(subscribeNode.attrs.node, owner, replyCb);
+	    controller.subscribeNode(jid, subscribeNode, replyCb);
 	    return;
 	}
 	/*
@@ -99,13 +101,12 @@ function handleIqSet(iq) {
 	var publishEl = pubsubEl.getChild('publish');
 	var publishNode = publishEl && publishEl.attrs.node;
 	if (publishEl && publishNode) {
-	    var publisher = new xmpp.JID(iq.attrs.from).bare().toString();
 	    var items = {};
 	    publishEl.getChildren('item').forEach(function(itemEl) {
-		var itemNode = itemEl.attrs.node;  /* TODO: generate if absent */
+		var itemNode = itemEl.attrs.node || 'current';
 		items[itemNode] = itemEl.children;
 	    });
-	    controller.publishItems(publisher, publishNode, items, replyCb);
+	    controller.publishItems(jid, publishNode, items, replyCb);
 	    return;
 	}
     }
