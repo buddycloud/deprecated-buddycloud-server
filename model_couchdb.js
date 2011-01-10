@@ -1,33 +1,42 @@
-var cradle = require('cradle');
+var cradle = require('cradle@0.3.1');
 cradle.setup({host: '127.0.0.1',
 	      port: 5984,
-              options: {cache: false, raw: false}});
+              cache: false, raw: false});
 var db = new(cradle.Connection)().database('channel-server');
 
-
-exports.createNode = function(owner, node, cb) {
-    /* TODO: filter node for chars */
-    db.save(node, { }, cb);
+exports.transaction = function(cb) {
+    new Transaction(cb);
 };
 
-exports.subscribeNode = function(subscriber, node, cb) {
-    db.get(node, function(err, doc) {
+function Transaction(cb) {
+    this.transactionCb = cb;
+    cb(null, this);
+}
+
+Transaction.prototype.createNode = function(owner, node, cb) {
+    /* TODO: filter node for chars */
+    db.save(encodeURIComponent(node), { }, cb);
+};
+
+Transaction.prototype.subscribeNode = function(subscriber, node, cb) {
+    db.get(encodeURIComponent(node), function(err, res) {
+	var doc = res && res.toJSON();
 	if (err)
 	    cb(err);
 	else if (!doc) {
 	    cb(new Error('not-found'));
 	} else {
-	    doc = doc.json;
+console.log({before:JSON.stringify(doc)});
 	    if (!doc.hasOwnProperty('subscribers'))
-		doc.subscribers = []
+		doc.subscribers = [];
 	    doc.subscribers.push(subscriber);
-console.log(JSON.stringify(doc));
-	    db.save(node, doc._rev, doc, cb);
+console.log({after:JSON.stringify(doc)});
+	    db.save(encodeURIComponent(node), doc._rev, doc, cb);
 	}
     });
 };
 
-exports.publishItems = function(publisher, node, items, cb) {
+Transaction.prototype.publishItems = function(publisher, node, items, cb) {
     var docs = [];
     for(var id in items) {
 	if (items.hasOwnProperty(id))
@@ -35,4 +44,8 @@ exports.publishItems = function(publisher, node, items, cb) {
 			xml: items[id].toString() });
     }
     db.save(docs, cb);
+};
+
+Transaction.prototype.commit = function(cb) {
+    cb(null);
 };

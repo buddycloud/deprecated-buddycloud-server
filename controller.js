@@ -7,17 +7,29 @@ exports.setModel = function(m) {
 };
 
 exports.createNode = function(owner, node, cb) {
-    model.createNode(owner, node, cb);
+    model.transaction(function(err, t) {
+	t.createNode(owner, node, function(err) {
+	    t.commit(cb);
+	});
+    });
 };
 
 /*
  * cb(affiliation, error)
  */
 exports.subscribeNode = function(subscriber, node, cb) {
-    model.subscribeNode(subscriber, node, cb);
+    model.transaction(function(err, t) {
+	t.subscribeNode(subscriber, node, function(err) {
+	    t.commit(cb);
+	});
+    });
 };
 
 exports.publishItems = function(publisher, node, items, cb) {
-    model.writeItems(publisher, node, items, cb);
-    /* TODO: broadcast */
+    model.transaction(function(err, t) {
+	t.writeItems(publisher, node, items, function(err) {
+	    /* TODO: broadcast */
+	    t.commit(cb);
+	});
+    });
 };
