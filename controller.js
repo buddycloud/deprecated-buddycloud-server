@@ -8,9 +8,17 @@ exports.setModel = function(m) {
 
 exports.createNode = function(owner, node, cb) {
     model.transaction(function(err, t) {
-	t.createNode(owner, node, function(err) {
-	    t.commit(cb);
-	});
+	step(function() {
+	    t.createNode(owner, node, this);
+	}, function(err) {
+	    if (err) throw err;
+
+	    t.subscribeNode(owner, node, this);
+	}, function(err) {
+	    if (err) throw err;
+
+	    t.commit(this);
+	}, cb);
     });
 };
 
@@ -19,6 +27,7 @@ exports.createNode = function(owner, node, cb) {
  */
 exports.subscribeNode = function(subscriber, node, cb) {
     model.transaction(function(err, t) {
+	/* TODO: check node, check perms */
 	t.subscribeNode(subscriber, node, function(err) {
 	    t.commit(cb);
 	});
@@ -30,6 +39,7 @@ exports.publishItems = function(publisher, node, items, cb) {
 	var subscribers;
 	if (err) { cb(err); return; }
 
+	/* TODO: check perms */
 	step(function() {
 	    var g = this.group();
 	    for(var id in items) {
@@ -46,13 +56,13 @@ exports.publishItems = function(publisher, node, items, cb) {
 	    subscribers = subscribers_;
 	    t.commit(this);
 	}, function(err) {
-	    if (err) { cb(err); return; }
+	    if (err) throw err;
 
 	    subscribers.forEach(function(subscriber) {
 		callFrontend('notify', subscriber, node, items);
 	    });
-	    cb(null);
-	});
+	    this(null);
+	}, cb);
     });
 };
 
@@ -60,6 +70,7 @@ exports.retractItems = function(retracter, node, itemIds, notify, cb) {
     model.transaction(function(err, t) {
 	var subscribers;
 
+	/* TODO: check perms */
 	step(function() {
 	    var g = this.group();
 	    itemIds.forEach(function(itemId) {
@@ -75,15 +86,15 @@ exports.retractItems = function(retracter, node, itemIds, notify, cb) {
 	    subscribers = subscribers_;
 	    t.commit(this);
 	}, function(err) {
-	    if (err) { cb(err); return; }
+	    if (err) throw err;
 
 	    if (notify) {
 		subscribers.forEach(function(subscriber) {
 		    callFrontend('retracted', subscriber, node, itemIds);
 		});
 	    }
-	    cb(null);
-	});
+	    this(null);
+	}, cb);
     });
 };
 

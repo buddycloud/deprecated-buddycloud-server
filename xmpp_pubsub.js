@@ -1,4 +1,5 @@
 var xmpp = require('node-xmpp');
+var uuid = require('node-uuid');
 
 var NS_PUBSUB = 'http://jabber.org/protocol/pubsub';
 var NS_PUBSUB_EVENT = 'http://jabber.org/protocol/pubsub#event';
@@ -28,15 +29,16 @@ exports.start = function(config) {
 
 	if (stanza.name === 'iq') {
 	    switch(stanza.attrs.type) {
+	    case 'get':
 	    case 'set':
-		handleIqSet(stanza);
+		handleIq(stanza);
 		break;
 	    }
 	}
     });
 };
 
-function handleIqSet(iq) {
+function handleIq(iq) {
     var reply = new xmpp.Element('iq',
 				 { from: iq.attrs.to,
 				   to: iq.attrs.from,
@@ -70,7 +72,7 @@ function handleIqSet(iq) {
 	 */
 	var createEl = pubsubEl.getChild('create');
 	var createNode = createEl && createEl.attrs.node;
-	if (createEl && createNode) {
+	if (iq.attrs.type === 'set' && createEl && createNode) {
 	    controller.createNode('xmpp:' + jid, createNode, replyCb);
 	    return;
 	}
@@ -86,7 +88,7 @@ function handleIqSet(iq) {
 	 */
 	var subscribeEl = pubsubEl.getChild('subscribe');
 	var subscribeNode = subscribeEl && subscribeEl.attrs.node;
-	if (subscribeEl && subscribeNode) {
+	if (iq.attrs.type === 'set' && subscribeEl && subscribeNode) {
 	    /* TODO: reply is more complex */
 	    controller.subscribeNode('xmpp:' + jid, subscribeNode, replyCb);
 	    return;
@@ -103,10 +105,10 @@ function handleIqSet(iq) {
 	 */
 	var publishEl = pubsubEl.getChild('publish');
 	var publishNode = publishEl && publishEl.attrs.node;
-	if (publishEl && publishNode) {
+	if (iq.attrs.type === 'set' && publishEl && publishNode) {
 	    var items = {};
 	    publishEl.getChildren('item').forEach(function(itemEl) {
-		var itemNode = itemEl.attrs.node || 'current';
+		var itemNode = itemEl.attrs.node || uuid();
 		items[itemNode] = itemEl.children;
 	    });
 	    controller.publishItems('xmpp:' + jid, publishNode, items, replyCb);
@@ -126,7 +128,29 @@ function handleIqSet(iq) {
 	 */
 	var retractEl = pubsubEl.getChild('retract');
 	var retractNode = retractEl && retractEl.attrs.node;
-	if (retractEl && retractNode) {
+	if (iq.attrs.type === 'set' && retractEl && retractNode) {
+	    var itemIds = retractEl.getChildren('item').map(function(itemEl) {
+		return itemEl.attrs.id;
+	    });
+	    var notify = retractEl.attrs.notify &&
+		    (retractEl.attrs.notify === '1' ||
+		     retractEl.attrs.notify === 'true');
+	    controller.retractItems('xmpp:' + jid, retractNode, itemIds, notify, replyCb);
+	}
+	/*
+	 * <iq type='get'
+	 *     from='francisco@denmark.lit/barracks'
+	 *     to='pubsub.shakespeare.lit'
+	 *     id='items1'>
+	 *   <pubsub xmlns='http://jabber.org/protocol/pubsub'>
+	 *     <items node='princely_musings'/>
+	 *   </pubsub>
+	 * </iq>
+	 */
+	var itemsEl = pubsubEl.getChild('items');
+	var itemsNode = itemsEl && itemsEl.attrs.node;
+	if (iq.attrs.type === 'get' && itemsEl && itemsNode) {
+	    /* TODO: */
 	    var itemIds = retractEl.getChildren('item').map(function(itemEl) {
 		return itemEl.attrs.id;
 	    });

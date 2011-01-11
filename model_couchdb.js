@@ -1,3 +1,4 @@
+var ltx = require('ltx');
 /* TODO: remove 409 'conflict' retrying from cradle */
 var cradle = require('cradle');
 cradle.setup({host: '127.0.0.1',
@@ -5,6 +6,37 @@ cradle.setup({host: '127.0.0.1',
               cache: false, raw: false});
 var db = new(cradle.Connection)().database('channel-server');
 
+/**
+ * Initialize views
+ */
+db.save('_design/channel-server',
+	{ nodeItems: {
+	      map: function(doc) {
+		  var delim = doc._id.indexOf('&');
+		  if (delim > 0) {
+		      var node = doc._id.substr(0, delim);
+		      var itemId = doc._id.substr(delim + 1);
+		      emit(node, { id: itemId,
+				   date: doc.date
+				 });
+		  }
+	      },
+	      reduce: function(key, values, rereduce) {
+		  return values.sort(function(a, b) {
+		      if (a.date < b.date)
+			  return -1;
+		      else if (a.date > b.date)
+			  return 1;
+		      else
+			  return 0;
+		  });
+	      }
+	  } });
+
+
+/**
+ * API entry point
+ */
 exports.transaction = function(cb) {
     new Transaction(cb);
 };
@@ -69,8 +101,13 @@ Transaction.prototype.getSubscribers = function(node, cb) {
     });
 };
 
+/**
+ * An item is always the children array of the <item node='...'> element
+ */
 Transaction.prototype.writeItem = function(publisher, node, id, item, cb) {
-    db.save(itemKey(node, id), { xml: item.toString() }, function(err) {
+    db.save(itemKey(node, id), { xml: item.join('').toString(),
+				 date: new Date().toISOString()
+			       }, function(err) {
 	cb(err && new Error(err));
     });
 };
@@ -81,5 +118,29 @@ Transaction.prototype.deleteItem = function(node, itemId, cb) {
 	    cb(err);
 	else
 	    db.remove(itemKey(node, itemId), doc._rev, cb);
+    });
+};
+
+/**
+ * sorted by time
+ */
+Transaction.prototype.getItemIds = function(node, cb) {
+};
+
+Transaction.prototype.getItem = function(node, id, cb) {
+    db.get(itemKey(node, id), function(err, res) {
+	if (err) {
+	    cb(err && new Error(err.error));
+	    return;
+	}
+
+	var item;
+	try {
+	    item = ltx.parse(res.toJSON().xml).children;
+	} catch (e) {
+	    item = [];
+	}
+	cb(null, item);
+
     });
 };
