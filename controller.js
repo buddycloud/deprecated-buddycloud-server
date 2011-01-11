@@ -27,9 +27,34 @@ exports.subscribeNode = function(subscriber, node, cb) {
 
 exports.publishItems = function(publisher, node, items, cb) {
     model.transaction(function(err, t) {
+	if (err) { cb(err); return; }
+
 	t.writeItems(publisher, node, items, function(err) {
-	    /* TODO: broadcast */
-	    t.commit(cb);
+	    if (err) { cb(err); return; }
+
+	    t.getSubscribers(node, function(err, subscribers) {
+		if (err) { cb(err); return; }
+
+		t.commit(function(err) {
+		    if (err) { cb(err); return; }
+
+		    subscribers.forEach(function(subscriber) {
+			/* TODO: broadcast */
+		    });
+		});
+	    });
 	});
     });
+};
+
+
+var frontends = {};
+exports.hookFrontend = function(proto, hooks) {
+    frontends[proto] = hooks;
+};
+
+function callFrontend(hook, uri) {
+    /* TODO: slice args */
+
+    uriA = 
 };

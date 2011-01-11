@@ -66,7 +66,7 @@ Transaction.prototype.writeItems = function(publisher, node, items, cb) {
     var docs = [];
     for(var id in items) {
 	if (items.hasOwnProperty(id))
-	    docs.push({ _id: encodeURIComponent(node) + '/' + encodeURIComponent(id),
+	    docs.push({ _id: encodeURIComponent(node) + '&' + encodeURIComponent(id),
 			xml: items[id].toString() });
     }
     db.save(docs, function(err) {

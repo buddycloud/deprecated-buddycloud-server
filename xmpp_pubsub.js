@@ -1,11 +1,13 @@
 var xmpp = require('node-xmpp');
 
 var NS_PUBSUB = 'http://jabber.org/protocol/pubsub';
+var NS_PUBSUB_EVENT = 'http://jabber.org/protocol/pubsub#event';
 
 /* Set by main.js */
 var controller;
 exports.setController = function(c) {
     controller = c;
+    controller.hookFrontend('xmpp', { notifySubscribers: notifySubscribers });
 };
 
 
@@ -67,7 +69,7 @@ function handleIqSet(iq) {
 	var createEl = pubsubEl.getChild('create');
 	var createNode = createEl && createEl.attrs.node;
 	if (createEl && createNode) {
-	    controller.createNode(jid, createNode, replyCb);
+	    controller.createNode('xmpp:' + jid, createNode, replyCb);
 	    return;
 	}
 	/*
@@ -83,9 +85,8 @@ function handleIqSet(iq) {
 	var subscribeEl = pubsubEl.getChild('subscribe');
 	var subscribeNode = subscribeEl && subscribeEl.attrs.node;
 	if (subscribeEl && subscribeNode) {
-	    var subscriber = new xmpp.JID(iq.attrs.from).bare().toString();
 	    /* TODO: reply is more complex */
-	    controller.subscribeNode(jid, subscribeNode, replyCb);
+	    controller.subscribeNode('xmpp:' + jid, subscribeNode, replyCb);
 	    return;
 	}
 	/*
@@ -106,9 +107,27 @@ function handleIqSet(iq) {
 		var itemNode = itemEl.attrs.node || 'current';
 		items[itemNode] = itemEl.children;
 	    });
-	    controller.publishItems(jid, publishNode, items, replyCb);
+	    controller.publishItems('xmpp:' + jid, publishNode, items, replyCb);
 	    return;
 	}
     }
 }
 
+function notifySubscribers(jid, node, items) {
+    if (jid.substr(0, 5) === 'xmpp:')
+	jid = jid.substr(5);
+    else
+	return;
+
+    var itemsEl = new xmpp.Element('message', {}).
+	          c('event', { xmlns: NS_PUBSUB_EVENT }).
+		  c('items', { node: node });
+    for(var id in items)
+	if (items.hasOwnProperty(id)) {
+	    var itemEl = itemsEl.c('item', { id: id });
+	    items[id].forEach(function(child) {
+		itemEl.cnode(child);
+	    });
+	}
+    conn.send(itemsEl.root());
+}
