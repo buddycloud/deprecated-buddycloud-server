@@ -7,7 +7,7 @@ var NS_PUBSUB_EVENT = 'http://jabber.org/protocol/pubsub#event';
 var controller;
 exports.setController = function(c) {
     controller = c;
-    controller.hookFrontend('xmpp', { notifySubscribers: notifySubscribers });
+    controller.hookFrontend('xmpp', { notifySubscriber: notifySubscriber });
 };
 
 
@@ -113,13 +113,10 @@ function handleIqSet(iq) {
     }
 }
 
-function notifySubscribers(jid, node, items) {
-    if (jid.substr(0, 5) === 'xmpp:')
-	jid = jid.substr(5);
-    else
-	return;
-
-    var itemsEl = new xmpp.Element('message', {}).
+function notifySubscriber(jid, node, items) {
+    var itemsEl = new xmpp.Element('message', { to: jid,
+						from: conn.jid.toString()
+					      }).
 	          c('event', { xmlns: NS_PUBSUB_EVENT }).
 		  c('items', { node: node });
     for(var id in items)

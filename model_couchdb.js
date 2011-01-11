@@ -1,5 +1,5 @@
 /* TODO: remove 409 'conflict' retrying from cradle */
-var cradle = require('cradle@0.3.1');
+var cradle = require('cradle');
 cradle.setup({host: '127.0.0.1',
 	      port: 5984,
               cache: false, raw: false});
@@ -39,7 +39,8 @@ Transaction.prototype.subscribeNode = function(subscriber, node, cb) {
 	} else {
 	    if (!doc.hasOwnProperty('subscribers'))
 		doc.subscribers = [];
-	    doc.subscribers.push(subscriber);
+	    if (doc.subscribers.indexOf(subscriber) < 0)
+		doc.subscribers.push(subscriber);
 	    db.save(encodeURIComponent(node), doc._rev, doc, function(err) {
 		if (err && err.error === 'conflict')
 		    subscribeNode(subscriber, node, cb);

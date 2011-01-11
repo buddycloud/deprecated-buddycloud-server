@@ -1,4 +1,4 @@
-var async = require('async');
+var step = require('step');
 
 /* Set by main.js */
 var model;
@@ -27,23 +27,28 @@ exports.subscribeNode = function(subscriber, node, cb) {
 
 exports.publishItems = function(publisher, node, items, cb) {
     model.transaction(function(err, t) {
+	var subscribers;
 	if (err) { cb(err); return; }
 
-	t.writeItems(publisher, node, items, function(err) {
+	step(function() {
+	    t.writeItems(publisher, node, items, this);
+	}, function(err) {
+	    if (err) throw err;
+
+	    t.getSubscribers(node, this);
+	}, function(err, subscribers_) {
+	    if (err) throw err;
+
+	    subscribers = subscribers_;
+	    t.commit(this);
+	}, function(err) {
 	    if (err) { cb(err); return; }
 
-	    t.getSubscribers(node, function(err, subscribers) {
-		if (err) { cb(err); return; }
-
-		t.commit(function(err) {
-		    if (err) { cb(err); return; }
-
-		    subscribers.forEach(function(subscriber) {
-			/* broadcast */
-			callFrontend('notify', subscriber, node, items);
-		    });
-		});
+	    subscribers.forEach(function(subscriber) {
+		/* broadcast */
+		callFrontend('notifySubscriber', subscriber, node, items);
 	    });
+	    cb(null);
 	});
     });
 };
@@ -68,9 +73,10 @@ function callFrontend(hook, uri) {
     } else
 	return;
 
-    var args = [].concat(arguments).slice(1);
+    var args = Array.prototype.slice.call(arguments, 1);
     var frontend = frontends.hasOwnProperty(proto) && frontends[proto];
     var hookFun = frontend && frontend.hasOwnProperty(hook) && frontend[hook];
+console.log({callFrontend:arguments,frontent:frontend,hookFun:hookFun,args:args});
 
     if (hookFun) {
 	return hookFun.apply(frontend, args);
