@@ -31,7 +31,11 @@ exports.publishItems = function(publisher, node, items, cb) {
 	if (err) { cb(err); return; }
 
 	step(function() {
-	    t.writeItems(publisher, node, items, this);
+	    var g = this.group();
+	    for(var id in items) {
+		if (items.hasOwnProperty(id))
+		    t.writeItem(publisher, node, id, items[id], g());
+	    }
 	}, function(err) {
 	    if (err) throw err;
 
@@ -45,9 +49,39 @@ exports.publishItems = function(publisher, node, items, cb) {
 	    if (err) { cb(err); return; }
 
 	    subscribers.forEach(function(subscriber) {
-		/* broadcast */
-		callFrontend('notifySubscriber', subscriber, node, items);
+		callFrontend('notify', subscriber, node, items);
 	    });
+	    cb(null);
+	});
+    });
+};
+
+exports.retractItems = function(retracter, node, itemIds, notify, cb) {
+    model.transaction(function(err, t) {
+	var subscribers;
+
+	step(function() {
+	    var g = this.group();
+	    itemIds.forEach(function(itemId) {
+		t.deleteItem(node, itemId, g());
+	    });
+	}, function(err) {
+	    if (err) throw err;
+
+	    t.getSubscribers(node, this);
+	}, function(err, subscribers_) {
+	    if (err) throw err;
+
+	    subscribers = subscribers_;
+	    t.commit(this);
+	}, function(err) {
+	    if (err) { cb(err); return; }
+
+	    if (notify) {
+		subscribers.forEach(function(subscriber) {
+		    callFrontend('retracted', subscriber, node, itemIds);
+		});
+	    }
 	    cb(null);
 	});
     });

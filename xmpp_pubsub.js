@@ -7,7 +7,9 @@ var NS_PUBSUB_EVENT = 'http://jabber.org/protocol/pubsub#event';
 var controller;
 exports.setController = function(c) {
     controller = c;
-    controller.hookFrontend('xmpp', { notifySubscriber: notifySubscriber });
+    controller.hookFrontend('xmpp', { notify: notify,
+				      retracted: retracted
+				    });
 };
 
 
@@ -110,10 +112,33 @@ function handleIqSet(iq) {
 	    controller.publishItems('xmpp:' + jid, publishNode, items, replyCb);
 	    return;
 	}
+	/*
+	 * <iq type='set'
+	 *     from='hamlet@denmark.lit/elsinore'
+	 *     to='pubsub.shakespeare.lit'
+	 *     id='retract1'>
+	 *   <pubsub xmlns='http://jabber.org/protocol/pubsub'>
+	 *     <retract node='princely_musings'>
+	 *       <item id='ae890ac52d0df67ed7cfdf51b644e901'/>
+	 *     </retract>
+	 *   </pubsub>
+	 * </iq>
+	 */
+	var retractEl = pubsubEl.getChild('retract');
+	var retractNode = retractEl && retractEl.attrs.node;
+	if (retractEl && retractNode) {
+	    var itemIds = retractEl.getChildren('item').map(function(itemEl) {
+		return itemEl.attrs.id;
+	    });
+	    var notify = retractEl.attrs.notify &&
+		    (retractEl.attrs.notify === '1' ||
+		     retractEl.attrs.notify === 'true');
+	    controller.retractItems('xmpp:' + jid, retractNode, itemIds, notify, replyCb);
+	}
     }
 }
 
-function notifySubscriber(jid, node, items) {
+function notify(jid, node, items) {
     var itemsEl = new xmpp.Element('message', { to: jid,
 						from: conn.jid.toString()
 					      }).
@@ -126,5 +151,17 @@ function notifySubscriber(jid, node, items) {
 		itemEl.cnode(child);
 	    });
 	}
+    conn.send(itemsEl.root());
+}
+
+function retracted(jid, node, itemIds) {
+    var itemsEl = new xmpp.Element('message', { to: jid,
+						from: conn.jid.toString()
+					      }).
+	          c('event', { xmlns: NS_PUBSUB_EVENT }).
+		  c('items', { node: node });
+    itemIds.forEach(function(itemId) {
+	itemsEl.c('retract', { id: itemId });
+    });
     conn.send(itemsEl.root());
 }
