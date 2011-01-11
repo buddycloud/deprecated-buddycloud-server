@@ -39,7 +39,8 @@ exports.publishItems = function(publisher, node, items, cb) {
 		    if (err) { cb(err); return; }
 
 		    subscribers.forEach(function(subscriber) {
-			/* TODO: broadcast */
+			/* broadcast */
+			callFrontend('notify', subscriber, node, items);
 		    });
 		});
 	    });
@@ -49,12 +50,29 @@ exports.publishItems = function(publisher, node, items, cb) {
 
 
 var frontends = {};
+/**
+ * Hook frontend for uri prefix
+ */
 exports.hookFrontend = function(proto, hooks) {
     frontends[proto] = hooks;
 };
 
+/**
+ * Call named hook by uri prefix
+ */
 function callFrontend(hook, uri) {
-    /* TODO: slice args */
+    var colonPos = uri.indexOf(':');
+    if (colonPos > 0) {
+	var proto = uri.substr(0, colonPos);
+	uri = uri.substr(colonPos + 1);
+    } else
+	return;
 
-    uriA = 
+    var args = [].concat(arguments).slice(1);
+    var frontend = frontends.hasOwnProperty(proto) && frontends[proto];
+    var hookFun = frontend && frontend.hasOwnProperty(hook) && frontend[hook];
+
+    if (hookFun) {
+	return hookFun.apply(frontend, args);
+    }
 };
