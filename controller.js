@@ -23,7 +23,7 @@ exports.createNode = function(owner, node, cb) {
 };
 
 /*
- * cb(affiliation, error)
+ * 
  */
 exports.subscribeNode = function(subscriber, node, cb) {
     model.transaction(function(err, t) {
@@ -94,6 +94,38 @@ exports.retractItems = function(retracter, node, itemIds, notify, cb) {
 		});
 	    }
 	    this(null);
+	}, cb);
+    });
+};
+
+exports.getItems = function(requester, node, cb) {
+    model.transaction(function(err, t) {
+	var ids, items;
+	step(function() {
+	    t.getItemIds(node, this);
+	}, function(err, ids_) {
+	    if (err) throw err;
+
+	    ids = ids_;
+	    var g = this.group();
+	    ids.forEach(function(id) {
+		t.getItem(node, id, g());
+	    });
+	}, function(err, items_) {
+	    if (err) throw err;
+
+	    items = items_;
+	    t.commit(this);
+	}, function(err) {
+	    if (err) throw err;
+
+	    /* Assemble ids & items lists into result dictionary */
+	    var result = {};
+	    var id, item;
+	    while((id = ids.shift()) && (item = items.shift())) {
+		result[id] = item;
+	    }
+	    this(null, result);
 	}, cb);
     });
 };

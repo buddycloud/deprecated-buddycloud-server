@@ -38,6 +38,9 @@ exports.start = function(config) {
     });
 };
 
+/**
+ * Request handling
+ */
 function handleIq(iq) {
     var reply = new xmpp.Element('iq',
 				 { from: iq.attrs.to,
@@ -46,15 +49,26 @@ function handleIq(iq) {
 				   type: 'result'
 				 });
     var errorReply = function(err) {
+	if (err.stack)
+	    console.error(err.stack);
+	else
+	    console.error({err:err});
+
 	reply.attrs.type = 'error';
-	reply.c('error', { type: 'cancel' });
+	reply.c('error', { type: 'cancel' }).
+	    c('text').t('' + c.message);
 	return reply;
     };
-    var replyCb = function(err) {
-	if (!err)
-	    conn.send(reply);
-	else
+    var replyCb = function(err, child) {
+	if (err)
+	    /* Error case */
 	    conn.send(errorReply(err));
+	else if (!err && child && child.root)
+	    /* Result with info element */
+	    conn.send(reply.cnode(child.root()));
+	else
+	    /* Result, empty */
+	    conn.send(reply);
     };
 
     var jid = new xmpp.JID(iq.attrs.from).bare().toString();
@@ -136,6 +150,7 @@ function handleIq(iq) {
 		    (retractEl.attrs.notify === '1' ||
 		     retractEl.attrs.notify === 'true');
 	    controller.retractItems('xmpp:' + jid, retractNode, itemIds, notify, replyCb);
+	    return;
 	}
 	/*
 	 * <iq type='get'
@@ -150,17 +165,37 @@ function handleIq(iq) {
 	var itemsEl = pubsubEl.getChild('items');
 	var itemsNode = itemsEl && itemsEl.attrs.node;
 	if (iq.attrs.type === 'get' && itemsEl && itemsNode) {
-	    /* TODO: */
-	    var itemIds = retractEl.getChildren('item').map(function(itemEl) {
-		return itemEl.attrs.id;
+	    /* TODO: check stanza size & support RSM */
+	    controller.getItems('xmpp:' + jid, itemsNode, function(err, items) {
+		if (err)
+		    replyCb(err);
+		else {
+		    var itemsEl = new xmpp.Element('pubsub', { xmlns: NS_PUBSUB }).
+				      c('items', { node: itemsNode });
+		    for(var id in items) {
+			var itemEl = itemsEl.c('item', { id: id  });
+			items[id].forEach(function(el) {
+			    if (el.name)
+				itemEl.cnode(el);
+			});
+		    }
+console.log({itemsEl:itemsEl.toString()});
+		    replyCb(null, itemsEl);
+		}
 	    });
-	    var notify = retractEl.attrs.notify &&
-		    (retractEl.attrs.notify === '1' ||
-		     retractEl.attrs.notify === 'true');
-	    controller.retractItems('xmpp:' + jid, retractNode, itemIds, notify, replyCb);
+	    return;
+	}
+
+	/* Not yet returned? Catch all: */
+	if (iq.attrs.type === 'get' || iq.attrs.type === 'set') {
+	    replyCb(new Error('unimplemented'));
 	}
     }
 }
+
+/**
+ * Hooks for controller
+ */
 
 function notify(jid, node, items) {
     var itemsEl = new xmpp.Element('message', { to: jid,

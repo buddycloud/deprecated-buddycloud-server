@@ -10,28 +10,29 @@ var db = new(cradle.Connection)().database('channel-server');
  * Initialize views
  */
 db.save('_design/channel-server',
-	{ nodeItems: {
-	      map: function(doc) {
-		  var delim = doc._id.indexOf('&');
-		  if (delim > 0) {
-		      var node = doc._id.substr(0, delim);
-		      var itemId = doc._id.substr(delim + 1);
-		      emit(node, { id: itemId,
-				   date: doc.date
-				 });
+	{ views: {
+	      nodeItems: {
+		  map: function(doc) {
+		      var delim = doc._id.indexOf('&');
+		      if (delim > 0) {
+			  var node = doc._id.substr(0, delim);
+			  var itemId = doc._id.substr(delim + 1);
+			  emit(node, { id: itemId,
+				       date: doc.date
+				     });
+		      }
+		  },
+		  reduce: function(keys, values, rereduce) {
+		      return values.sort(function(a, b) {
+			  if (a.date < b.date)
+			      return -1;
+			  else if (a.date > b.date)
+			      return 1;
+			  else
+			      return 0;
+		      });
 		  }
-	      },
-	      reduce: function(key, values, rereduce) {
-		  return values.sort(function(a, b) {
-		      if (a.date < b.date)
-			  return -1;
-		      else if (a.date > b.date)
-			  return 1;
-		      else
-			  return 0;
-		  });
-	      }
-	  } });
+	  } } });
 
 
 /**
@@ -125,6 +126,24 @@ Transaction.prototype.deleteItem = function(node, itemId, cb) {
  * sorted by time
  */
 Transaction.prototype.getItemIds = function(node, cb) {
+    db.view('channel-server/nodeItems', { group: true,
+					  key: node }, function(err, res) {
+        if (err) {
+	    cb(err);
+	    return;
+	}
+
+        var rows = res.toJSON().rows;
+	var ids = [];
+	rows.forEach(function(row) {
+	    if (row.key === node) {
+		ids = row.value.map(function(v) {
+		    return v.id;
+		});
+	    }
+	});
+	cb(null, ids);
+    });
 };
 
 Transaction.prototype.getItem = function(node, id, cb) {
@@ -138,9 +157,9 @@ Transaction.prototype.getItem = function(node, id, cb) {
 	try {
 	    item = ltx.parse(res.toJSON().xml).children;
 	} catch (e) {
+	    console.error('Parsing ' + JSON.stringify({node:node,id:id}) + ': ' + e.stack);
 	    item = [];
 	}
 	cb(null, item);
-
     });
 };
