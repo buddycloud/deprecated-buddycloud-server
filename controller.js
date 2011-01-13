@@ -61,6 +61,22 @@ exports.getSubscriptions = function(subscriber, cb) {
     });
 };
 
+exports.getSubscribers = function(user, node, cb) {
+    model.transaction(function(err, t) {
+	var subscribers;
+	step(function() {
+	    t.getSubscribers(node, this);
+	}, function(err, subscribers_) {
+	    if (err) throw err;
+
+	    subscribers = subscribers_;
+	    t.commit(this);
+	}, function(err) {
+	    cb(err, subscribers);
+	});
+    });
+};
+
 exports.getAffiliations = function(user, cb) {
     model.transaction(function(err, t) {
 	var affiliations;

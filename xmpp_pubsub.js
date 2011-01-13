@@ -3,6 +3,7 @@ var uuid = require('node-uuid');
 
 var NS_PUBSUB = 'http://jabber.org/protocol/pubsub';
 var NS_PUBSUB_EVENT = 'http://jabber.org/protocol/pubsub#event';
+var NS_PUBSUB_OWNER = 'http://jabber.org/protocol/pubsub#owner';
 
 /* Set by main.js */
 var controller;
@@ -237,6 +238,30 @@ function handleIq(iq) {
 							});
 		    }
 		    replyCb(null, affiliationsEl);
+		}
+	    });
+	    return;
+	}
+    }
+    var pubsubOwnerEl = iq.getChild('pubsub', NS_PUBSUB_OWNER);
+    if (pubsubOwnerEl) {
+	var subscriptionsEl = pubsubOwnerEl.getChild('subscriptions');
+	var subscriptionsNode = subscriptionsEl && subscriptionsEl.attrs.node;
+	if (iq.attrs.type === 'get' && subscriptionsEl && subscriptionsNode) {
+	    controller.getSubscribers('xmpp:' + jid, subscriptionsNode, function(err, subscribers) {
+		if (err)
+		    replyCb(err);
+		else {
+		    var subscriptionsEl = new xmpp.Element('pubsub', { xmlns: NS_PUBSUB_OWNER }).
+					      c('subscriptions', { node: subscriptionsNode });
+		    subscribers.forEach(function(subscriber) {
+			var m;
+			if ((m = subscriber.match(/^xmpp:(.+)$/)))
+			    subscriptionsEl.c('subscription', { jid: m[1],
+								subscription: 'subscribed'
+							      });
+		    });
+		    replyCb(null, subscriptionsEl);
 		}
 	    });
 	    return;
