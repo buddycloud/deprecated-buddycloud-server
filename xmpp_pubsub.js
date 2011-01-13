@@ -56,7 +56,7 @@ function handleIq(iq) {
 
 	reply.attrs.type = 'error';
 	reply.c('error', { type: 'cancel' }).
-	    c('text').t('' + c.message);
+	    c('text').t('' + err.message);
 	return reply;
     };
     var replyCb = function(err, child) {
