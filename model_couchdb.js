@@ -41,17 +41,44 @@ db.save('_design/channel-server',
 			  /* is node */
 			  var node = doc._id;
 
-			  if (doc.subscribers)
-			      doc.subscribers.forEach(function(subscriber) {
-				  emit(subscriber, { subscriber: node });
-			      });
 			  if (doc.publishers)
 			      doc.publishers.forEach(function(publisher) {
-				  emit(publisher, { publisher: node });
+				  var r = {};
+				  r[node] = 'publisher';
+				  emit(publisher, r);
 			      });
 			  if (doc.owners)
 			      doc.owners.forEach(function(owner) {
-				  emit(owner, { owner: node });
+				  var r = {};
+				  r[node] = 'owner';
+				  emit(owner, r);
+			      });
+		      }
+		  },
+		  reduce: function(keys, values, rereduce) {
+		      var r = {};
+		      values.forEach(function(v) {
+			  for(var node in v) {
+			      var role = v[node];
+			      if (role === 'owner')
+				  r[node] = 'owner';
+			      else if (role === 'publisher' &&
+				       r[node] !== 'owner')
+			          r[node] = 'publisher';
+			  }
+		      });
+		      return r;
+		  }
+	      },
+	      subscriptions: {
+		  map: function(doc) {
+		      if (doc._id.indexOf('&') < 0) {
+			  /* is node */
+			  var node = doc._id;
+
+			  if (doc.subscribers)
+			      doc.subscribers.forEach(function(subscriber) {
+				  emit(subscriber, node);
 			      });
 		      }
 		  },

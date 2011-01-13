@@ -179,17 +179,73 @@ function handleIq(iq) {
 				itemEl.cnode(el);
 			});
 		    }
-console.log({itemsEl:itemsEl.toString()});
 		    replyCb(null, itemsEl);
 		}
 	    });
 	    return;
 	}
-
-	/* Not yet returned? Catch all: */
-	if (iq.attrs.type === 'get' || iq.attrs.type === 'set') {
-	    replyCb(new Error('unimplemented'));
+	/*
+	 * <iq type='get'
+	 *     from='francisco@denmark.lit/barracks'
+	 *     to='pubsub.shakespeare.lit'
+	 *     id='subscriptions1'>
+	 *   <pubsub xmlns='http://jabber.org/protocol/pubsub'>
+	 *     <subscriptions/>
+	 *   </pubsub>
+	 * </iq>
+	 */
+	var subscriptionsEl = pubsubEl.getChild('subscriptions');
+	if (iq.attrs.type === 'get' && subscriptionsEl) {
+	    controller.getSubscriptions('xmpp:' + jid, function(err, nodes) {
+		if (err)
+		    replyCb(err);
+		else {
+		    var subscriptionsEl = new xmpp.Element('pubsub', { xmlns: NS_PUBSUB }).
+					      c('subscriptions');
+		    nodes.forEach(function(node) {
+			subscriptionsEl.c('subscription', { node: node,
+							    jid: jid,
+							    subscription: 'subscribed'
+							  });
+		    });
+		    replyCb(null, subscriptionsEl);
+		}
+	    });
+	    return;
 	}
+	/*
+	 * <iq type='get'
+	 *     from='francisco@denmark.lit/barracks'
+	 *     to='pubsub.shakespeare.lit'
+	 *     id='affil1'>
+	 *   <pubsub xmlns='http://jabber.org/protocol/pubsub'>
+	 *     <affiliations/>
+	 *   </pubsub>
+	 * </iq>
+	 */
+	var affiliationsEl = pubsubEl.getChild('affiliations');
+	if (iq.attrs.type === 'get' && affiliationsEl) {
+	    controller.getAffiliations('xmpp:' + jid, function(err, affiliations) {
+		if (err)
+		    replyCb(err);
+		else {
+		    var affiliationsEl = new xmpp.Element('pubsub', { xmlns: NS_PUBSUB }).
+					     c('affiliations');
+		    for(var node in affiliations) {
+			affiliationsEl.c('affiliation', { node: node,
+							  affiliation: affiliations[node]
+							});
+		    }
+		    replyCb(null, affiliationsEl);
+		}
+	    });
+	    return;
+	}
+    }
+
+    /* Not yet returned? Catch all: */
+    if (iq.attrs.type === 'get' || iq.attrs.type === 'set') {
+	replyCb(new Error('unimplemented'));
     }
 }
 

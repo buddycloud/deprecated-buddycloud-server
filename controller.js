@@ -45,6 +45,38 @@ exports.subscribeNode = function(subscriber, node, cb) {
     });
 };
 
+exports.getSubscriptions = function(subscriber, cb) {
+    model.transaction(function(err, t) {
+	var subscriptions;
+	step(function() {
+	    t.getSubscriptions(subscriber, this);
+	}, function(err, subscriptions_) {
+	    if (err) throw err;
+
+	    subscriptions = subscriptions_;
+	    t.commit(this);
+	}, function(err) {
+	    cb(err, subscriptions);
+	});
+    });
+};
+
+exports.getAffiliations = function(user, cb) {
+    model.transaction(function(err, t) {
+	var affiliations;
+	step(function() {
+	    t.getAffiliations(user, this);
+	}, function(err, affiliations_) {
+	    if (err) throw err;
+
+	    affiliations = affiliations_;
+	    t.commit(this);
+	}, function(err) {
+	    cb(err, affiliations);
+	});
+    });
+};
+
 exports.publishItems = function(publisher, node, items, cb) {
     model.transaction(function(err, t) {
 	var subscribers;
