@@ -23,6 +23,8 @@ db.save('_design/channel-server',
 		      }
 		  },
 		  reduce: function(keys, values, rereduce) {
+		      if (rereduce)
+			  values = [].concat(values);
 		      return values.sort(function(a, b) {
 			  if (a.date < b.date)
 			      return -1;
@@ -32,7 +34,32 @@ db.save('_design/channel-server',
 			      return 0;
 		      });
 		  }
-	  } } });
+	      },
+	      affiliations: {
+		  map: function(doc) {
+		      if (doc._id.indexOf('&') < 0) {
+			  /* is node */
+			  var node = doc._id;
+
+			  if (doc.subscribers)
+			      doc.subscribers.forEach(function(subscriber) {
+				  emit(subscriber, { subscriber: node });
+			      });
+			  if (doc.publishers)
+			      doc.publishers.forEach(function(publisher) {
+				  emit(publisher, { publisher: node });
+			      });
+			  if (doc.owners)
+			      doc.owners.forEach(function(owner) {
+				  emit(owner, { owner: node });
+			      });
+		      }
+		  },
+		  reduce: function(keys, values, rereduce) {
+		      return rereduce ? [].concat(values) : values;
+		  }
+	      }
+	  } });
 
 
 /**
