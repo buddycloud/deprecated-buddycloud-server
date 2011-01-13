@@ -7,7 +7,7 @@ exports.setModel = function(m) {
 };
 
 exports.createNode = function(owner, node, cb) {
-    var nodeM = node.match(/^\/user\/(.+?)\/(.+)$/);
+    var nodeM = node.match(/^\/user\/(.+?)\/([a-zA-Z0-9\/_\-]+)$/);
     var userM = owner.match(/^(.+?):(.+)$/);
     if (!nodeM || nodeM[1] !== userM[2]) {
 	cb(new Error('forbidden'));
@@ -16,7 +16,11 @@ exports.createNode = function(owner, node, cb) {
 
     model.transaction(function(err, t) {
 	step(function() {
-	    t.createNode(owner, node, this);
+	    t.createNode(node, this);
+	}, function(err) {
+	    if (err) throw err;
+
+	    t.addOwner(owner, node, this);
 	}, function(err) {
 	    if (err) throw err;
 
