@@ -6,6 +6,65 @@ exports.setModel = function(m) {
     model = m;
 };
 
+var FEATURES = {
+    'create-nodes': {
+	create: {
+	    needOwner: true,
+	    transaction: function(t) {
+		step(function() {
+			 t.createNode(node, this);
+		     }, function(err) {
+			 if (err) throw err;
+
+			 t.addOwner(owner, node, this);
+		     }, function(err) {
+			 if (err) throw err;
+
+			 t.subscribeNode(owner, node, this);
+		     }, function(err) {
+			 if (err) throw err;
+
+			 t.commit(this);
+		     }, cb);
+	    }
+	}
+    },
+    subscribe: {
+	subscribe: {
+	}
+    },
+    publish: {
+	publish: {
+	}
+    },
+    'retract-items': {
+	retract: {
+	}
+    },
+    'retrieve-items': {
+	retrieve: {
+	}
+    },
+    'retrieve-subscriptions': {
+	retrieve: {
+	}
+    },
+    'retrieve-affiliations': {
+	retrieve: {
+	}
+    },
+    'manage-subscriptions': {
+	retrieve: {
+	}
+    }
+};
+
+exports.request = function(req) {
+    var feature = FEATURES[req.feature];
+    var operation = feature && feature[req.operation];
+
+};
+
 exports.createNode = function(owner, node, cb) {
     var nodeM = node.match(/^\/user\/(.+?)\/([a-zA-Z0-9\/_\-]+)$/);
     var userM = owner.match(/^(.+?):(.+)$/);

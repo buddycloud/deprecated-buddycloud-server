@@ -88,7 +88,12 @@ function handleIq(iq) {
 	var createEl = pubsubEl.getChild('create');
 	var createNode = createEl && createEl.attrs.node;
 	if (iq.attrs.type === 'set' && createEl && createNode) {
-	    controller.createNode('xmpp:' + jid, createNode, replyCb);
+	    controller.request({ feature: 'create-nodes',
+				 operation: 'create',
+				 from: 'xmpp:' + jid,
+				 node: createNode,
+				 callback: replyCb
+			       });
 	    return;
 	}
 	/*
@@ -105,7 +110,12 @@ function handleIq(iq) {
 	var subscribeNode = subscribeEl && subscribeEl.attrs.node;
 	if (iq.attrs.type === 'set' && subscribeEl && subscribeNode) {
 	    /* TODO: reply is more complex */
-	    controller.subscribeNode('xmpp:' + jid, subscribeNode, replyCb);
+	    controller.request({ feature: 'subscribe',
+				 operation: 'subscribe',
+				 from: 'xmpp:' + jid,
+				 node: subscribeNode,
+				 callback: replyCb
+			       });
 	    return;
 	}
 	/*
@@ -126,7 +136,13 @@ function handleIq(iq) {
 		var itemNode = itemEl.attrs.node || uuid();
 		items[itemNode] = itemEl.children;
 	    });
-	    controller.publishItems('xmpp:' + jid, publishNode, items, replyCb);
+	    controller.request({ feature: 'publish',
+				 operation: 'publish',
+				 from: 'xmpp:' + jid,
+				 node: publishNode,
+				 items: items,
+				 callback: replyCb
+			       });
 	    return;
 	}
 	/*
@@ -150,7 +166,14 @@ function handleIq(iq) {
 	    var notify = retractEl.attrs.notify &&
 		    (retractEl.attrs.notify === '1' ||
 		     retractEl.attrs.notify === 'true');
-	    controller.retractItems('xmpp:' + jid, retractNode, itemIds, notify, replyCb);
+	    controller.request({ feature: 'retract-items',
+				 operation: 'retract',
+				 from: 'xmpp:' + jid,
+				 node: retractNode,
+				 itemIds: itemIds,
+				 notify: notify,
+				 callback: replyCb
+			       });
 	    return;
 	}
 	/*
@@ -167,7 +190,11 @@ function handleIq(iq) {
 	var itemsNode = itemsEl && itemsEl.attrs.node;
 	if (iq.attrs.type === 'get' && itemsEl && itemsNode) {
 	    /* TODO: check stanza size & support RSM */
-	    controller.getItems('xmpp:' + jid, itemsNode, function(err, items) {
+	    controller.request({ feature: 'retrieve-items',
+				 operation: 'retrieve',
+				 from: 'xmpp:' + jid,
+				 node: itemsNode,
+				 callback: function(err, items) {
 		if (err)
 		    replyCb(err);
 		else {
@@ -182,7 +209,7 @@ function handleIq(iq) {
 		    }
 		    replyCb(null, itemsEl);
 		}
-	    });
+	    } });
 	    return;
 	}
 	/*
@@ -197,7 +224,10 @@ function handleIq(iq) {
 	 */
 	var subscriptionsEl = pubsubEl.getChild('subscriptions');
 	if (iq.attrs.type === 'get' && subscriptionsEl) {
-	    controller.getSubscriptions('xmpp:' + jid, function(err, nodes) {
+	    controller.request({ feature: 'retrieve-subscriptions',
+				 operation: 'retrieve',
+				 from: 'xmpp:' + jid,
+				 callback: function(err, nodes) {
 		if (err)
 		    replyCb(err);
 		else {
@@ -211,7 +241,7 @@ function handleIq(iq) {
 		    });
 		    replyCb(null, subscriptionsEl);
 		}
-	    });
+	    } });
 	    return;
 	}
 	/*
@@ -226,7 +256,10 @@ function handleIq(iq) {
 	 */
 	var affiliationsEl = pubsubEl.getChild('affiliations');
 	if (iq.attrs.type === 'get' && affiliationsEl) {
-	    controller.getAffiliations('xmpp:' + jid, function(err, affiliations) {
+	    controller.request({ feature: 'retrieve-affiliations',
+				 operation: 'retrieve',
+				 from: 'xmpp:' + jid,
+				 callback: function(err, affiliations) {
 		if (err)
 		    replyCb(err);
 		else {
@@ -239,16 +272,31 @@ function handleIq(iq) {
 		    }
 		    replyCb(null, affiliationsEl);
 		}
-	    });
+	    } });
 	    return;
 	}
     }
+
     var pubsubOwnerEl = iq.getChild('pubsub', NS_PUBSUB_OWNER);
     if (pubsubOwnerEl) {
+	/*
+	 * <iq type='get'
+	 *     from='hamlet@denmark.lit/elsinore'
+	 *     to='pubsub.shakespeare.lit'
+	 *     id='subman1'>
+	 *   <pubsub xmlns='http://jabber.org/protocol/pubsub#owner'>
+	 *     <subscriptions node='princely_musings'/>
+	 *   </pubsub>
+	 * </iq>
+	 */
 	var subscriptionsEl = pubsubOwnerEl.getChild('subscriptions');
 	var subscriptionsNode = subscriptionsEl && subscriptionsEl.attrs.node;
 	if (iq.attrs.type === 'get' && subscriptionsEl && subscriptionsNode) {
-	    controller.getSubscribers('xmpp:' + jid, subscriptionsNode, function(err, subscribers) {
+	    controller.request({ feature: 'manage-subscriptions',
+				 operation: 'retrieve',
+				 from: 'xmpp:' + jid,
+				 node: subscriptionsNode,
+				 callback: function(err, subscribers) {
 		if (err)
 		    replyCb(err);
 		else {
@@ -263,7 +311,7 @@ function handleIq(iq) {
 		    });
 		    replyCb(null, subscriptionsEl);
 		}
-	    });
+	    } });
 	    return;
 	}
     }
