@@ -10,51 +10,119 @@ var FEATURES = {
     'create-nodes': {
 	create: {
 	    needOwner: true,
-	    transaction: function(t) {
+	    transaction: function(req, t, cb) {
 		step(function() {
-			 t.createNode(node, this);
+			 t.createNode(req.node, this);
 		     }, function(err) {
 			 if (err) throw err;
 
-			 t.addOwner(owner, node, this);
+			 t.addOwner(req.from, req.node, this);
 		     }, function(err) {
 			 if (err) throw err;
 
-			 t.subscribeNode(owner, node, this);
-		     }, function(err) {
-			 if (err) throw err;
-
-			 t.commit(this);
+			 t.subscribeNode(req.from, req.node, this);
 		     }, cb);
 	    }
 	}
     },
     subscribe: {
 	subscribe: {
+	    transaction: function(req, t, cb) {
+		t.subscribeNode(req.from, req.node, cb);
+	    }
 	}
     },
     publish: {
 	publish: {
+	    /* TODO: check perms */
+	    transaction: function(req, t, cb) {
+		var subscribers;
+
+		step(function() {
+			 var g = this.group();
+			 for(var id in req.items) {
+			     if (req.items.hasOwnProperty(id))
+				 t.writeItem(req.from, req.node, id, req.items[id], g());
+			 }
+		     }, cb);
+	    },
+	    /* TODO: */
+	    subscriberNotification: function(req, subscribers) {
+		subscribers.forEach(function(subscriber) {
+		    callFrontend('notify', subscriber, req.node, req.items);
+		});
+	    }
 	}
     },
     'retract-items': {
 	retract: {
+	    transaction: function(req, t, cb) {
+		var subscribers;
+
+		/* TODO: check perms */
+		step(function() {
+			 var g = this.group();
+			 req.itemIds.forEach(function(itemId) {
+			     t.deleteItem(req.node, itemId, g());
+			 });
+		     }, cb);
+	    },
+	    /* TODO: */
+	    subscriberNotification: function(req, subscribers) {
+		subscribers.forEach(function(subscriber) {
+		    callFrontend('retracted', subscriber, req.node, req.itemIds);
+		});
+	    }
 	}
     },
     'retrieve-items': {
 	retrieve: {
+	    transaction: function(req, t, cb) {
+		var ids, items;
+		step(function() {
+			 t.getItemIds(req.node, this);
+		     }, function(err, ids_) {
+			 if (err) throw err;
+
+			 ids = ids_;
+			 var g = this.group();
+			 ids.forEach(function(id) {
+					 t.getItem(req.node, id, g());
+				     });
+		     }, function(err, items) {
+			 if (err) throw err;
+
+			 /* Assemble ids & items lists into result dictionary */
+			 var result = {};
+			 var id, item;
+			 while((id = ids.shift()) && (item = items.shift())) {
+			     result[id] = item;
+			 }
+			 this(null, result);
+		     }, cb);
+	    }
 	}
     },
     'retrieve-subscriptions': {
 	retrieve: {
+	    transaction: function(req, t, cb) {
+		t.getSubscriptions(req.from, cb);
+	    }
 	}
     },
     'retrieve-affiliations': {
 	retrieve: {
+	    transaction: function(req, t, cb) {
+		t.getAffiliations(req.from, cb);
+	    }
 	}
     },
     'manage-subscriptions': {
 	retrieve: {
+	    needOwner: true,  /* TODO: actually, only publisher required */
+	    transaction: function(req, t, cb) {
+		t.getAffiliations(req.node, cb);
+	    }
 	}
     }
 };
@@ -63,191 +131,43 @@ exports.request = function(req) {
     var feature = FEATURES[req.feature];
     var operation = feature && feature[req.operation];
 
-};
-
-exports.createNode = function(owner, node, cb) {
-    var nodeM = node.match(/^\/user\/(.+?)\/([a-zA-Z0-9\/_\-]+)$/);
-    var userM = owner.match(/^(.+?):(.+)$/);
-    if (!nodeM || nodeM[1] !== userM[2]) {
-	cb(new Error('forbidden'));
+    if (!operation) {
+	req.callback(new Error('not-implemented'));
 	return;
     }
 
+    if (operation.needOwner) {
+	/* If ownership were not hard-coded anymore this had to be
+	 * moved inside the transaction.
+	 */
+	var nodeM = req.node.match(/^\/user\/(.+?)\/([a-zA-Z0-9\/_\-]+)$/);
+	var userM = req.from.match(/^(.+?):(.+)$/);
+	if (!nodeM || nodeM[1] !== userM[2]) {
+	    cb(new Error('forbidden'));
+	    return;
+	}
+    }
+
     model.transaction(function(err, t) {
-	step(function() {
-	    t.createNode(node, this);
-	}, function(err) {
-	    if (err) throw err;
+	if (err) {
+	    req.callback(err);
+	    return;
+	}
 
-	    t.addOwner(owner, node, this);
-	}, function(err) {
-	    if (err) throw err;
-
-	    t.subscribeNode(owner, node, this);
-	}, function(err) {
-	    if (err) throw err;
-
-	    t.commit(this);
-	}, cb);
-    });
-};
-
-/*
- * 
- */
-exports.subscribeNode = function(subscriber, node, cb) {
-    model.transaction(function(err, t) {
-	/* TODO: check node, check perms */
-	t.subscribeNode(subscriber, node, function(err) {
-	    t.commit(cb);
+	operation.transaction(req, t, function(err) {
+	    if (err)
+		t.rollback(requestFinalizer(req, arguments));
+	    else
+		t.commit(requestFinalizer(req, arguments));
 	});
     });
 };
 
-exports.getSubscriptions = function(subscriber, cb) {
-    model.transaction(function(err, t) {
-	var subscriptions;
-	step(function() {
-	    t.getSubscriptions(subscriber, this);
-	}, function(err, subscriptions_) {
-	    if (err) throw err;
-
-	    subscriptions = subscriptions_;
-	    t.commit(this);
-	}, function(err) {
-	    cb(err, subscriptions);
-	});
-    });
-};
-
-exports.getSubscribers = function(user, node, cb) {
-    model.transaction(function(err, t) {
-	var subscribers;
-	step(function() {
-	    t.getSubscribers(node, this);
-	}, function(err, subscribers_) {
-	    if (err) throw err;
-
-	    subscribers = subscribers_;
-	    t.commit(this);
-	}, function(err) {
-	    cb(err, subscribers);
-	});
-    });
-};
-
-exports.getAffiliations = function(user, cb) {
-    model.transaction(function(err, t) {
-	var affiliations;
-	step(function() {
-	    t.getAffiliations(user, this);
-	}, function(err, affiliations_) {
-	    if (err) throw err;
-
-	    affiliations = affiliations_;
-	    t.commit(this);
-	}, function(err) {
-	    cb(err, affiliations);
-	});
-    });
-};
-
-exports.publishItems = function(publisher, node, items, cb) {
-    model.transaction(function(err, t) {
-	var subscribers;
-	if (err) { cb(err); return; }
-
-	/* TODO: check perms */
-	step(function() {
-	    var g = this.group();
-	    for(var id in items) {
-		if (items.hasOwnProperty(id))
-		    t.writeItem(publisher, node, id, items[id], g());
-	    }
-	}, function(err) {
-	    if (err) throw err;
-
-	    t.getSubscribers(node, this);
-	}, function(err, subscribers_) {
-	    if (err) throw err;
-
-	    subscribers = subscribers_;
-	    t.commit(this);
-	}, function(err) {
-	    if (err) throw err;
-
-	    subscribers.forEach(function(subscriber) {
-		callFrontend('notify', subscriber, node, items);
-	    });
-	    this(null);
-	}, cb);
-    });
-};
-
-exports.retractItems = function(retracter, node, itemIds, notify, cb) {
-    model.transaction(function(err, t) {
-	var subscribers;
-
-	/* TODO: check perms */
-	step(function() {
-	    var g = this.group();
-	    itemIds.forEach(function(itemId) {
-		t.deleteItem(node, itemId, g());
-	    });
-	}, function(err) {
-	    if (err) throw err;
-
-	    t.getSubscribers(node, this);
-	}, function(err, subscribers_) {
-	    if (err) throw err;
-
-	    subscribers = subscribers_;
-	    t.commit(this);
-	}, function(err) {
-	    if (err) throw err;
-
-	    if (notify) {
-		subscribers.forEach(function(subscriber) {
-		    callFrontend('retracted', subscriber, node, itemIds);
-		});
-	    }
-	    this(null);
-	}, cb);
-    });
-};
-
-exports.getItems = function(requester, node, cb) {
-    model.transaction(function(err, t) {
-	var ids, items;
-	step(function() {
-	    t.getItemIds(node, this);
-	}, function(err, ids_) {
-	    if (err) throw err;
-
-	    ids = ids_;
-	    var g = this.group();
-	    ids.forEach(function(id) {
-		t.getItem(node, id, g());
-	    });
-	}, function(err, items_) {
-	    if (err) throw err;
-
-	    items = items_;
-	    t.commit(this);
-	}, function(err) {
-	    if (err) throw err;
-
-	    /* Assemble ids & items lists into result dictionary */
-	    var result = {};
-	    var id, item;
-	    while((id = ids.shift()) && (item = items.shift())) {
-		result[id] = item;
-	    }
-	    this(null, result);
-	}, cb);
-    });
-};
-
+function requestFinalizer(req, args) {
+    return function() {
+	req.callback.apply(req, args);
+    };
+}
 
 var frontends = {};
 /**
