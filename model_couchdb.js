@@ -24,7 +24,8 @@ db.save('_design/channel-server',
 		  },
 		  reduce: function(keys, values, rereduce) {
 		      if (rereduce)
-			  values = [].concat(values);
+			  values = Array.prototype.concat.apply([], values);
+log({values:values});
 		      return values.sort(function(a, b) {
 			  if (a.date < b.date)
 			      return -1;
@@ -83,7 +84,9 @@ db.save('_design/channel-server',
 		      }
 		  },
 		  reduce: function(keys, values, rereduce) {
-		      return rereduce ? [].concat(values) : values;
+		      if (rereduce)
+			  values = Array.prototype.concat.apply([], values);
+		      return values;
 		  }
 	      }
 	  } });
@@ -102,6 +105,10 @@ function Transaction(cb) {
 }
 
 Transaction.prototype.commit = function(cb) {
+    cb(null);
+};
+
+Transaction.prototype.rollback = function(cb) {
     cb(null);
 };
 
