@@ -35,9 +35,68 @@ exports.start = function(config) {
 		handleIq(stanza);
 		break;
 	    }
-	}
+	} else if (stanza.name === 'presence')
+		handlePresence(stanza);
     });
 };
+
+/**
+ * Presence tracking
+ */
+var onlineResources = {};
+function handlePresence(presence) {
+    var jid = new xmpp.JID(presence.attrs.from);
+    var user = jid.bare().toString();
+    var resource = jid.resource;
+
+    switch(presence.attrs.type) {
+    case 'subscribe':
+	conn.send(new xmpp.Element('presence', {
+				       from: presence.attrs.to,
+				       to: presence.attrs.from,
+				       id: presence.attrs.id,
+				       type: 'subscribed'
+				   }));
+	break;
+    case 'subscribed':
+	break;
+    case 'unsubscribe':
+	conn.send(new xmpp.Element('presence', {
+				       from: presence.attrs.to,
+				       to: presence.attrs.from,
+				       id: presence.attrs.id,
+				       type: 'unsubscribed'
+				   }));
+	break;
+    case 'unsubscribed':
+	break;
+    case 'error':
+	if (!resource) {
+	    delete onlineResources[user];
+	    break;
+	}
+    case 'unavailable':
+	if (onlineResources[user])
+	    onlineResources[user] = onlineResources[user].filter(function(r) {
+		return r != resource;
+	    });
+	break;
+    default:
+	if (!onlineResources.hasOwnProperty(user))
+	    onlineResources[user] = [];
+	if (onlineResources[user].indexOf(resource) < 0)
+	    onlineResources[user].push(resource);
+    }
+}
+function isOnline(jid) {
+    if (!jid.hasOwnProperty('resource'))
+	jid = new xmpp.JID(jid);
+    var user = jid.bare().toString();
+    var resource = jid.resource;
+
+    return onlineResources.hasOwnProperty(user) &&
+	onlineResources[user].indexOf(resource) >= 0;
+}
 
 /**
  * Request handling
@@ -327,6 +386,9 @@ function handleIq(iq) {
  */
 
 function notify(jid, node, items) {
+    if (!isOnline(jid))
+	return;
+
     var itemsEl = new xmpp.Element('message', { to: jid,
 						from: conn.jid.toString()
 					      }).
@@ -343,6 +405,9 @@ function notify(jid, node, items) {
 }
 
 function retracted(jid, node, itemIds) {
+    if (!isOnline(jid))
+	return;
+
     var itemsEl = new xmpp.Element('message', { to: jid,
 						from: conn.jid.toString()
 					      }).
