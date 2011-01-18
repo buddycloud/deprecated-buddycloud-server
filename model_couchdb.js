@@ -25,7 +25,6 @@ db.save('_design/channel-server',
 		  reduce: function(keys, values, rereduce) {
 		      if (rereduce)
 			  values = Array.prototype.concat.apply([], values);
-log({values:values});
 		      return values.sort(function(a, b) {
 			  if (a.date < b.date)
 			      return -1;
@@ -87,6 +86,31 @@ log({values:values});
 		      if (rereduce)
 			  values = Array.prototype.concat.apply([], values);
 		      return values;
+		  }
+	      },
+	      subscribers: {
+		  map: function(doc) {
+		      if (doc._id.indexOf('&') < 0) {
+			  /* is node */
+			  var node = doc._id;
+
+			  if (doc.subscribers)
+			      doc.subscribers.forEach(function(subscriber) {
+				  emit(node, subscriber);
+			      });
+		      }
+		  },
+		  reduce: function(keys, values, rereduce) {
+		      if (rereduce)
+			  values = Array.prototype.concat.apply([], values);
+		      var result = [], seen = {};
+		      values.forEach(function(value) {
+			  if (!seen.hasOwnProperty(value)) {
+			      seen[value] = true;
+			      result.push(value);
+			  }
+		      });
+		      return result;
 		  }
 	      }
 	  } });
@@ -166,6 +190,11 @@ Transaction.prototype.getSubscribers = function(node, cb) {
 Transaction.prototype.getSubscriptions = function(subscriber, cb) {
     db.view('channel-server/subscriptions', { group: true,
 					      key: subscriber }, function(err, res) {
+	if (err) {
+	    cb(err);
+	    return;
+	}
+
 	var subscriptions = [];
         var rows = res.toJSON().rows;
 	rows.forEach(function(row) {
@@ -175,9 +204,30 @@ Transaction.prototype.getSubscriptions = function(subscriber, cb) {
     });
 };
 
+Transaction.prototype.getAllSubscribers = function(cb) {
+    db.view('channel-server/subscribers', { group: false }, function(err, res) {
+	if (err) {
+	    cb(err);
+	    return;
+	}
+
+	var subscribers = [];
+        var rows = res.toJSON().rows;
+	rows.forEach(function(row) {
+	    subscribers.push.apply(subscribers, row.value);
+	});
+	cb(null, subscribers);
+    });
+};
+
 Transaction.prototype.getAffiliations = function(user, cb) {
     db.view('channel-server/affiliations', { group: true,
 					     key: user }, function(err, res) {
+	if (err) {
+	    cb(err);
+	    return;
+	}
+
 	var affiliations = {};
         var rows = res.toJSON().rows;
 	rows.forEach(function(row) {

@@ -20,6 +20,7 @@ var conn;
 
 exports.start = function(config) {
     conn = new xmpp.Component(config.xmpp);
+    conn.on('online', startPresenceTracking);
     conn.on('stanza', function(stanza) {
 
 	console.log(stanza.toString());
@@ -70,6 +71,15 @@ function handlePresence(presence) {
 	break;
     case 'unsubscribed':
 	break;
+    case 'probe':
+	conn.send(new xmpp.Element('presence', {
+				       from: presence.attrs.to,
+				       to: presence.attrs.from,
+				       id: presence.attrs.id
+				   }).
+		  c('status').
+		  t('Small happy channel server!'));
+	break;
     case 'error':
 	if (!resource) {
 	    delete onlineResources[user];
@@ -96,6 +106,22 @@ function isOnline(jid) {
 
     return onlineResources.hasOwnProperty(user) &&
 	onlineResources[user].indexOf(resource) >= 0;
+}
+function startPresenceTracking() {
+    onlineResources = {};
+    controller.getAllSubscribers(function(err, subscribers) {
+	if (!err && subscribers)
+	    subscribers.forEach(function(subscriber) {
+		var m;
+		if ((m = subscriber.match(/^xmpp:(.+)$/))) {
+		    var jid = m[1];
+		    conn.send(new xmpp.Element('presence', { to: jid,
+							     from: conn.jid,
+							     type: 'probe'
+							   }));
+		}
+	    });
+    });
 }
 
 /**

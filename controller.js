@@ -239,6 +239,29 @@ exports.request = function(req) {
     });
 };
 
+exports.getAllSubscribers = function(cb) {
+    model.transaction(function(err, t) {
+	if (err) {
+	    cb(err);
+	    return;	    
+	}
+
+	t.getAllSubscribers(function(err, subscribers) {
+	    if (err) {
+		t.rollback(function() {
+			       cb(err);
+			   });
+		return;
+	    }
+
+	    t.commit(function() {
+		cb(null, subscribers);
+	    });
+	});
+    });
+
+};
+
 var frontends = {};
 /**
  * Hook frontend for uri prefix
