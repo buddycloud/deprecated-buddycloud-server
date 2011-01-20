@@ -53,6 +53,12 @@ db.save('_design/channel-server',
 				  r[node] = 'owner';
 				  emit(owner, r);
 			      });
+			  if (doc.subscribers)
+			      doc.subscribers.forEach(function(subscriber) {
+				  var r = {};
+				  r[node] = 'member';
+				  emit(subscriber, r);
+			      });
 		      }
 		  },
 		  reduce: function(keys, values, rereduce) {
@@ -65,6 +71,10 @@ db.save('_design/channel-server',
 			      else if (role === 'publisher' &&
 				       r[node] !== 'owner')
 			          r[node] = 'publisher';
+			      else if (role === 'member' &&
+				       r[node] !== 'owner' &&
+				       r[node] !== 'publisher')
+			          r[node] = 'member';
 			  }
 		      });
 		      return r;

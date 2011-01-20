@@ -35,6 +35,7 @@ var FEATURES = {
     publish: {
 	publish: {
 	    /* TODO: check perms */
+	    needPublisher: true,
 	    transaction: function(req, t, cb) {
 		var subscribers;
 
@@ -59,6 +60,7 @@ var FEATURES = {
     },
     'retract-items': {
 	retract: {
+	    needPublisher: true,
 	    transaction: function(req, t, cb) {
 		var subscribers;
 
@@ -83,6 +85,7 @@ var FEATURES = {
     },
     'retrieve-items': {
 	retrieve: {
+	    withAffiliation: true,
 	    transaction: function(req, t, cb) {
 		var ids, items;
 		step(function() {
@@ -141,6 +144,7 @@ console.log("item ids: " + JSON.stringify(ids_));
 exports.request = function(req) {
     var feature = FEATURES[req.feature];
     var operation = feature && feature[req.operation];
+    req.affiliation = 'none';
 
     if (!operation) {
 	req.callback(new Error('not-implemented'));
@@ -150,16 +154,17 @@ exports.request = function(req) {
 	console.log(req.from + ' >> ' + req.feature + '/' + req.operation + ': ' + s);
     };
 
-    if (operation.needOwner) {
+    var nodeM = req.node.match(/^\/user\/(.+?)\/([a-zA-Z0-9\/_\-]+)$/);
+    var userM = req.from.match(/^(.+?):(.+)$/);
+    if (nodeM && nodeM[1] === userM[2])
+	req.affiliation = 'owner';
+
+    if (operation.needOwner && req.affiliation !== 'owner') {
 	/* If ownership were not hard-coded anymore this had to be
 	 * moved inside the transaction.
 	 */
-	var nodeM = req.node.match(/^\/user\/(.+?)\/([a-zA-Z0-9\/_\-]+)$/);
-	var userM = req.from.match(/^(.+?):(.+)$/);
-	if (!nodeM || nodeM[1] !== userM[2]) {
-	    req.callback(new Error('forbidden'));
-	    return;
-	}
+	req.callback(new Error('forbidden'));
+	return;
     }
 
     model.transaction(function(err, t) {
@@ -169,23 +174,50 @@ exports.request = function(req) {
 	}
 
 	var transactionResults;
-	/* Run operation transaction first */
-	var steps = [function() {
-			 debug('transaction');
-			 operation.transaction(req, t, this);
-		     }, function(err) {
-			 debug('transaction done');
-			 if (err) throw err;
+	var steps = [];
 
-			 /* Regardless of the following steps, we pass
-			  * the operation's transaction result to the
-			  * final callback.
-			  */
-			 transactionResults = arguments;
-			 /* And continue:
-			  */
-			 this(null);
-		     }];
+	/* Retrieve affiliation if needed */
+	if ((operation.withAffiliation || operation.needPublisher || operation.needMember) &&
+	    req.affiliation === 'none') {
+	    steps.push(function(err) {
+		if (err) throw err;
+
+		t.getAffiliation(req.from, req.node, this);
+	    }, function(err, affiliation) {
+		if (err) throw err;
+
+		req.affiliation = affiliation;
+		if (operation.needPublisher && affiliation === 'publisher')
+		    this(null);
+		else if (operation.needMember &&
+			 (affiliation === 'publisher' || affiliation === 'member'))
+		    this(null);
+		else if (operation.needPublisher || operation.needMember)
+		    this(new Error('permission-denied'));
+		else
+		    this(null);
+	    });
+	}
+
+	/* Run operation transaction first */
+	steps.push(function(err) {
+	    debug('transaction');
+	    if (err) throw err;
+
+	    operation.transaction(req, t, this);
+	}, function(err) {
+	    debug('transaction done');
+	    if (err) throw err;
+
+	    /* Regardless of the following steps, we pass
+	     * the operation's transaction result to the
+	     * final callback.
+	     */
+	    transactionResults = arguments;
+	    /* And continue:
+	     */
+	    this(null);
+	});
         var subscribers;
 	if (operation.subscriberNotification) {
 	    /* For subscriber notification, get the list of subscribers
