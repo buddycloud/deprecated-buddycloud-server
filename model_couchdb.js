@@ -230,6 +230,37 @@ Transaction.prototype.getAllSubscribers = function(cb) {
     });
 };
 
+Transaction.prototype.getAffiliation = function(user, node, cb) {
+    db.get(nodeKey(node), function(err, res) {
+	if (err) {
+	    cb(err);
+	    return;
+	}
+
+	var doc = req && res.toJSON();
+	if (!doc) {
+	    cb(new Error('not-found'));
+	} else {
+	    if (doc.hasOwnProperty('owners') &&
+		doc.owners.indexOf(user) >= 0) {
+		cb(null, 'owner');
+		return;
+	    }
+	    if (doc.hasOwnProperty('publishers') &&
+		doc.publishers.indexOf(user) >= 0) {
+		cb(null, 'publisher');
+		return;
+	    }
+	    if (doc.hasOwnProperty('subscribers') &&
+		doc.subscribers.indexOf(user) >= 0) {
+		cb(null, 'member');
+		return;
+	    }
+	    cb(null, 'none');
+	}
+    });
+};
+
 Transaction.prototype.getAffiliations = function(user, cb) {
     db.view('channel-server/affiliations', { group: true,
 					     key: user }, function(err, res) {
