@@ -1,3 +1,4 @@
+/* TODO: filter for xmpp:* users everywhere */
 var xmpp = require('node-xmpp');
 var uuid = require('node-uuid');
 
@@ -399,6 +400,98 @@ function handleIq(iq) {
 	    } });
 	    return;
 	}
+	/*
+	 * <iq type='set'
+	 *     from='hamlet@denmark.lit/elsinore'
+	 *     to='pubsub.shakespeare.lit'
+	 *     id='subman2'>
+	 *   <pubsub xmlns='http://jabber.org/protocol/pubsub#owner'>
+	 *     <subscriptions node='princely_musings'>
+	 *       <subscription jid='bard@shakespeare.lit' subscription='subscribed'/>
+	 *     </subscriptions>
+	 *   </pubsub>
+	 * </iq>
+	 */
+	 if (iq.attrs.type === 'set' && subscriptionsEl && subscriptionsNode) {
+	     var subscriptions = {};
+	     subscriptionsEl.getChildren('subscription').forEach(function(subscriptionEl) {
+		 var jid = subscriptionEl.attrs.jid;
+		 var subscription = subscriptionEl.attrs.subscription;
+		 if (jid && subscription)
+		     subscriptions['xmpp:' + jid] = subscription;
+	     });
+	     controller.request({ feature: 'manage-subscriptions',
+				  operation: 'modify',
+				  from: 'xmpp:' + jid,
+				  node: subscriptionsNode,
+				  subscriptions: subscriptions,
+				  callback: replyCb
+				});
+	     return;
+	 }
+	/*
+	 * <iq type='get'
+	 *     from='hamlet@denmark.lit/elsinore'
+	 *     to='pubsub.shakespeare.lit'
+	 *     id='ent1'>
+	 *   <pubsub xmlns='http://jabber.org/protocol/pubsub#owner'>
+	 *     <affiliations node='princely_musings'/>
+	 *   </pubsub>
+	 * </iq>
+	 */
+	var affiliationsEl = pubsubOwnerEl.getChild('affiliations');
+	var affiliationsNode = affiliationsEl && affiliationsEl.attrs.node;
+	if (iq.attrs.type === 'get' && affiliationsEl && affiliationsNode) {
+	    controller.request({ feature: 'modify-affiliations',
+				 operation: 'retrieve',
+				 from: 'xmpp:' + jid,
+				 node: affiliationsNode,
+				 callback: function(err, affiliations) {
+	        if (err)
+		    replyCb(err);
+		else {
+		    var affiliationsEl = new xmpp.Element('pubsub', { xmlns: NS_PUBSUB_OWNER }).
+					     c('affiliations', { node: affiliationsNode });
+		    affiliations.forEach(function(affiliation) {
+			var m;
+			if ((m = affiliation.user.match(/^xmpp:(.+)$/)))
+			    affiliationsEl.c('affiliation', { jid: m[1],
+							      affiliation: affiliation.affiliation
+							    });
+		    });
+		    replyCb(null, affiliationsEl);
+		}
+	    } });
+	    return;
+	}
+	/*
+	 * <iq type='set'
+	 *     from='hamlet@denmark.lit/elsinore'
+	 *     to='pubsub.shakespeare.lit'
+	 *     id='ent2'>
+	 *   <pubsub xmlns='http://jabber.org/protocol/pubsub#owner'>
+	 *     <affiliations node='princely_musings'>
+	 *       <affiliation jid='bard@shakespeare.lit' affiliation='publisher'/>
+	 *     </affiliations>
+	 *   </pubsub>
+	 * </iq>
+	 */
+	if (iq.attrs.type === 'set' && affiliationsEl && affiliationsNode) {
+	    var affiliations = {};
+	    affiliationsEl.getChildren('affiliation').forEach(function(affiliationEl) {
+		 var jid = affiliationEl.attrs.jid;
+		 var affiliation = affiliationEl.attrs.affiliation;
+		 if (jid && affiliation)
+		     affiliations['xmpp:' + jid] = affiliation;
+	    });
+	    controller.request({ feature: 'modify-affiliations',
+				 operation: 'modify',
+				 from: 'xmpp:' + jid,
+				 node: affiliationsNode,
+				 affiliations: affiliations,
+				 callback: replyCb
+			       });
+	    return;
     }
 
     /* Not yet returned? Catch all: */

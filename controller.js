@@ -40,7 +40,7 @@ var FEATURES = {
 		var subscribers;
 
 		step(function() {
-			 if (!req.items)
+			 if (objectIsEmpty(req.items))
 			     this(null, []);
 			 else {
 			     var g = this.group();
@@ -136,6 +136,71 @@ console.log("item ids: " + JSON.stringify(ids_));
 	    needOwner: true,  /* TODO: actually, only publisher required */
 	    transaction: function(req, t, cb) {
 		t.getAffiliations(req.node, cb);
+	    }
+	},
+	modify: {
+	    needOwner: true,
+	    /* TODO: only let owner subscribe users who intended to */
+	    transaction: function(req, t, cb) {
+		step(function() {
+			 if (objectIsEmpty(req.subscriptions)) {
+			     this(null);
+			     return;
+			 }
+
+			 var g = this.group();
+			 for(var user in req.subscriptions) {
+			     var subscription = req.subscriptions[user];
+			     switch(subscription) {
+			     case 'subscribed':
+				     t.subscribeNode(user, req.node, g());
+				     break;
+			     case 'none':
+				     t.unsubscribeNode(user, req.node, g());
+				     break;
+			     }
+			 }
+		     }, cb);
+	    },
+	    subscriberNotification: function(req, subscribers) {
+		/* TODO */
+	    }
+	}
+    },
+    'modify-affiliations': {
+	retrieve: {
+	    needOwner: true,
+	    /* TODO: outcast only if req.affiliation == 'owner' or 'publisher' */
+	    transaction: function(req, t, cb) {
+		t.getAffiliated(req.node, cb);
+	    }
+	},
+	modify: {
+	    needOwner: true,
+	    transaction: function(req, t, cb) {
+		if (objectIsEmpty(req.affiliations)) {
+		    this(null);
+		    return;
+		}
+
+		step(function() {
+			 var g = this.group();
+			 for(var user in req.affiliations) {
+			     var affiliation = req.affiliations[user];
+			     switch(affiliation) {
+			     case 'owner':
+				 t.addOwner(user, req.node, g());
+				 /* TODO: deny dropping ownership */
+				 break;
+			     case 'publisher':
+			     case 'member':
+			     case 'none':
+				 /* TODO */
+				 g();
+				 break;
+			     }
+			 }
+		     }, cb);
 	    }
 	}
     }
@@ -322,3 +387,13 @@ console.log({callFrontend:arguments,frontent:frontend,hookFun:hookFun,args:args}
 	return hookFun.apply(frontend, args);
     }
 };
+
+
+/* A helper */
+function objectIsEmpty(o) {
+    for(var k in o) {
+	if (o.hasOwnProperty(k))
+	    return false;
+    }
+    return true;
+}

@@ -185,6 +185,35 @@ Transaction.prototype.subscribeNode = function(subscriber, node, cb) {
     });
 };
 
+Transaction.prototype.unsubscribeNode = function(subscriber, node, cb) {
+    db.get(nodeKey(node), function(err, res) {
+	if (err) {
+	    cb(new Error(err.error));
+	    return;
+	}
+
+	var doc = res && res.toJSON();
+	if (!doc) {
+	    cb(new Error('not-found'));
+	} else {
+	    if (doc.hasOwnProperty('subscribers') &&
+		doc.subscribers.indexOf(subscriber) >= 0) {
+		
+		doc.subscribers = doc.subscribers.filter(function(user) {
+		    return user !== subscriber;
+		});
+		db.save(nodeKey(node), doc._rev, doc, function(err) {
+		    if (err && err.error === 'conflict')
+			unsubscribeNode(subscriber, node, cb);
+		    else
+			cb(err && new Error(err.error));
+		});
+	    } else
+		cb(null); /* Nothing to do */
+	}
+    });
+};
+
 Transaction.prototype.getSubscribers = function(node, cb) {
     db.get(nodeKey(node), function(err, res) {
 	if (err) {
@@ -276,6 +305,39 @@ Transaction.prototype.getAffiliations = function(user, cb) {
 	});
 	cb(null, affiliations);
     });
+};
+
+Transaction.prototype.getAffiliated = function(node, cb) {
+    db.get(nodeKey(node, function(err, res) {
+	if (err) {
+	    cb(new Error(err.error));
+	    return;
+	}
+
+	var doc = res && res.toJSON();
+	if (!doc) {
+	    cb(new Error('not-found'));
+	    return;
+	}
+
+	var affiliations = [];
+	if (doc.hasOwnProperty('owners'))
+	    doc.owners.forEach(function(owner) {
+		affiliations.push({ user: owner,
+				    affiliation: 'owner' });
+	    });
+	if (doc.hasOwnProperty('publishers'))
+	    doc.publishers.forEach(function(publisher) {
+		affiliations.push({ user: publisher,
+				    affiliation: 'publisher' });
+	    });
+	if (doc.hasOwnProperty('subscribers'))
+	    doc.subscribers.forEach(function(subscriber) {
+		affiliations.push({ user: subscriber,
+				    affiliation: 'member' });
+	    });
+	cb(null, affiliations);
+    }));
 };
 
 Transaction.prototype.addOwner = function(owner, node, cb) {
