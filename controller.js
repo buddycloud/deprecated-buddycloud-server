@@ -206,6 +206,13 @@ console.log("item ids: " + JSON.stringify(ids_));
     }
 };
 
+exports.pubsubFeatures = function() {
+    var result = [];
+    for(var f in FEATURES)
+	result.push(f);
+    return result;
+};
+
 exports.request = function(req) {
     var feature = FEATURES[req.feature];
     var operation = feature && feature[req.operation];

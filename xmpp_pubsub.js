@@ -5,6 +5,8 @@ var uuid = require('node-uuid');
 var NS_PUBSUB = 'http://jabber.org/protocol/pubsub';
 var NS_PUBSUB_EVENT = 'http://jabber.org/protocol/pubsub#event';
 var NS_PUBSUB_OWNER = 'http://jabber.org/protocol/pubsub#owner';
+var NS_DISCO_INFO = 'http://jabber.org/protocol/disco#info';
+var NS_DISCO_ITEMS = 'http://jabber.org/protocol/disco#items';
 
 /* Set by main.js */
 var controller;
@@ -129,10 +131,11 @@ function startPresenceTracking() {
  * Request handling
  */
 function handleIq(iq) {
+    var jid = new xmpp.JID(iq.attrs.from).bare().toString();
     var reply = new xmpp.Element('iq',
 				 { from: iq.attrs.to,
 				   to: iq.attrs.from,
-				   id: iq.attrs.id,
+				   id: iq.attrs.id || '',
 				   type: 'result'
 				 });
     var errorReply = function(err) {
@@ -158,7 +161,36 @@ function handleIq(iq) {
 	    conn.send(reply);
     };
 
-    var jid = new xmpp.JID(iq.attrs.from).bare().toString();
+    var discoInfoEl = iq.getChild('query', NS_DISCO_INFO);
+    if (iq.attrs.type === 'get' && discoInfoEl) {
+	var queryEl = new xmpp.Element('query', { xmlns: NS_DISCO_INFO });
+	queryEl.c('identity', { category: 'pubsub',
+				type: 'service',
+				name: 'Channels service' });
+	queryEl.c('identity', { category: 'pubsub',
+				type: 'channels',  /* not in registry yet */
+				name: 'Channels service' });
+	var features = controller.pubsubFeatures().
+	    map(function(feature) {
+		    return NS_PUBSUB + '#' + feature;
+		}).
+	    concat(NS_DISCO_INFO, NS_DISCO_ITEMS);
+	features.forEach(function(feature) {
+	    queryEl.c('feature', { var: feature });
+	});
+
+	replyCb(null, queryEl);
+	return;
+    }
+    var discoItemsEl = iq.getChild('query', NS_DISCO_ITEMS);
+    if (iq.attrs.type === 'get' && discoItemsEl) {
+	var queryEl = new xmpp.Element('query', { xmlns: NS_DISCO_ITEMS });
+	/* TODO: browse users with open nodes */
+
+	replyCb(null, queryEl);
+	return;
+    }
+
     var pubsubEl = iq.getChild('pubsub', NS_PUBSUB);
     if (pubsubEl) {
 	/*
@@ -492,6 +524,7 @@ function handleIq(iq) {
 				 callback: replyCb
 			       });
 	    return;
+	}
     }
 
     /* Not yet returned? Catch all: */
