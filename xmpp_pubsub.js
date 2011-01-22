@@ -1,6 +1,7 @@
 /* TODO: filter for xmpp:* users everywhere */
 var xmpp = require('node-xmpp');
 var uuid = require('node-uuid');
+var errors = require('./errors');
 
 var NS_PUBSUB = 'http://jabber.org/protocol/pubsub';
 var NS_PUBSUB_EVENT = 'http://jabber.org/protocol/pubsub#event';
@@ -147,8 +148,11 @@ function handleIq(iq) {
 	    console.error({err:err});
 
 	reply.attrs.type = 'error';
-	reply.c('error', { type: 'cancel' }).
-	    c('text').t('' + err.message);
+	if (err.xmppElement)
+	    reply.cnode(err.xmppElement());
+	else
+	    reply.c('error', { type: 'cancel' }).
+		    c('text').t('' + err.message);
 	return reply;
     };
     var replyCb = function(err, child) {
@@ -599,7 +603,7 @@ console.log({'get conf':[err,config]})
 	if (iq.attrs.type === 'set' && configureEl && configureNode) {
 	    var xEl = configureEl.getChild('x');
 	    if (!xEl || xEl.attrs.type !== 'submit') {
-		replyCb(new Error('invalid-request'));
+		replyCb(new errors.BadRequest('No submitted form'));
 		return;
 	    }
 
@@ -612,7 +616,7 @@ console.log({'get conf':[err,config]})
 	    });
 
 	    if (fields['FORM_TYPE'] !== NS_PUBSUB_NODE_CONFIG) {
-		replyCb(new Error('invalid-request'));
+		replyCb(new errors.BadRequest('Invalid form type'));
 		return;
 	    }
 
@@ -630,7 +634,7 @@ console.log({'get conf':[err,config]})
 
     /* Not yet returned? Catch all: */
     if (iq.attrs.type === 'get' || iq.attrs.type === 'set') {
-	replyCb(new Error('unimplemented'));
+	replyCb(new errors.FeatureNotImplemented());
     }
 }
 

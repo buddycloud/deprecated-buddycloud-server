@@ -1,4 +1,5 @@
 var step = require('step');
+var errors = require('./errors');
 
 /* Set by main.js */
 var model;
@@ -236,7 +237,7 @@ exports.request = function(req) {
     req.affiliation = 'none';
 
     if (!operation) {
-	req.callback(new Error('not-implemented'));
+	req.callback(new errors.FeatureNotImplemented('Operation not yet supported'));
 	return;
     }
     var debug = function(s) {
@@ -252,7 +253,7 @@ exports.request = function(req) {
 	/* If ownership were not hard-coded anymore this had to be
 	 * moved inside the transaction.
 	 */
-	req.callback(new Error('forbidden'));
+	req.callback(new errors.Forbidden('Ownership required'));
 	return;
     }
 
@@ -281,8 +282,10 @@ exports.request = function(req) {
 		else if (operation.needMember &&
 			 (affiliation === 'publisher' || affiliation === 'member'))
 		    this(null);
-		else if (operation.needPublisher || operation.needMember)
-		    this(new Error('permission-denied'));
+		else if (operation.needPublisher)
+		    this(new errors.Forbidden('Publisher rights required'));
+		else if (operation.needMember)
+		    this(new errors.Forbidden('Membership required'));
 		else
 		    this(null);
 	    });
