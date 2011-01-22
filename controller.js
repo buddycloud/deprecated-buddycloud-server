@@ -263,12 +263,16 @@ exports.request = function(req) {
 	    return;
 	}
 
-	var transactionResults;
-	var steps = [];
+	var steps = [function(err) {
+			 /* Unfortunately, step starts with err = [] */
+			 this(null);
+		     }];
 
 	/* Retrieve affiliation if needed */
+	/* TODO: make level */
 	if ((operation.withAffiliation || operation.needPublisher || operation.needMember) &&
 	    req.affiliation === 'none') {
+	    console.log('need affiliation...');
 	    steps.push(function(err) {
 		if (err) throw err;
 
@@ -292,14 +296,15 @@ exports.request = function(req) {
 	}
 
 	/* Run operation transaction first */
+	var transactionResults;
 	steps.push(function(err) {
-	    debug('transaction');
 	    if (err) throw err;
+	    debug('transaction');
 
 	    operation.transaction(req, t, this);
 	}, function(err) {
-	    debug('transaction done');
 	    if (err) throw err;
+	    debug('transaction done');
 
 	    /* Regardless of the following steps, we pass
 	     * the operation's transaction result to the
