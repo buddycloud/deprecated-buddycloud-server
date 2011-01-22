@@ -44,5 +44,5 @@ module.exports = {
     BadRequest: makePrototype('bad-request', 'modify'),
     FeatureNotImplemented: makePrototype('feature-not-implemented', 'cancel'),
     InternalServerError: makePrototype('internal-server-error', 'wait'),
-    ItemNotFound: makePrototype('item-not-found', 'cancel')
+    NotFound: makePrototype('item-not-found', 'cancel')
 };

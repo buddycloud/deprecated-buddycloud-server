@@ -1,5 +1,5 @@
 var ltx = require('ltx');
-/* TODO: remove 409 'conflict' retrying from cradle */
+var errors = require('./errors');
 var cradle = require('cradle');
 cradle.setup({host: '127.0.0.1',
 	      port: 5984,
@@ -7,7 +7,109 @@ cradle.setup({host: '127.0.0.1',
 var db = new(cradle.Connection)().database('channel-server');
 
 /**
+ * API entry point
+ */
+exports.transaction = function(cb) {
+    new Transaction(cb);
+};
+
+/**
+ * Transaction primitives
+ * 
+ * Takes care of Optimistic Concurrency Control with CouchDB.
+ * 
+ * Also converts errors to suitable format.
+ */
+var MAX_RETRIES = 10;
+
+function Transaction(cb) {
+    this.transactionCb = cb;
+    this.saveDocs = {};
+    cb(null, this);
+}
+
+/**
+ * We don't keep track of document revisions because the model code
+ * below is assumed to *update* documents while keeping the _rev field
+ * intact.
+ */
+Transaction.prototype.load = function(id, cb) {
+    db.get(id, function(err, res) {
+	if (err && err.error === 'not_found')
+	    cb.call(this, null, null);
+	else if (err)
+	    cb.call(this, new errors.InternalServerError(err.error));
+	else {
+	    cb.call(this, null, res.toJSON());
+	}
+    });
+};
+
+/**
+ * Not asynchronous because we just keep docs to be written around
+ * until the (atomic) commit.
+ */
+Transaction.prototype.save = function(doc) {
+    this.saveDocs[doc._id] = doc;
+};
+
+/**
+ * `delete' is a JavaScript keyword.
+ */
+Transaction.prototype.remove = function(doc) {
+    doc._deleted = true;
+    this.save(doc);
+};
+
+Transaction.prototype.commit = function(cb) {
+    var that = this;
+
+    /* Assemble db.save() parameter */
+    var docs = [];
+    for(var id in this.saveDocs) {
+	if (this.saveDocs.hasOwnProperty(id))
+	    docs.push(this.saveDocs[id]);
+    }
+    this.saveDocs = {};  /* Not needed anymore */
+
+    db.save(docs, function(err) {
+	if (err && err.error === 'conflict' && that.retries < MAX_RETRIES) {
+	    /* Optimistic Concurrency Control retry */
+	    that.retries++;
+	    console.warn('CouchDB transaction retry ' + that.retries);
+	    that.transactionCb(null, that);
+	} else if (err)
+	    cb(new errors.InternalServerError(err.error));
+	else
+	    cb(null);
+    });
+};
+
+Transaction.prototype.rollback = function(cb) {
+    /* Nothing to be done for optimistic concurrency control */
+    cb(null);
+};
+
+/**
+ * TODO: abstract view retrieval for values handling & error wrapping.
+ */
+
+/**
+ * Data model helpers
+ */
+
+function nodeKey(node) {
+    return encodeURIComponent(node);
+}
+function itemKey(node, item) {
+    return encodeURIComponent(node) + '&' + encodeURIComponent(item);
+}
+
+
+/**
  * Initialize views
+ * 
+ * Attention: these need the CouchDB setting reduce_limit=false.
  */
 db.save('_design/channel-server',
 	{ views: {
@@ -125,103 +227,78 @@ db.save('_design/channel-server',
 	      }
 	  } });
 
-
 /**
- * API entry point
+ * Actual data model
  */
-exports.transaction = function(cb) {
-    new Transaction(cb);
-};
-
-function Transaction(cb) {
-    this.transactionCb = cb;
-    cb(null, this);
-}
-
-Transaction.prototype.commit = function(cb) {
-    cb(null);
-};
-
-Transaction.prototype.rollback = function(cb) {
-    cb(null);
-};
-
-function nodeKey(node) {
-    return encodeURIComponent(node);
-}
-function itemKey(node, item) {
-    return encodeURIComponent(node) + '&' + encodeURIComponent(item);
-}
 
 Transaction.prototype.createNode = function(node, cb) {
     /* TODO: filter node for chars */
-    db.save(nodeKey(node), { }, function(err) {
-	cb(err && new Error(err.error));
+    this.load(nodeKey(node), function(err, doc) {
+	if (err) {
+	    cb(err);
+	    return;
+	}
+	if (doc) {
+	    cb(new errors.Conflict('Node already exists'));
+	    return;
+	}
+
+	db.save({ _id: nodeKey(node) });
     });
 };
 
 Transaction.prototype.subscribeNode = function(subscriber, node, cb) {
-    db.get(nodeKey(node), function(err, res) {
+    this.load(nodeKey(node), function(err, doc) {
 	if (err) {
-	    cb(new Error(err.error));
+	    cb(err);
+	    return;
+	}
+	if (!doc) {
+	    cb(new errors.NotFound('No such node'));
 	    return;
 	}
 
-	var doc = res && res.toJSON();
-	if (!doc) {
-	    cb(new Error('not-found'));
-	} else {
-	    if (!doc.hasOwnProperty('subscribers'))
-		doc.subscribers = [];
-	    if (doc.subscribers.indexOf(subscriber) < 0)
-		doc.subscribers.push(subscriber);
-	    db.save(nodeKey(node), doc._rev, doc, function(err) {
-		if (err && err.error === 'conflict')
-		    subscribeNode(subscriber, node, cb);
-		else
-		    cb(err && new Error(err.error));
-	    });
-	}
+	if (!doc.hasOwnProperty('subscribers'))
+	    doc.subscribers = [];
+	if (doc.subscribers.indexOf(subscriber) < 0)
+	    doc.subscribers.push(subscriber);
+	this.save(doc);
+	cb(null);
     });
 };
 
 Transaction.prototype.unsubscribeNode = function(subscriber, node, cb) {
-    db.get(nodeKey(node), function(err, res) {
+    this.load(nodeKey(node), function(err, doc) {
 	if (err) {
-	    cb(new Error(err.error));
+	    cb(err);
+	    return;
+	}
+	if (!doc) {
+	    cb(new errors.NotFound('No such node'));
 	    return;
 	}
 
-	var doc = res && res.toJSON();
-	if (!doc) {
-	    cb(new Error('not-found'));
-	} else {
-	    if (doc.hasOwnProperty('subscribers') &&
-		doc.subscribers.indexOf(subscriber) >= 0) {
+	if (doc.hasOwnProperty('subscribers') &&
+	    doc.subscribers.indexOf(subscriber) >= 0) {
 		
-		doc.subscribers = doc.subscribers.filter(function(user) {
-		    return user !== subscriber;
-		});
-		db.save(nodeKey(node), doc._rev, doc, function(err) {
-		    if (err && err.error === 'conflict')
-			unsubscribeNode(subscriber, node, cb);
-		    else
-			cb(err && new Error(err.error));
-		});
-	    } else
-		cb(null); /* Nothing to do */
+	    doc.subscribers = doc.subscribers.filter(function(user) {
+		return user !== subscriber;
+	    });
+	    this.save(doc);
+	    cb(null);
+	} else {
+	    cb(new errors.NotFound('Not subscribed'));
 	}
     });
 };
 
 Transaction.prototype.getSubscribers = function(node, cb) {
-    db.get(nodeKey(node), function(err, res) {
+    this.load(nodeKey(node), function(err, doc) {
 	if (err) {
-	    cb(err && new Error(err.error));
+	    cb(err);
 	    return;
 	}
 
-	var doc = res && res.toJSON();
 	cb(null, doc.subscribers || []);
     });
 };
@@ -260,33 +337,32 @@ Transaction.prototype.getAllSubscribers = function(cb) {
 };
 
 Transaction.prototype.getAffiliation = function(user, node, cb) {
-    db.get(nodeKey(node), function(err, res) {
+    this.load(nodeKey(node), function(err, doc) {
 	if (err) {
 	    cb(err);
 	    return;
 	}
-
-	var doc = req && res.toJSON();
 	if (!doc) {
-	    cb(new Error('not-found'));
-	} else {
-	    if (doc.hasOwnProperty('owners') &&
-		doc.owners.indexOf(user) >= 0) {
-		cb(null, 'owner');
-		return;
-	    }
-	    if (doc.hasOwnProperty('publishers') &&
-		doc.publishers.indexOf(user) >= 0) {
-		cb(null, 'publisher');
-		return;
-	    }
-	    if (doc.hasOwnProperty('subscribers') &&
-		doc.subscribers.indexOf(user) >= 0) {
-		cb(null, 'member');
-		return;
-	    }
-	    cb(null, 'none');
+	    cb(new errors.NotFound('No such node'));
+	    return;
 	}
+
+	if (doc.hasOwnProperty('owners') &&
+	    doc.owners.indexOf(user) >= 0) {
+	    cb(null, 'owner');
+	    return;
+	}
+	if (doc.hasOwnProperty('publishers') &&
+	    doc.publishers.indexOf(user) >= 0) {
+	    cb(null, 'publisher');
+	    return;
+	}
+	if (doc.hasOwnProperty('subscribers') &&
+	    doc.subscribers.indexOf(user) >= 0) {
+	    cb(null, 'member');
+	    return;
+	}
+	cb(null, 'none');
     });
 };
 
@@ -308,15 +384,13 @@ Transaction.prototype.getAffiliations = function(user, cb) {
 };
 
 Transaction.prototype.getAffiliated = function(node, cb) {
-    db.get(nodeKey(node, function(err, res) {
+    this.load(nodeKey(node, function(err, doc) {
 	if (err) {
-	    cb(new Error(err.error));
+	    cb(err);
 	    return;
 	}
-
-	var doc = res && res.toJSON();
 	if (!doc) {
-	    cb(new Error('not-found'));
+	    cb(new errors.NotFound('No such node'));
 	    return;
 	}
 
@@ -341,27 +415,22 @@ Transaction.prototype.getAffiliated = function(node, cb) {
 };
 
 Transaction.prototype.addOwner = function(owner, node, cb) {
-    db.get(nodeKey(node), function(err, res) {
+    this.load(nodeKey(node), function(err, doc) {
 	if (err) {
 	    cb(new Error(err.error));
 	    return;
 	}
-
-	var doc = res && res.toJSON();
 	if (!doc) {
-	    cb(new Error('not-found'));
-	} else {
-	    if (!doc.hasOwnProperty('owners'))
-		doc.owners = [];
-	    if (doc.owners.indexOf(owner) < 0)
-		doc.owners.push(owner);
-	    db.save(nodeKey(node), doc._rev, doc, function(err) {
-		if (err && err.error === 'conflict')
-		    addOwner(owner, node, cb);
-		else
-		    cb(err && new Error(err.error));
-	    });
+	    cb(new errors.NotFound('No such node'));
+	    return;
 	}
+
+	if (!doc.hasOwnProperty('owners'))
+	    doc.owners = [];
+	if (doc.owners.indexOf(owner) < 0)
+	    doc.owners.push(owner);
+	this.save(doc);
+	cb(null);
     });
 };
 
@@ -369,19 +438,36 @@ Transaction.prototype.addOwner = function(owner, node, cb) {
  * An item is always the children array of the <item node='...'> element
  */
 Transaction.prototype.writeItem = function(publisher, node, id, item, cb) {
-    db.save(itemKey(node, id), { xml: item.join('').toString(),
-				 date: new Date().toISOString()
-			       }, function(err) {
-	cb(err && new Error(err));
+    var _id = itemKey(node, id);
+    /* TODO: check for node */
+    this.load(_id, function(err, doc) {
+	if (err) {
+	    cb(new Error(err.error));
+	    return;
+	}
+
+	if (!doc)
+	    doc = { _id: _id };
+	doc.xml = item.join('').toString();
+	doc.date = new Date().toISOString();
+	this.save(doc);
+	cb(null);
     });
 };
 
 Transaction.prototype.deleteItem = function(node, itemId, cb) {
-    db.get(itemKey(node, itemId), function(err, doc) {
-	if (err )
+    this.load(itemKey(node, itemId), function(err, doc) {
+	if (err) {
 	    cb(err);
-	else
-	    db.remove(itemKey(node, itemId), doc._rev, cb);
+	    return;
+	}
+	if (!doc) {
+	    cb(new errors.NotFound('No such node or item'));
+	    return;
+	}
+
+	this.remove(doc);
+	cb(null);
     });
 };
 
@@ -410,9 +496,13 @@ Transaction.prototype.getItemIds = function(node, cb) {
 };
 
 Transaction.prototype.getItem = function(node, id, cb) {
-    db.get(itemKey(node, id), function(err, res) {
+    this.load(itemKey(node, id), function(err, doc) {
 	if (err) {
-	    cb(err && new Error(err.error));
+	    cb(err);
+	    return;
+	}
+	if (!doc) {
+	    cb(new errors.NotFound('No such node or item'));
 	    return;
 	}
 
@@ -428,49 +518,42 @@ Transaction.prototype.getItem = function(node, id, cb) {
 };
 
 Transaction.prototype.getConfig = function(node, cb) {
-console.log('getting conf');
-    db.get(nodeKey(node), function(err, res) {
-console.log('got conf');
-console.log({err:err,res:res});
+    this.load(nodeKey(node), function(err, doc) {
 	if (err) {
-	    cb(new Error(err.error));
+	    cb(err);
+	    return;
+	}
+	if (!doc) {
+	    cb(new errors.NotFound('No such node'));
 	    return;
 	}
 
-	var doc = res && res.toJSON();
-	if (!doc) {
-	    cb(new Error('not-found'));
-	} else {
-	    var config = { title: doc.title,
-			   accessModel: doc.accessModel,
-			   publishModel: doc.publishModel
-			 };
-console.log({doc:doc,config:config})
-	    cb(null, config);
-	}
+	var config = { title: doc.title,
+		       accessModel: doc.accessModel,
+		       publishModel: doc.publishModel
+		     };
+	cb(null, config);
     });
 };
 
 Transaction.prototype.setConfig = function(node, config, cb) {
-    db.get(nodeKey(node), function(err, res) {
+    this.load(nodeKey(node), function(err, doc) {
 	if (err) {
-	    cb(new Error(err.error));
+	    cb(err);
+	    return;
+	}
+	if (!doc) {
+	    cb(new errors.NotFound('No such node'));
 	    return;
 	}
 
-	var doc = res && res.toJSON();
-	if (!doc) {
-	    cb(new Error('not-found'));
-	} else {
-	    if (config.title)
-		doc.title = config.title;
-	    if (config.accessModel)
-		doc.accessModel = config.accessModel;
-	    if (config.publishModel)
-		doc.publishModel = config.publishModel;
-	    db.save(nodeKey(node), doc._rev, doc, function(err) {
-		cb(err && new Error(err.error));
-	    });
-	}
+	if (config.title)
+	    doc.title = config.title;
+	if (config.accessModel)
+	    doc.accessModel = config.accessModel;
+	if (config.publishModel)
+	    doc.publishModel = config.publishModel;
+	db.save(doc);
+	cb(null);
     });
 };

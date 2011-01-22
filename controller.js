@@ -244,6 +244,7 @@ exports.request = function(req) {
 	console.log(req.from + ' >> ' + req.feature + '/' + req.operation + ': ' + s);
     };
 
+    /* TODO: no underscores */
     var nodeM = req.node.match(/^\/user\/(.+?)\/([a-zA-Z0-9\/_\-]+)$/);
     var userM = req.from.match(/^(.+?):(.+)$/);
     if (nodeM && nodeM[1] === userM[2])
