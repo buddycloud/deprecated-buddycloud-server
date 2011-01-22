@@ -203,6 +203,23 @@ console.log("item ids: " + JSON.stringify(ids_));
 		     }, cb);
 	    }
 	}
+    },
+    'config-node': {
+	retrieve: {
+	    needOwner: true,
+	    transaction: function(req, t, cb) {
+		t.getConfig(req.node, cb);
+	    }
+	},
+	modify: {
+	    needOwner: true,
+	    transaction: function(req, t, cb) {
+		t.setConfig(req.node, { title: req.title,
+					accessModel: req.accessModel,
+					publishModel: req.publishModel
+				      }, cb);
+	    }
+	}
     }
 };
 
@@ -311,7 +328,7 @@ exports.request = function(req) {
 	steps.push(function(err) {
 	    if (err) {
 		var that = this;
-		debug('transaction rollback');
+		debug('transaction rollback: ' + (err.message || JSON.stringify(err)));
 		t.rollback(function() {
 		    /* Keep error despite successful rollback */
 		    that(err);

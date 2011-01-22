@@ -426,3 +426,51 @@ Transaction.prototype.getItem = function(node, id, cb) {
 	cb(null, item);
     });
 };
+
+Transaction.prototype.getConfig = function(node, cb) {
+console.log('getting conf');
+    db.get(nodeKey(node), function(err, res) {
+console.log('got conf');
+console.log({err:err,res:res});
+	if (err) {
+	    cb(new Error(err.error));
+	    return;
+	}
+
+	var doc = res && res.toJSON();
+	if (!doc) {
+	    cb(new Error('not-found'));
+	} else {
+	    var config = { title: doc.title,
+			   accessModel: doc.accessModel,
+			   publishModel: doc.publishModel
+			 };
+console.log({doc:doc,config:config})
+	    cb(null, config);
+	}
+    });
+};
+
+Transaction.prototype.setConfig = function(node, config, cb) {
+    db.get(nodeKey(node), function(err, res) {
+	if (err) {
+	    cb(new Error(err.error));
+	    return;
+	}
+
+	var doc = res && res.toJSON();
+	if (!doc) {
+	    cb(new Error('not-found'));
+	} else {
+	    if (config.title)
+		doc.title = config.title;
+	    if (config.accessModel)
+		doc.accessModel = config.accessModel;
+	    if (config.publishModel)
+		doc.publishModel = config.publishModel;
+	    db.save(nodeKey(node), doc._rev, doc, function(err) {
+		cb(err && new Error(err.error));
+	    });
+	}
+    });
+};

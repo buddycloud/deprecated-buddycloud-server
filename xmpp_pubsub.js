@@ -5,8 +5,10 @@ var uuid = require('node-uuid');
 var NS_PUBSUB = 'http://jabber.org/protocol/pubsub';
 var NS_PUBSUB_EVENT = 'http://jabber.org/protocol/pubsub#event';
 var NS_PUBSUB_OWNER = 'http://jabber.org/protocol/pubsub#owner';
+var NS_PUBSUB_NODE_CONFIG = 'http://jabber.org/protocol/pubsub#node_config';
 var NS_DISCO_INFO = 'http://jabber.org/protocol/disco#info';
 var NS_DISCO_ITEMS = 'http://jabber.org/protocol/disco#items';
+var NS_DATA = 'jabber:x:data';
 
 /* Set by main.js */
 var controller;
@@ -523,6 +525,105 @@ function handleIq(iq) {
 				 affiliations: affiliations,
 				 callback: replyCb
 			       });
+	    return;
+	}
+	/*
+	 * <iq type='get'
+	 *     from='hamlet@denmark.lit/elsinore'
+	 *     to='pubsub.shakespeare.lit'
+	 *     id='config1'>
+	 *   <pubsub xmlns='http://jabber.org/protocol/pubsub#owner'>
+	 *     <configure node='princely_musings'/>
+	 *   </pubsub>
+	 * </iq>
+	 */
+	var configureEl = pubsubOwnerEl.getChild('configure');
+	var configureNode = configureEl && configureEl.attrs.node;
+	if (iq.attrs.type === 'get' && configureEl && configureNode) {
+	    controller.request({ feature: 'config-node',
+				 operation: 'retrieve',
+				 from: 'xmpp:' + jid,
+				 node: configureNode,
+				 callback: function(err, config) {
+console.log({'get conf':[err,config]})
+	        if (err) {
+		    replyCb(err);
+		    return;
+		}
+
+		replyCb(null, new xmpp.Element('pubsub', { xmlns: NS_PUBSUB_OWNER }).
+			c('configure', { node: configureNode }).
+			c('x', { xmlns: NS_DATA,
+				 type: 'form' }).
+			c('field', { var: 'FORM_TYPE',
+				     type: 'hidden' }).
+			c('value').
+			t(NS_PUBSUB_NODE_CONFIG).up().up().
+			c('field', { var: 'pubsub#title',
+				     type: 'text-single',
+				     label: 'A friendly name for the node' }).
+			c('value').t(config.title || '').up().
+			up().
+			c('field', { var: 'pubsub#access_model',
+				     type: 'list-single',
+				     label: 'Who can subscribe and browse your channel?' }).
+			c('option').c('value').t('open').up().up().
+			c('option').c('value').t('authorize').up().up().
+			c('option').c('value').t('whitelist').up().up().
+			c('value').t(config.accessModel || 'open').up().
+			up().
+			c('field', { var: 'pubsub#publish_model',
+				     type: 'list-single',
+				     label: 'May new subscribers post on your channel?' }).
+			c('option').c('value').t('publishers').up().up().
+			c('option').c('value').t('subscribers').up().up().
+			c('value').t(config.publishModel || 'subscribers').
+			up()
+		       );
+	    } });
+	    return;
+	}
+	/*
+	 * <iq type='set'
+	 *     from='hamlet@denmark.lit/elsinore'
+	 *     to='pubsub.shakespeare.lit'
+	 *     id='config2'>
+	 *   <pubsub xmlns='http://jabber.org/protocol/pubsub#owner'>
+	 *     <configure node='princely_musings'>
+	 *       <x xmlns='jabber:x:data' type='submit'>
+	 *         <field var='FORM_TYPE' type='hidden'>
+	 *           <value>http://jabber.org/protocol/pubsub#node_config</value>
+	 *         </field>
+	 * [...]
+	 */
+	if (iq.attrs.type === 'set' && configureEl && configureNode) {
+	    var xEl = configureEl.getChild('x');
+	    if (!xEl || xEl.attrs.type !== 'submit') {
+		replyCb(new Error('invalid-request'));
+		return;
+	    }
+
+	    var fields = {};
+	    xEl.getChildren('field').forEach(function(fieldEl) {
+		var k = fieldEl.attrs['var'];
+		var v = fieldEl.getChildText('value');
+		if (k && v)
+		    fields[k] = v;
+	    });
+
+	    if (fields['FORM_TYPE'] !== NS_PUBSUB_NODE_CONFIG) {
+		replyCb(new Error('invalid-request'));
+		return;
+	    }
+
+	    controller.request({ feature: 'config-node',
+				 operation: 'modify',
+				 from: 'xmpp:' + jid,
+				 node: configureNode,
+				 title: fields['pubsub#title'],
+				 accessModel: fields['pubsub#access_model'],
+				 publishModel: fields['pubsub#publish_model'],
+				 callback: replyCb });
 	    return;
 	}
     }
