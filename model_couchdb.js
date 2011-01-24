@@ -15,15 +15,18 @@ exports.transaction = function(cb) {
 
 /**
  * Transaction primitives
- * 
+ *
  * Takes care of Optimistic Concurrency Control with CouchDB.
- * 
+ *
  * Also converts errors to suitable format.
  */
 var MAX_RETRIES = 10;
 
 function Transaction(cb) {
     this.transactionCb = cb;
+    /* all documents this transaction affects, which will be
+     * atomically written upon commit()
+     */
     this.saveDocs = {};
     cb(null, this);
 }
@@ -40,7 +43,9 @@ Transaction.prototype.load = function(id, cb) {
 	else if (err)
 	    cb.call(this, new errors.InternalServerError(err.error));
 	else {
-	    cb.call(this, null, res.toJSON());
+	    var doc = res.toJSON();
+	    this.saveDocs[doc._id] = doc;
+	    cb.call(this, null, doc);
 	}
     });
 };
@@ -123,7 +128,7 @@ function itemKey(node, item) {
 
 /**
  * Initialize views
- * 
+ *
  * Attention: these need the CouchDB setting reduce_limit=false.
  */
 db.save('_design/channel-server',
@@ -295,7 +300,7 @@ Transaction.prototype.unsubscribeNode = function(subscriber, node, cb) {
 
 	if (doc.hasOwnProperty('subscribers') &&
 	    doc.subscribers.indexOf(subscriber) >= 0) {
-		
+
 	    doc.subscribers = doc.subscribers.filter(function(user) {
 		return user !== subscriber;
 	    });
