@@ -280,7 +280,7 @@ Transaction.prototype.createNode = function(node, cb) {
 	    return;
 	}
 
-	db.save({ _id: nodeKey(node) });
+	this.save({ _id: nodeKey(node) });
     });
 };
 
