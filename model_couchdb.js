@@ -90,6 +90,21 @@ Transaction.prototype.rollback = function(cb) {
     cb(null);
 };
 
+Transaction.prototype.view = function(name, options, cb) {
+    db.view(name, options, function(err, res) {
+	if (err) {
+	    cb(err);
+	    return;
+	}
+
+	var results = [];
+	res.toJSON().rows().forEach(function(row) {
+	    results.push.apply(results, row.value);
+	});
+	cb(null, results);
+    });
+};
+
 /**
  * TODO: abstract view retrieval for values handling & error wrapping.
  */
@@ -304,36 +319,12 @@ Transaction.prototype.getSubscribers = function(node, cb) {
 };
 
 Transaction.prototype.getSubscriptions = function(subscriber, cb) {
-    db.view('channel-server/subscriptions', { group: true,
-					      key: subscriber }, function(err, res) {
-	if (err) {
-	    cb(err);
-	    return;
-	}
-
-	var subscriptions = [];
-        var rows = res.toJSON().rows;
-	rows.forEach(function(row) {
-	    subscriptions.push.apply(subscriptions, row.value);
-	});
-	cb(null, subscriptions);
-    });
+    this.view('channel-server/subscriptions', { group: true,
+						key: subscriber }, cb);
 };
 
 Transaction.prototype.getAllSubscribers = function(cb) {
-    db.view('channel-server/subscribers', { group: false }, function(err, res) {
-	if (err) {
-	    cb(err);
-	    return;
-	}
-
-	var subscribers = [];
-        var rows = res.toJSON().rows;
-	rows.forEach(function(row) {
-	    subscribers.push.apply(subscribers, row.value);
-	});
-	cb(null, subscribers);
-    });
+    this.view('channel-server/subscribers', { group: false }, cb);
 };
 
 Transaction.prototype.getAffiliation = function(user, node, cb) {
@@ -367,20 +358,8 @@ Transaction.prototype.getAffiliation = function(user, node, cb) {
 };
 
 Transaction.prototype.getAffiliations = function(user, cb) {
-    db.view('channel-server/affiliations', { group: true,
-					     key: user }, function(err, res) {
-	if (err) {
-	    cb(err);
-	    return;
-	}
-
-	var affiliations = {};
-        var rows = res.toJSON().rows;
-	rows.forEach(function(row) {
-	    affiliations = row.value;
-	});
-	cb(null, affiliations);
-    });
+    this.view('channel-server/affiliations', { group: true,
+					       key: user }, cb);
 };
 
 Transaction.prototype.getAffiliated = function(node, cb) {
@@ -475,21 +454,15 @@ Transaction.prototype.deleteItem = function(node, itemId, cb) {
  * sorted by time
  */
 Transaction.prototype.getItemIds = function(node, cb) {
-    db.view('channel-server/nodeItems', { group: true,
-					  key: node }, function(err, res) {
+    this.view('channel-server/nodeItems', { group: true,
+					    key: node }, function(err, values) {
         if (err) {
 	    cb(err);
 	    return;
 	}
 
-        var rows = res.toJSON().rows;
-	var ids = [];
-	rows.forEach(function(row) {
-	    if (row.key === node) {
-		ids = row.value.map(function(v) {
-		    return v.id;
-		});
-	    }
+	var ids = values.map(function(value) {
+	    return value.id;
 	});
 	cb(null, ids);
     });
