@@ -32,10 +32,27 @@ function Transaction(cb) {
 }
 
 /**
- * We don't keep track of document revisions because the model code
- * below is assumed to *update* documents while keeping the _rev field
- * intact.
+ * Perform only HEAD request to get the CouchDB document revision in
+ * order to overwrite it later.
  */
+Transaction.prototype.preload = function(id, cb) {
+    db.head(id, function(err, headers) {
+	var doc;
+	if (err && err.error === 'not_found') {
+	    doc = { _id: id };
+	} else if (err) {
+	    cb(err);
+	    return;
+	} else {
+	    doc = { _id: id,
+		    _rev: headers['etag'].slice(1, -1)
+		  };
+	}
+	saveDocs[id] = doc;
+	cb(null, doc);
+    });
+};
+
 Transaction.prototype.load = function(id, cb) {
     db.get(id, function(err, res) {
 	if (err && err.error === 'not_found')
@@ -422,16 +439,13 @@ Transaction.prototype.addOwner = function(owner, node, cb) {
  * An item is always the children array of the <item node='...'> element
  */
 Transaction.prototype.writeItem = function(publisher, node, id, item, cb) {
-    var _id = itemKey(node, id);
     /* TODO: check for node */
-    this.load(_id, function(err, doc) {
+    this.preload(itemKey(node, id), function(err, doc) {
 	if (err) {
-	    cb(new Error(err.error));
+	    cb(new errors.InternalServerError(err.error));
 	    return;
 	}
 
-	if (!doc)
-	    doc = { _id: _id };
 	doc.xml = item.join('').toString();
 	doc.date = new Date().toISOString();
 	this.save(doc);
