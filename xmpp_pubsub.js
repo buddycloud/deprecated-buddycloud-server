@@ -129,6 +129,14 @@ function startPresenceTracking() {
 	    });
     });
 }
+function subscribeIfNeeded(jid) {
+    if (!onlineResources.hasOwnProperty(jid)) {
+	conn.send(new xmpp.Element('presence', { to: jid,
+						 from: conn.jid,
+						 type: 'subscribe'
+					       }));
+    }
+}
 
 /**
  * Request handling
@@ -167,6 +175,14 @@ function handleIq(iq) {
 	    conn.send(reply);
     };
 
+    /*
+     * <iq type='get'
+     *     from='romeo@montague.net/orchard'
+     *     to='plays.shakespeare.lit'
+     *     id='info1'>
+     *   <query xmlns='http://jabber.org/protocol/disco#info'/>
+     * </iq>
+     */
     var discoInfoEl = iq.getChild('query', NS_DISCO_INFO);
     if (iq.attrs.type === 'get' && discoInfoEl) {
 	var queryEl = new xmpp.Element('query', { xmlns: NS_DISCO_INFO });
@@ -188,6 +204,14 @@ function handleIq(iq) {
 	replyCb(null, queryEl);
 	return;
     }
+    /*
+     * <iq type='get'
+     *     from='romeo@montague.net/orchard'
+     *     to='shakespeare.lit'
+     *     id='items1'>
+     *   <query xmlns='http://jabber.org/protocol/disco#items'/>
+     * </iq>
+     */
     var discoItemsEl = iq.getChild('query', NS_DISCO_ITEMS);
     if (iq.attrs.type === 'get' && discoItemsEl) {
 	var queryEl = new xmpp.Element('query', { xmlns: NS_DISCO_ITEMS });
@@ -218,6 +242,7 @@ function handleIq(iq) {
 				 node: createNode,
 				 callback: replyCb
 			       });
+	    subscribeIfNeeded(jid);
 	    return;
 	}
 	/*
@@ -240,6 +265,7 @@ function handleIq(iq) {
 				 node: subscribeNode,
 				 callback: replyCb
 			       });
+	    subscribeIfNeeded(jid);
 	    return;
 	}
 	/*
@@ -549,7 +575,6 @@ function handleIq(iq) {
 				 from: 'xmpp:' + jid,
 				 node: configureNode,
 				 callback: function(err, config) {
-console.log({'get conf':[err,config]})
 	        if (err) {
 		    replyCb(err);
 		    return;
