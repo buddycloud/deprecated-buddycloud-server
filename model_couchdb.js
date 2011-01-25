@@ -48,12 +48,18 @@ Transaction.prototype.preload = function(id, cb) {
 		    _rev: headers['etag'].slice(1, -1)
 		  };
 	}
-	saveDocs[id] = doc;
+	this.saveDocs[id] = doc;
 	cb(null, doc);
     });
 };
 
 Transaction.prototype.load = function(id, cb) {
+    if (this.saveDocs.hasOwnProperty(id)) {
+	/* Shortcut if already cached */
+	cb(null, this.saveDocs[id]);
+	return;
+    }
+
     db.get(id, function(err, res) {
 	if (err && err.error === 'not_found')
 	    cb.call(this, null, null);
