@@ -180,61 +180,19 @@ db.save('_design/channel-server',
 		      });
 		  }
 	      },
+	      /*
+	       * per user
+	       */
 	      affiliations: {
 		  map: function(doc) {
 		      if (doc._id.indexOf('&') < 0) {
 			  /* is node */
 			  var node = doc._id;
 
-			  if (doc.publishers)
-			      doc.publishers.forEach(function(publisher) {
-				  var r = {};
-				  r[node] = 'publisher';
-				  emit(publisher, r);
-			      });
-			  if (doc.owners)
-			      doc.owners.forEach(function(owner) {
-				  var r = {};
-				  r[node] = 'owner';
-				  emit(owner, r);
-			      });
-			  if (doc.subscribers)
-			      doc.subscribers.forEach(function(subscriber) {
-				  var r = {};
-				  r[node] = 'member';
-				  emit(subscriber, r);
-			      });
-		      }
-		  },
-		  reduce: function(keys, values, rereduce) {
-		      var r = {};
-		      values.forEach(function(v) {
-			  for(var node in v) {
-			      var role = v[node];
-			      if (role === 'owner')
-				  r[node] = 'owner';
-			      else if (role === 'publisher' &&
-				       r[node] !== 'owner')
-			          r[node] = 'publisher';
-			      else if (role === 'member' &&
-				       r[node] !== 'owner' &&
-				       r[node] !== 'publisher')
-			          r[node] = 'member';
+			  if (doc.affiliations) {
+			      for(var user in doc.affiliations)
+				  emit(user, doc.affiliations[user]);
 			  }
-		      });
-		      return r;
-		  }
-	      },
-	      subscriptions: {
-		  map: function(doc) {
-		      if (doc._id.indexOf('&') < 0) {
-			  /* is node */
-			  var node = doc._id;
-
-			  if (doc.subscribers)
-			      doc.subscribers.forEach(function(subscriber) {
-				  emit(subscriber, node);
-			      });
 		      }
 		  },
 		  reduce: function(keys, values, rereduce) {
@@ -243,16 +201,40 @@ db.save('_design/channel-server',
 		      return values;
 		  }
 	      },
+	      subscriptions: {
+		  map: function(doc) {
+		      if (doc._id.indexOf('&') < 0) {
+			  /* is node */
+			  var node = doc._id;
+
+			  if (doc.subscriptions) {
+			      for(var user in doc.subscriptions)
+				  emit(user, { node: node,
+					       subscription: doc.subscriptions[user]
+					     });
+			  }
+		      }
+		  },
+		  reduce: function(keys, values, rereduce) {
+		      if (rereduce)
+			  values = Array.prototype.concat.apply([], values);
+		      return values;
+		  }
+	      },
+	      /*
+	       * used for getAllSubscribers(), thus no per-node
+	       * affiliations checking is done.
+	       */
 	      subscribers: {
 		  map: function(doc) {
 		      if (doc._id.indexOf('&') < 0) {
 			  /* is node */
 			  var node = doc._id;
 
-			  if (doc.subscribers)
-			      doc.subscribers.forEach(function(subscriber) {
-				  emit(node, subscriber);
-			      });
+			  if (doc.subscriptions) {
+			      for(var user in doc.subscriptions)
+				  emit(node, user);
+			  }
 		      }
 		  },
 		  reduce: function(keys, values, rereduce) {
@@ -290,8 +272,12 @@ Transaction.prototype.createNode = function(node, cb) {
     });
 };
 
-Transaction.prototype.subscribeNode = function(subscriber, node, cb) {
-    this.load(nodeKey(node), function(err, doc) {
+/*
+ * Subscription management
+ */
+
+Transaction.prototype.getSubscription = function(node, user, cb) {
+     this.load(nodeKey(node), function(err, doc) {
 	if (err) {
 	    cb(err);
 	    return;
@@ -301,40 +287,42 @@ Transaction.prototype.subscribeNode = function(subscriber, node, cb) {
 	    return;
 	}
 
-	if (!doc.hasOwnProperty('subscribers'))
-	    doc.subscribers = [];
-	if (doc.subscribers.indexOf(subscriber) < 0)
-	    doc.subscribers.push(subscriber);
+	var subscription = doc.subscriptions &&
+		       doc.subscriptions[user];
+	cb(null, subscription);
+     });
+};
+
+/**
+ * The subscription types are used as string, while ''/null/undefined
+ * means delete.
+ */
+Transaction.prototype.setSubscription = function(node, user, subscription, cb) {
+     this.load(nodeKey(node), function(err, doc) {
+	if (err) {
+	    cb(err);
+	    return;
+	}
+	if (!doc) {
+	    cb(new errors.NotFound('No such node'));
+	    return;
+	}
+
+	if (!doc.hasOwnProperty('subscriptions'))
+	    doc.subscriptions = {};
+	if (subscription)
+	    doc.subscriptions[user] = subscription;
+	else
+	    delete doc.subscriptions[user];
+
 	this.save(doc);
 	cb(null);
     });
 };
 
-Transaction.prototype.unsubscribeNode = function(subscriber, node, cb) {
-    this.load(nodeKey(node), function(err, doc) {
-	if (err) {
-	    cb(err);
-	    return;
-	}
-	if (!doc) {
-	    cb(new errors.NotFound('No such node'));
-	    return;
-	}
-
-	if (doc.hasOwnProperty('subscribers') &&
-	    doc.subscribers.indexOf(subscriber) >= 0) {
-
-	    doc.subscribers = doc.subscribers.filter(function(user) {
-		return user !== subscriber;
-	    });
-	    this.save(doc);
-	    cb(null);
-	} else {
-	    cb(new errors.NotFound('Not subscribed'));
-	}
-    });
-};
-
+/**
+ * cb(err, {user: subscription})
+ */
 Transaction.prototype.getSubscribers = function(node, cb) {
     this.load(nodeKey(node), function(err, doc) {
 	if (err) {
@@ -346,17 +334,27 @@ Transaction.prototype.getSubscribers = function(node, cb) {
     });
 };
 
-Transaction.prototype.getSubscriptions = function(subscriber, cb) {
+/**
+ * cb(err, [{ node: '...', subscription: '...' }])
+ */
+Transaction.prototype.getSubscriptions = function(user, cb) {
     this.view('channel-server/subscriptions', { group: true,
-						key: subscriber }, cb);
+						key: user }, cb);
 };
 
+/**
+ * cb(err, [user])
+ */
 Transaction.prototype.getAllSubscribers = function(cb) {
     this.view('channel-server/subscribers', { group: false }, cb);
 };
 
-Transaction.prototype.getAffiliation = function(user, node, cb) {
-    this.load(nodeKey(node), function(err, doc) {
+/**
+ * Affiliation management
+ */
+
+Transaction.prototype.getAffiliation = function(node, user, cb) {
+     this.load(nodeKey(node), function(err, doc) {
 	if (err) {
 	    cb(err);
 	    return;
@@ -366,30 +364,50 @@ Transaction.prototype.getAffiliation = function(user, node, cb) {
 	    return;
 	}
 
-	if (doc.hasOwnProperty('owners') &&
-	    doc.owners.indexOf(user) >= 0) {
-	    cb(null, 'owner');
+	var affiliation = doc.affiliations &&
+		       doc.affiliations[user];
+	cb(null, affiliation);
+     });
+};
+
+/**
+ * The affiliation types are used as string, while ''/null/undefined
+ * means delete.
+ */
+Transaction.prototype.setAffiliation = function(node, user, affiliation, cb) {
+     this.load(nodeKey(node), function(err, doc) {
+	if (err) {
+	    cb(err);
 	    return;
 	}
-	if (doc.hasOwnProperty('publishers') &&
-	    doc.publishers.indexOf(user) >= 0) {
-	    cb(null, 'publisher');
+	if (!doc) {
+	    cb(new errors.NotFound('No such node'));
 	    return;
 	}
-	if (doc.hasOwnProperty('subscribers') &&
-	    doc.subscribers.indexOf(user) >= 0) {
-	    cb(null, 'member');
-	    return;
-	}
-	cb(null, 'none');
+
+	if (!doc.hasOwnProperty('affiliations'))
+	    doc.affiliations = {};
+	if (affiliation)
+	    doc.affiliations[user] = affiliation;
+	else
+	    delete doc.affiliations[user];
+
+	this.save(doc);
+	cb(null);
     });
 };
 
+/**
+ * cb(err, [{ node: node, affiliation: affiliation }]
+ */
 Transaction.prototype.getAffiliations = function(user, cb) {
     this.view('channel-server/affiliations', { group: true,
 					       key: user }, cb);
 };
 
+/**
+ * cb(err, [{ user: user, affiliation: affiliation }]
+ */
 Transaction.prototype.getAffiliated = function(node, cb) {
     this.load(nodeKey(node, function(err, doc) {
 	if (err) {
@@ -402,43 +420,14 @@ Transaction.prototype.getAffiliated = function(node, cb) {
 	}
 
 	var affiliations = [];
-	if (doc.hasOwnProperty('owners'))
-	    doc.owners.forEach(function(owner) {
-		affiliations.push({ user: owner,
-				    affiliation: 'owner' });
-	    });
-	if (doc.hasOwnProperty('publishers'))
-	    doc.publishers.forEach(function(publisher) {
-		affiliations.push({ user: publisher,
-				    affiliation: 'publisher' });
-	    });
-	if (doc.hasOwnProperty('subscribers'))
-	    doc.subscribers.forEach(function(subscriber) {
-		affiliations.push({ user: subscriber,
-				    affiliation: 'member' });
-	    });
+	if (doc.affiliations) {
+	    for(var user in doc.affiliations)
+		affiliations.push({ user: user,
+				    affiliation: doc.affiliations[user]
+				  });
+	}
 	cb(null, affiliations);
     }));
-};
-
-Transaction.prototype.addOwner = function(owner, node, cb) {
-    this.load(nodeKey(node), function(err, doc) {
-	if (err) {
-	    cb(new Error(err.error));
-	    return;
-	}
-	if (!doc) {
-	    cb(new errors.NotFound('No such node'));
-	    return;
-	}
-
-	if (!doc.hasOwnProperty('owners'))
-	    doc.owners = [];
-	if (doc.owners.indexOf(owner) < 0)
-	    doc.owners.push(owner);
-	this.save(doc);
-	cb(null);
-    });
 };
 
 /**
@@ -514,6 +503,10 @@ Transaction.prototype.getItem = function(node, id, cb) {
 	cb(null, item);
     });
 };
+
+/**
+ * Config management
+ */
 
 Transaction.prototype.getConfig = function(node, cb) {
     this.load(nodeKey(node), function(err, doc) {

@@ -7,6 +7,10 @@ exports.setModel = function(m) {
     model = m;
 };
 
+/**
+ * Transactions with result data better callback with an Array, so we
+ * can apply Result Set Management easily.
+ */
 var FEATURES = {
     'create-nodes': {
 	create: {
