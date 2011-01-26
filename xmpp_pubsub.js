@@ -415,11 +415,11 @@ function handleIq(iq) {
 		else {
 		    var affiliationsEl = new xmpp.Element('pubsub', { xmlns: NS_PUBSUB }).
 					     c('affiliations');
-		    for(var node in affiliations) {
-			affiliationsEl.c('affiliation', { node: node,
-							  affiliation: affiliations[node]
+		    affiliations.forEach(function(affiliation) {
+			affiliationsEl.c('affiliation', { node: affiliation.node,
+							  affiliation: affiliation.affiliation
 							});
-		    }
+		    });
 		    replyCb(null, affiliationsEl);
 		}
 	    } });
