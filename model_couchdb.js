@@ -294,8 +294,8 @@ Transaction.prototype.getSubscription = function(node, user, cb) {
 };
 
 /**
- * The subscription types are used as string, while ''/null/undefined
- * means delete.
+ * The subscription types are used as string, while
+ * 'none'/''/null/undefined means delete.
  */
 Transaction.prototype.setSubscription = function(node, user, subscription, cb) {
      this.load(nodeKey(node), function(err, doc) {
@@ -310,7 +310,7 @@ Transaction.prototype.setSubscription = function(node, user, subscription, cb) {
 
 	if (!doc.hasOwnProperty('subscriptions'))
 	    doc.subscriptions = {};
-	if (subscription)
+	if (subscription && subscription !== 'none')
 	    doc.subscriptions[user] = subscription;
 	else
 	    delete doc.subscriptions[user];
@@ -371,8 +371,8 @@ Transaction.prototype.getAffiliation = function(node, user, cb) {
 };
 
 /**
- * The affiliation types are used as string, while ''/null/undefined
- * means delete.
+ * The affiliation types are used as string, while
+ * 'none'/''/null/undefined means delete.
  */
 Transaction.prototype.setAffiliation = function(node, user, affiliation, cb) {
      this.load(nodeKey(node), function(err, doc) {
@@ -387,7 +387,7 @@ Transaction.prototype.setAffiliation = function(node, user, affiliation, cb) {
 
 	if (!doc.hasOwnProperty('affiliations'))
 	    doc.affiliations = {};
-	if (affiliation)
+	if (affiliation && affiliation !== 'none')
 	    doc.affiliations[user] = affiliation;
 	else
 	    delete doc.affiliations[user];
