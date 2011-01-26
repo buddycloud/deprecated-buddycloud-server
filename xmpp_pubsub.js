@@ -672,7 +672,8 @@ function notify(jid, node, items) {
 	return;
 
     var itemsEl = new xmpp.Element('message', { to: jid,
-						from: conn.jid.toString()
+						from: conn.jid.toString(),
+						type: 'headline'
 					      }).
 	          c('event', { xmlns: NS_PUBSUB_EVENT }).
 		  c('items', { node: node });
@@ -691,7 +692,8 @@ function retracted(jid, node, itemIds) {
 	return;
 
     var itemsEl = new xmpp.Element('message', { to: jid,
-						from: conn.jid.toString()
+						from: conn.jid.toString(),
+						type: 'headline'
 					      }).
 	          c('event', { xmlns: NS_PUBSUB_EVENT }).
 		  c('items', { node: node });
