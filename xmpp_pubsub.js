@@ -10,6 +10,7 @@ var NS_PUBSUB_NODE_CONFIG = 'http://jabber.org/protocol/pubsub#node_config';
 var NS_DISCO_INFO = 'http://jabber.org/protocol/disco#info';
 var NS_DISCO_ITEMS = 'http://jabber.org/protocol/disco#items';
 var NS_DATA = 'jabber:x:data';
+var NS_REGISTER = 'jabber:iq:register';
 
 /* Set by main.js */
 var controller;
@@ -196,7 +197,7 @@ function handleIq(iq) {
 	    map(function(feature) {
 		    return NS_PUBSUB + '#' + feature;
 		}).
-	    concat(NS_DISCO_INFO, NS_DISCO_ITEMS);
+	    concat(NS_DISCO_INFO, NS_DISCO_ITEMS, NS_REGISTER);
 	features.forEach(function(feature) {
 	    queryEl.c('feature', { var: feature });
 	});
@@ -677,6 +678,32 @@ function handleIq(iq) {
 				 callback: replyCb });
 	    return;
 	}
+    }
+    /*
+     * <iq type='get' id='reg1'>
+     *   <query xmlns='jabber:iq:register'/>
+     * </iq>
+     */
+    var registerEl = iq.getChild('query', NS_REGISTER);
+    if (iq.attrs.type === 'get' && registerEl) {
+	/* TODO: may include <registered/> */
+	replyCb(null, new xmpp.Element('query', { xmlns: NS_REGISTER }).
+		c('instructions').
+		t('Simply register here'));
+	return;
+    }
+    /*
+     * <iq type='set' id='reg2'>
+     *   <query xmlns='jabber:iq:register'>
+     *   </query>
+     * </iq>
+     */
+    if (iq.attrs.type === 'set' && registerEl) {
+	controller.request({ feature: 'register',
+			     operation: 'register',
+			     from: 'xmpp:' + jid,
+			     callback: replyCb });
+	return;
     }
 
     /* Not yet returned? Catch all: */

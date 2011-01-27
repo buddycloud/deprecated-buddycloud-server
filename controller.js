@@ -217,6 +217,37 @@ var FEATURES = {
 				      }, cb);
 	    }
 	}
+    },
+    /* Actually no pubsub feature but fits here snugly */
+    register: {
+	register: {
+	    transaction: function(req, t, cb) {
+		var m, user = req.from;
+		if ((m = user.match(/^.+:(.+)$/)))
+		    user = m[1]; /* strip proto prefix */
+
+		/* TODO: make configurable */
+		var nodes = ['channel', 'mood', 'geo/current',
+			     'geo/future', 'geo/previous'].map(function(name) {
+		    return '/user/' + user + '/' + name;
+		});
+
+		step(function(err) {
+		    var g = this.group();
+		    nodes.forEach(function(node) {
+			t.createNode(node, g());
+		    });
+		}, function(err) {
+		    if (err) throw err;
+
+		    var g = this.group();
+		    nodes.forEach(function(node) {
+			t.setAffiliation(node, req.from, 'owner', g());
+			t.setSubscription(node, req.from, 'subscribed', g());
+		    });
+		}, cb);
+	    }
+	}
     }
 };
 
@@ -392,7 +423,6 @@ exports.getAllSubscribers = function(cb) {
     });
 
 };
-
 
 /**
  * Affiliations comparison
