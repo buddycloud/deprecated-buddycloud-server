@@ -10,6 +10,7 @@ exports.start = function(config) {
 		   raw: false
 		 });
     db = new(cradle.Connection)().database(config.database);
+    db.save('_design/channel-server', { views: VIEWS });
 };
 
 /**
@@ -172,8 +173,7 @@ function itemKey(node, item) {
  *
  * Attention: these need the CouchDB setting reduce_limit=false.
  */
-db.save('_design/channel-server',
-	{ views: {
+var VIEWS = {
 	      nodeItems: {
 		  map: function(doc) {
 		      var delim = doc._id.indexOf('&');
@@ -268,7 +268,7 @@ db.save('_design/channel-server',
 		      return result;
 		  }
 	      }
-	  } });
+	  };
 
 /**
  * Actual data model
