@@ -241,17 +241,11 @@ exports.request = function(req) {
     };
 
     /* TODO: no underscores */
-    var nodeM = req.node.match(/^\/user\/(.+?)\/([a-zA-Z0-9\/_\-]+)$/);
-    var userM = req.from.match(/^(.+?):(.+)$/);
-    if (nodeM && nodeM[1] === userM[2])
-	req.affiliation = 'owner';
-
-    if (operation.needOwner && req.affiliation !== 'owner') {
-	/* If ownership were not hard-coded anymore this had to be
-	 * moved inside the transaction.
-	 */
-	req.callback(new errors.Forbidden('Ownership required'));
-	return;
+    if (req.node && req.from) {
+	var nodeM = req.node.match(/^\/user\/(.+?)\/([a-zA-Z0-9\/\-]+)$/);
+	var userM = req.from.match(/^(.+?):(.+)$/);
+	if (nodeM && nodeM[1] === userM[2])
+	    req.affiliation = 'owner';
     }
 
     model.transaction(function(err, t) {
