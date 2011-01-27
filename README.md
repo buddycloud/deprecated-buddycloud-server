@@ -40,6 +40,12 @@ listener configuration should look like this:
     {5233, ejabberd_service, [{hosts, ["channels.example.com"], [{password, "secret"}]}]}
 
 
+#### CouchDB configuration
+
+* Head to the administration interface at http://localhost:5984/_utils/
+* Change the `reduce_limit` to `false`
+* Create your database
+
 ### Start
 
 Simply do:
