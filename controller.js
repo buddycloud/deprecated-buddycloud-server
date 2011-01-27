@@ -268,6 +268,8 @@ exports.request = function(req) {
 
 		t.getConfig(req.node, this);
 	    }, function(err, config) {
+		if (err) throw err;
+
 		if (req.affiliation === 'none' &&
 		    config.accessModel === 'open')
 		    /* 'open' model: members don't need to be approved */
@@ -281,6 +283,8 @@ exports.request = function(req) {
 		else
 		    this(null);
 	    }, function(err, affiliation) {
+		if (err) throw err;
+
 		if (!isAffiliationSubset(operation.requiredAffiliation, affiliation || req.affiliation))
 		    this(new errors.Forbidden(operation.requiredAffiliation + ' required'));
 		else

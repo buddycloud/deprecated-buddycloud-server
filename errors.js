@@ -5,8 +5,11 @@ var NS_XMPP_STANZAS = 'urn:ietf:params:xml:ns:xmpp-stanzas';
 /**
  * Base class for our well-defined error conditions
  */
-function ServerError() {
-    this.prototype.constructor.apply(this, arguments);
+function ServerError(message) {
+    Error.apply(this, arguments);
+
+    /* Isn't message set by Error()? */
+    this.message = message;
 }
 utils.inherits(ServerError, Error);
 ServerError.prototype.condition = 'undefined-condition';
@@ -15,9 +18,11 @@ ServerError.prototype.type = 'cancel';
 ServerError.prototype.xmppElement = function() {
     var errorEl = new xmpp.Element('error', { type: this.type });
     errorEl.c(this.condition, { xmlns: NS_XMPP_STANZAS });
-    if (this.message)
+    if (this.message) {
+	console.log({message:this.message})
 	errorEl.c('text', { xmlns: NS_XMPP_STANZAS }).
 	t(this.message);
+    }
     return errorEl;
 };
 
@@ -26,7 +31,7 @@ ServerError.prototype.xmppElement = function() {
  */
 function makePrototype(condition, type) {
     var p = function() {
-	this.prototype.constructor.apply(this, arguments);
+	ServerError.apply(this, arguments);
     };
     utils.inherits(p, ServerError);
 
@@ -38,6 +43,9 @@ function makePrototype(condition, type) {
     return p;
 }
 
+/**
+ * The actual exported error classes
+ */
 module.exports = {
     Forbidden: makePrototype('forbidden', 'auth'),
     Conflict: makePrototype('conflict', 'cancel'),
