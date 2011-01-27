@@ -85,7 +85,9 @@ Yet to be written.
 
 * `grep TODO *.js`
 * [Result Set Management](http://xmpp.org/extensions/xep-0059.html)
-* More configurability
+* Outcast affiliation
+* Access Models
+* More configurability (channel presets)
 * Topic channels
 * More backends (PostgreSQL)
 * Discoverability
