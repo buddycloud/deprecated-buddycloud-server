@@ -9,6 +9,9 @@ real-time update notification.
 The primary network protocol is
 [Buddycloud Channels](http://open.buddycloud.com/).
 
+channel-server is distributed under the Apache License 2.0. See the
+`LICENSE` file.
+
 
 ## Installation
 
