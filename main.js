@@ -4,7 +4,9 @@ process.on('uncaughtException', function(err) {
 
 var config = require('./config');
 
-var model = require('./model_couchdb');
+var model = require('./model_' + config.modelBackend);
+model.start(config.modelConfig);
+
 var controller = require('./controller');
 controller.setModel(model);
 

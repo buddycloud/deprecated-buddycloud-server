@@ -1,10 +1,16 @@
 var ltx = require('ltx');
 var errors = require('./errors');
 var cradle = require('cradle');
-cradle.setup({host: '127.0.0.1',
-	      port: 5984,
-              cache: false, raw: false});
-var db = new(cradle.Connection)().database('channel-server');
+var db;
+
+exports.start = function(config) {
+    cradle.setup({ host: config.host,
+		   port: config.port,
+		   cache: false,
+		   raw: false
+		 });
+    db = new(cradle.Connection)().database(config.database);
+};
 
 /**
  * API entry point

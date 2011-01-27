@@ -1,8 +1,18 @@
-exports.xmpp = { jid: 'irc.spaceboyz.net',
-		 password: 'hastenichgesehn',
+/**
+ * XMPP Component connection
+ */
+exports.xmpp = { jid: 'channels.example.com',
+		 password: 'secret',
 		 host: 'localhost',
-		 port: 5348
+		 port: 5233
 	       };
-exports.web = { port: 8000,
-		host: 'localhost'
-	      };
+
+/**
+ * CouchDB backend
+ */
+exports.modelBackend = 'couchdb';
+exports.modelConfig = {
+    host: '127.0.0.1',
+    port: 5984,
+    database: 'channel-server'
+};
