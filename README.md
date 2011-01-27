@@ -6,6 +6,9 @@ over own data. channel-server is a building block for a bright future:
 it exposes your data to the network, featuring access control and
 real-time update notification.
 
+The primary network protocol is
+[Buddycloud Channels](http://open.buddycloud.com/).
+
 
 ## Installation
 
