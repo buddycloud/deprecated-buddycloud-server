@@ -144,10 +144,18 @@ Transaction.prototype.view = function(name, options, cb) {
  * Data model helpers
  */
 
+function assertNodeName(node) {
+    if (node.match(/^[a-zA-Z0-9\-\/]+$/))
+	return true;
+    else
+	throw new errors.BadRequest('Invalid node name');
+}
 function nodeKey(node) {
+    assertNodeName(node);
     return encodeURIComponent(node);
 }
 function itemKey(node, item) {
+    assertNodeName(node);
     return encodeURIComponent(node) + '&' + encodeURIComponent(item);
 }
 
