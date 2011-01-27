@@ -36,6 +36,7 @@ function Transaction(cb) {
  * order to overwrite it later.
  */
 Transaction.prototype.preload = function(id, cb) {
+    var that = this;
     db.head(id, function(err, headers) {
 	var doc;
 	if (err && err.error === 'not_found') {
@@ -48,15 +49,15 @@ Transaction.prototype.preload = function(id, cb) {
 		    _rev: headers['etag'].slice(1, -1)
 		  };
 	}
-	this.saveDocs[id] = doc;
-	cb(null, doc);
+	that.saveDocs[id] = doc;
+	cb.call(that, null, doc);
     });
 };
 
 Transaction.prototype.load = function(id, cb) {
     if (this.saveDocs.hasOwnProperty(id)) {
 	/* Shortcut if already cached */
-	cb(null, this.saveDocs[id]);
+	cb.call(this, null, this.saveDocs[id]);
 	return;
     }
 
@@ -145,7 +146,7 @@ Transaction.prototype.view = function(name, options, cb) {
  */
 
 function assertNodeName(node) {
-    if (node.match(/^[a-zA-Z0-9\-\/]+$/))
+    if (/^[a-zA-Z0-9\-\/@\.]+$/.test(node))
 	return true;
     else
 	throw new errors.BadRequest('Invalid node name');
@@ -280,6 +281,7 @@ Transaction.prototype.createNode = function(node, cb) {
 	}
 
 	this.save({ _id: nodeKey(node) });
+	cb(null);
     });
 };
 
