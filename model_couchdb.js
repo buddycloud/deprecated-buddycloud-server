@@ -145,10 +145,6 @@ Transaction.prototype.view = function(name, options, cb) {
 };
 
 /**
- * TODO: abstract view retrieval for values handling & error wrapping.
- */
-
-/**
  * Data model helpers
  */
 
@@ -275,7 +271,6 @@ var VIEWS = {
  */
 
 Transaction.prototype.createNode = function(node, cb) {
-    /* TODO: filter node for chars */
     this.load(nodeKey(node), function(err, doc) {
 	if (err) {
 	    cb(err);
@@ -465,7 +460,6 @@ Transaction.prototype.getAffiliated = function(node, cb) {
  * An item is always the children array of the <item node='...'> element
  */
 Transaction.prototype.writeItem = function(publisher, node, id, item, cb) {
-    /* TODO: check for node */
     this.preload(itemKey(node, id), function(err, doc) {
 	if (err) {
 	    cb(new errors.InternalServerError(err.error));
