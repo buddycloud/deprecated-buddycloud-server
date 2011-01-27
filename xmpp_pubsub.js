@@ -270,6 +270,28 @@ function handleIq(iq) {
 	}
 	/*
 	 * <iq type='set'
+	 *     from='francisco@denmark.lit/barracks'
+	 *     to='pubsub.shakespeare.lit'
+	 *     id='unsub1'>
+	 *   <pubsub xmlns='http://jabber.org/protocol/pubsub'>
+	 *      <unsubscribe
+	 *          node='princely_musings'/>
+	 *   </pubsub>
+	 * </iq>
+	 */
+	var unsubscribeEl = pubsubEl.getChild('unsubscribe');
+	var unsubscribeNode = unsubscribeEl && unsubscribeEl.attrs.node;
+	if (iq.attrs.type === 'set' && unsubscribeEl && unsubscribeNode) {
+	    controller.request({ feature: 'unsubscribe',
+				 operation: 'unsubscribe',
+				 from: 'xmpp:' + jid,
+				 node: unsubscribeNode,
+				 callback: replyCb
+			       });
+	    return;
+	}
+	/*
+	 * <iq type='set'
 	 *     from='hamlet@denmark.lit/blogbot'
 	 *     to='pubsub.shakespeare.lit'
 	 *     id='publish1'>

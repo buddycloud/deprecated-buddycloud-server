@@ -324,7 +324,7 @@ Transaction.prototype.setSubscription = function(node, user, subscription, cb) {
 };
 
 /**
- * cb(err, {user: subscription})
+ * cb(err, [{ user: user, subscription: subscription }])
  */
 Transaction.prototype.getSubscribers = function(node, cb) {
     this.load(nodeKey(node), function(err, doc) {
@@ -332,8 +332,20 @@ Transaction.prototype.getSubscribers = function(node, cb) {
 	    cb(err);
 	    return;
 	}
+	if (!doc) {
+	    cb(new errors.NotFound('No such node'));
+	    return;
+	}
 
-	cb(null, doc.subscribers || []);
+	var subscribers = [];
+	if (doc.subscribers) {
+	    for(var user in doc.subscribers)
+		subscribers.push({ user: user,
+				   subscription: doc.subscribers[user]
+				 });
+	}
+
+	cb(null, subscribers);
     });
 };
 

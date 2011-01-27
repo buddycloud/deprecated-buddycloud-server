@@ -8,17 +8,6 @@ exports.setModel = function(m) {
 };
 
 
-var AFFILIATION_SUBSETS = {
-    owner: ['moderator', 'publisher', 'member'],
-    moderator: ['publisher', 'member'],
-    publisher: ['member']
-};
-function isAffiliationSubset(subset, affiliation) {
-    return subset === affiliation ||
-	   (AFFILIATION_SUBSETS.hasOwnProperty(affiliation) &&
-	    AFFILIATION_SUBSETS[affiliation].indexOf(subset) >= 0);
-}
-
 /**
  * Transactions with result data better callback with an Array, so we
  * can apply Result Set Management easily.
@@ -70,7 +59,7 @@ var FEATURES = {
 	    },
 	    subscriberNotification: function(req, subscribers) {
 		subscribers.forEach(function(subscriber) {
-		    callFrontend('notify', subscriber, req.node, req.items);
+		    callFrontend('notify', subscriber.user, req.node, req.items);
 		});
 	    }
 	}
@@ -95,7 +84,7 @@ var FEATURES = {
 	    },
 	    subscriberNotification: function(req, subscribers) {
 		subscribers.forEach(function(subscriber) {
-		    callFrontend('retracted', subscriber, req.node, req.itemIds);
+		    callFrontend('retracted', subscriber.user, req.node, req.itemIds);
 		});
 	    }
 	}
@@ -110,7 +99,6 @@ var FEATURES = {
 		     }, function(err, ids_) {
 			 if (err) throw err;
 
-console.log("item ids: " + JSON.stringify(ids_));
 			 ids = ids_;
 			 if (ids.length < 1)
 			     this(null, []);
@@ -152,7 +140,7 @@ console.log("item ids: " + JSON.stringify(ids_));
 	retrieve: {
 	    requiredAffiliation: 'moderator',
 	    transaction: function(req, t, cb) {
-		t.getAffiliations(req.node, cb);
+		t.getSubscribers(req.node, cb);
 	    }
 	},
 	modify: {
@@ -170,11 +158,13 @@ console.log("item ids: " + JSON.stringify(ids_));
 			     var subscription = req.subscriptions[user];
 			     switch(subscription) {
 			     case 'subscribed':
-				     t.subscribeNode(user, req.node, g());
+				     t.setSubscription(req.node, user, g());
 				     break;
 			     case 'none':
-				     t.unsubscribeNode(user, req.node, g());
+				     t.setSubscription(req.node, user, g());
 				     break;
+			     default:
+				 throw new errors.BadRequest(subscription + ' is no subscription type');
 			     }
 			 }
 		     }, cb);
@@ -379,7 +369,7 @@ exports.request = function(req) {
 };
 
 /*
- * This is not a feature, but used internally to send out presence
+ * This is not a request, but used internally to send out presence
  * probes at startup.
  */
 exports.getAllSubscribers = function(cb) {
@@ -405,7 +395,29 @@ exports.getAllSubscribers = function(cb) {
 
 };
 
+
+/**
+ * Affiliations comparison
+ */
+
+var AFFILIATION_SUBSETS = {
+    owner: ['moderator', 'publisher', 'member'],
+    moderator: ['publisher', 'member'],
+    publisher: ['member']
+};
+function isAffiliationSubset(subset, affiliation) {
+    return subset === affiliation ||
+	   (AFFILIATION_SUBSETS.hasOwnProperty(affiliation) &&
+	    AFFILIATION_SUBSETS[affiliation].indexOf(subset) >= 0);
+}
+
+
+/**
+ * Frontend hooking
+ */
+
 var frontends = {};
+
 /**
  * Hook frontend for uri prefix
  */
@@ -436,6 +448,7 @@ console.log({callFrontend:arguments,frontent:frontend,hookFun:hookFun,args:args}
 
 
 /* A helper */
+
 function objectIsEmpty(o) {
     for(var k in o) {
 	if (o.hasOwnProperty(k))
