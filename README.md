@@ -60,6 +60,7 @@ well-defined interface to databases with additional access control,
 data sanitization, and in this case, notification hooks.
 
 Additionally, the MVC pattern influenced this application much:
+
 * View: network frontend such as `xmpp_pubsub.js`
 * Controller: core logic in `controller.js`
 * Model: database-specific backends with transaction support
