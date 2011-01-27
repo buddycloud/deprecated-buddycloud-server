@@ -1,3 +1,7 @@
+process.on('uncaughtException', function(err) {
+    console.error(err.message || err);
+});
+
 var config = require('./config');
 
 var model = require('./model_couchdb');
