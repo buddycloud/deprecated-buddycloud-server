@@ -7,6 +7,18 @@ exports.setModel = function(m) {
     model = m;
 };
 
+
+var AFFILIATION_SUBSETS = {
+    owner: ['moderator', 'publisher', 'member'],
+    moderator: ['publisher', 'member'],
+    publisher: ['member']
+};
+function isAffiliationSubset(subset, affiliation) {
+    return subset === affiliation ||
+	   (AFFILIATION_SUBSETS.hasOwnProperty(affiliation) &&
+	    AFFILIATION_SUBSETS[affiliation].indexOf(subset) >= 0);
+}
+
 /**
  * Transactions with result data better callback with an Array, so we
  * can apply Result Set Management easily.
@@ -14,33 +26,33 @@ exports.setModel = function(m) {
 var FEATURES = {
     'create-nodes': {
 	create: {
-	    needOwner: true,
+	    requiredAffiliation: 'owner',
 	    transaction: function(req, t, cb) {
 		step(function() {
 			 t.createNode(req.node, this);
 		     }, function(err) {
 			 if (err) throw err;
 
-			 t.addOwner(req.from, req.node, this);
+			 t.setAffiliation(req.node, req.from, 'owner', this);
 		     }, function(err) {
 			 if (err) throw err;
 
-			 t.subscribeNode(req.from, req.node, this);
+			 t.setSubscription(req.node, req.from, 'subscribed', this);
 		     }, cb);
 	    }
 	}
     },
     subscribe: {
 	subscribe: {
+	    requiredAffiliation: 'member',
 	    transaction: function(req, t, cb) {
-		t.subscribeNode(req.from, req.node, cb);
+		t.setSubscription(req.node, req.from, 'subscribed', cb);
 	    }
 	}
     },
     publish: {
 	publish: {
-	    /* TODO: check perms */
-	    needPublisher: true,
+	    requiredAffiliation: 'publisher',
 	    transaction: function(req, t, cb) {
 		var subscribers;
 
@@ -65,7 +77,7 @@ var FEATURES = {
     },
     'retract-items': {
 	retract: {
-	    needPublisher: true,
+	    requiredAffiliation: 'publisher',
 	    transaction: function(req, t, cb) {
 		var subscribers;
 
@@ -90,7 +102,7 @@ var FEATURES = {
     },
     'retrieve-items': {
 	retrieve: {
-	    withAffiliation: true,
+	    requiredAffiliation: 'member',
 	    transaction: function(req, t, cb) {
 		var ids, items;
 		step(function() {
@@ -138,13 +150,13 @@ console.log("item ids: " + JSON.stringify(ids_));
     },
     'manage-subscriptions': {
 	retrieve: {
-	    needOwner: true,  /* TODO: actually, only publisher required */
+	    requiredAffiliation: 'moderator',
 	    transaction: function(req, t, cb) {
 		t.getAffiliations(req.node, cb);
 	    }
 	},
 	modify: {
-	    needOwner: true,
+	    requiredAffiliation: 'moderator',
 	    /* TODO: only let owner subscribe users who intended to */
 	    transaction: function(req, t, cb) {
 		step(function() {
@@ -174,14 +186,14 @@ console.log("item ids: " + JSON.stringify(ids_));
     },
     'modify-affiliations': {
 	retrieve: {
-	    needOwner: true,
+	    requiredAffiliation: 'owner',
 	    /* TODO: outcast only if req.affiliation == 'owner' or 'publisher' */
 	    transaction: function(req, t, cb) {
 		t.getAffiliated(req.node, cb);
 	    }
 	},
 	modify: {
-	    needOwner: true,
+	    requiredAffiliation: 'owner',
 	    transaction: function(req, t, cb) {
 		if (objectIsEmpty(req.affiliations)) {
 		    this(null);
@@ -192,18 +204,8 @@ console.log("item ids: " + JSON.stringify(ids_));
 			 var g = this.group();
 			 for(var user in req.affiliations) {
 			     var affiliation = req.affiliations[user];
-			     switch(affiliation) {
-			     case 'owner':
-				 t.addOwner(user, req.node, g());
-				 /* TODO: deny dropping ownership */
-				 break;
-			     case 'publisher':
-			     case 'member':
-			     case 'none':
-				 /* TODO */
-				 g();
-				 break;
-			     }
+			     /* TODO: validate affiliation */
+			     t.setAffiliation(req.node, user, affiliation, g());
 			 }
 		     }, cb);
 	    }
@@ -211,13 +213,13 @@ console.log("item ids: " + JSON.stringify(ids_));
     },
     'config-node': {
 	retrieve: {
-	    needOwner: true,
+	    requiredAffiliation: 'owner',
 	    transaction: function(req, t, cb) {
 		t.getConfig(req.node, cb);
 	    }
 	},
 	modify: {
-	    needOwner: true,
+	    requiredAffiliation: 'owner',
 	    transaction: function(req, t, cb) {
 		t.setConfig(req.node, { title: req.title,
 					accessModel: req.accessModel,
@@ -274,29 +276,31 @@ exports.request = function(req) {
 		     }];
 
 	/* Retrieve affiliation if needed */
-	/* TODO: make level */
-	if ((operation.withAffiliation || operation.needPublisher || operation.needMember) &&
-	    req.affiliation === 'none') {
-	    console.log('need affiliation...');
+	if (operation.requiredAffiliation &&
+	    !isAffiliationSubset(operation.requiredAffiliation, req.affiliation)) {
+	    
 	    steps.push(function(err) {
 		if (err) throw err;
 
-		t.getAffiliation(req.from, req.node, this);
-	    }, function(err, affiliation) {
-		if (err) throw err;
+		t.getConfig(req.node, this);
+	    }, function(err, config) {
+		if (req.affiliation === 'none' &&
+		    config.accessModel === 'open')
+		    /* 'open' model: members don't need to be approved */
+		    req.affiliation = 'member';
+		/* TODO: check publish model too and set affiliation =
+		 *   'publisher' only if user subscribed
+		 */
 
-		req.affiliation = affiliation;
-		if (operation.needPublisher && affiliation === 'publisher')
-		    this(null);
-		else if (operation.needMember &&
-			 (affiliation === 'publisher' || affiliation === 'member'))
-		    this(null);
-		else if (operation.needPublisher)
-		    this(new errors.Forbidden('Publisher rights required'));
-		else if (operation.needMember)
-		    this(new errors.Forbidden('Membership required'));
+		if (!isAffiliationSubset(operation.requiredAffiliation, req.affiliation))
+		    t.getAffiliation(req.node, req.from, this);
 		else
 		    this(null);
+	    }, function(err, affiliation) {
+		if (!isAffiliationSubset(operation.requiredAffiliation, affiliation || req.affiliation))
+		    this(new errors.Forbidden(operation.requiredAffiliation + ' required'));
+		else
+		    this();
 	    });
 	}
 
@@ -369,10 +373,15 @@ exports.request = function(req) {
 		req.callback.apply(req, transactionResults);
 	});
 
+	/* Finally, run all the steps we assembled above */
 	step.apply(null, steps);
     });
 };
 
+/*
+ * This is not a feature, but used internally to send out presence
+ * probes at startup.
+ */
 exports.getAllSubscribers = function(cb) {
     model.transaction(function(err, t) {
 	if (err) {
