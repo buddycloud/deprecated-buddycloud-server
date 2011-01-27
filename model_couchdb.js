@@ -60,15 +60,16 @@ Transaction.prototype.load = function(id, cb) {
 	return;
     }
 
+    var that = this;
     db.get(id, function(err, res) {
 	if (err && err.error === 'not_found')
-	    cb.call(this, null, null);
+	    cb.call(that, null, null);
 	else if (err)
-	    cb.call(this, new errors.InternalServerError(err.error));
+	    cb.call(that, new errors.InternalServerError(err.error));
 	else {
 	    var doc = res.toJSON();
-	    this.saveDocs[doc._id] = doc;
-	    cb.call(this, null, doc);
+	    that.saveDocs[doc._id] = doc;
+	    cb.call(that, null, doc);
 	}
     });
 };
@@ -126,9 +127,11 @@ Transaction.prototype.view = function(name, options, cb) {
 	}
 
 	var results = [];
-	res.toJSON().rows().forEach(function(row) {
-	    results.push.apply(results, row.value);
-	});
+	var rows = res.toJSON().rows;
+	if (rows)
+	    rows.forEach(function(row) {
+		results.push.apply(results, row.value);
+	    });
 	cb(null, results);
     });
 };
