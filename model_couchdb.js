@@ -286,7 +286,7 @@ Transaction.prototype.createNode = function(node, cb) {
     });
 };
 
-/*
+/**
  * Subscription management
  */
 
@@ -520,7 +520,7 @@ Transaction.prototype.getItem = function(node, id, cb) {
 
 	var item;
 	try {
-	    item = ltx.parse(res.toJSON().xml).children;
+	    item = ltx.parse('<r>' + res.toJSON().xml + '</r>').children;
 	} catch (e) {
 	    console.error('Parsing ' + JSON.stringify({node:node,id:id}) + ': ' + e.stack);
 	    item = [];
