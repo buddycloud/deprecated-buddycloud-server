@@ -1,10 +1,10 @@
 /**
  * XMPP Component connection
  */
-exports.xmpp = { jid: 'irc.spaceboyz.net',
-		 password: 'hastenichgesehn',
+exports.xmpp = { jid: 'channels.example.com',
+		 password: 'secret',
 		 host: 'localhost',
-		 port: 5348
+		 port: 5347
 	       };
 
 /**
@@ -16,7 +16,8 @@ exports.modelBackend = 'couchdb';
 exports.modelConfig = {
     host: 'localhost',
     port: 5984,
-    database: 'channel-server'
+    database: 'channel-server',
+    poolSize: 4
 };
 
 /*
