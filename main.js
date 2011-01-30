@@ -1,5 +1,5 @@
 process.on('uncaughtException', function(err) {
-    console.error(err.message || err);
+    console.error('uncaughtException: ' + (err.stack || err.message || err.toString()));
 });
 
 var config = require('./config');
