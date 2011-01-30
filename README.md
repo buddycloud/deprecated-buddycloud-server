@@ -26,7 +26,9 @@ You will need [Node](http://nodejs.org/) and its package manager
 installing the required libraries:
 
     apt-get install libicu-dev libexpat-dev  # on Ubuntu/Debian
-    npm install node-xmpp step cradle node-uuid
+    npm install node-xmpp step node-uuid
+    npm install cradle  # for CouchDB
+    npm install pg      # for PostgreSQL
 
 
 ### Configuration
@@ -45,6 +47,19 @@ listener configuration should look like this:
 * Head to the administration interface at http://localhost:5984/_utils/
 * Change the `reduce_limit` to `false`
 * Create your database
+
+#### PostgreSQL configuration
+
+The [pg](https://github.com/brianc/node-postgres) library uses TCP
+connections, no Unix domain sockets with user account
+credentials. Hence, use `createuser -P` and grant the new user
+privileges on your database.
+
+Next, install the database schema:
+
+    psql channel-server
+    \i postgres.sql
+
 
 ### Start
 
@@ -84,7 +99,8 @@ optimize the hell out of it, don't use in production.
 
 #### PostgreSQL
 
-Yet to be written.
+Sporting real transactions and a normalized database schema, this SQL
+backend is expected to yield high performance.
 
 
 ## TODO
@@ -95,6 +111,6 @@ Yet to be written.
 * Access Models
 * More configurability (channel presets)
 * Topic channels
-* More backends (PostgreSQL)
+* More backends (MySQL? SQLite?)
 * Discoverability
 * Further frontends: Web, oStatus
