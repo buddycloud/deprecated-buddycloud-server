@@ -186,7 +186,10 @@ function handleIq(iq) {
      */
     var discoInfoEl = iq.getChild('query', NS_DISCO_INFO);
     if (iq.attrs.type === 'get' && discoInfoEl) {
+	var node = discoInfoEl.attrs.node;
 	var queryEl = new xmpp.Element('query', { xmlns: NS_DISCO_INFO });
+	if (node)
+	    queryEl.attrs.node = node;
 	queryEl.c('identity', { category: 'pubsub',
 				type: 'service',
 				name: 'Channels service' });
@@ -197,12 +200,52 @@ function handleIq(iq) {
 	    map(function(feature) {
 		    return NS_PUBSUB + '#' + feature;
 		}).
-	    concat(NS_DISCO_INFO, NS_DISCO_ITEMS, NS_REGISTER);
+	    concat(NS_DISCO_INFO, NS_DISCO_ITEMS);
+	if (!node)
+	    features.push(NS_REGISTER);
 	features.forEach(function(feature) {
 	    queryEl.c('feature', { var: feature });
 	});
 
-	replyCb(null, queryEl);
+	if (node) {
+	    controller.request({ feature: 'config-node',
+				 operation: 'retrieve',
+				 from: 'xmpp:' + jid,
+				 node: node,
+				 callback: function(err, config) {
+	        if (err) {
+		    replyCb(err);
+		    return;
+		}
+
+		queryEl.c('x', { xmlns: NS_DATA,
+				 type: 'result' }).
+			c('field', { var: 'FORM_TYPE',
+				     type: 'hidden' }).
+			c('value').t(NS_PUBSUB_NODE_CONFIG).up().
+			up().
+			c('field', { var: 'pubsub#title',
+				     type: 'text-single',
+				     label: 'A friendly name for the node' }).
+			c('value').t(config.title || '').up().
+			up().
+			c('field', { var: 'pubsub#access_model',
+				     type: 'list-single',
+				     label: 'Who can subscribe and browse your channel?' }).
+			c('value').t(config.accessModel || 'open').up().
+			up().
+			c('field', { var: 'pubsub#publish_model',
+				     type: 'list-single',
+				     label: 'May new subscribers post on your channel?' }).
+			c('value').t(config.publishModel || 'subscribers');
+		replyCb(null, queryEl);
+	    } });
+	} else
+	    /* Didn't request info about specific node, hence no need
+	     * to get node config but respond immediately.
+	     */
+	    replyCb(null, queryEl);
+
 	return;
     }
     /*
