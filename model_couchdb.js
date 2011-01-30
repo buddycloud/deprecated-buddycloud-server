@@ -44,7 +44,7 @@ function Transaction(cb) {
  */
 Transaction.prototype.preload = function(id, cb) {
     var that = this;
-    db.head(id, function(err, headers) {
+    db.head(encodeURIComponent(id), function(err, headers) {
 	var doc;
 	if (err && err.error === 'not_found') {
 	    doc = { _id: id };
@@ -69,7 +69,7 @@ Transaction.prototype.load = function(id, cb) {
     }
 
     var that = this;
-    db.get(id, function(err, res) {
+    db.get(encodeURIComponent(id), function(err, res) {
 	if (err && err.error === 'not_found')
 	    cb.call(that, null, null);
 	else if (err)
@@ -156,11 +156,11 @@ function assertNodeName(node) {
 }
 function nodeKey(node) {
     assertNodeName(node);
-    return encodeURIComponent(node);
+    return node;
 }
 function itemKey(node, item) {
     assertNodeName(node);
-    return encodeURIComponent(node) + '&' + encodeURIComponent(item);
+    return node + '&' + item;
 }
 
 
