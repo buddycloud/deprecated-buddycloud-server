@@ -450,9 +450,9 @@ function handleIq(iq) {
 		    var subscriptionsEl = new xmpp.Element('pubsub', { xmlns: NS_PUBSUB }).
 					      c('subscriptions');
 		    nodes.forEach(function(node) {
-			subscriptionsEl.c('subscription', { node: node,
+			subscriptionsEl.c('subscription', { node: node.node,
 							    jid: jid,
-							    subscription: 'subscribed'
+							    subscription: node.subscription
 							  });
 		    });
 		    replyCb(null, subscriptionsEl);
