@@ -302,7 +302,7 @@ exports.request = function(req) {
 		if (err) throw err;
 
 		if (req.affiliation === 'none' &&
-		    config.accessModel === 'open')
+		    (!config.accessModel || config.accessModel === 'open'))
 		    /* 'open' model: members don't need to be approved */
 		    req.affiliation = 'member';
 		/* TODO: check publish model too and set affiliation =
