@@ -53,7 +53,7 @@ Transaction.prototype.preload = function(id, cb) {
 	    return;
 	} else {
 	    doc = { _id: id,
-		    _rev: headers['etag'].slice(1, -1)
+		    _rev: (headers['etag'] || '').slice(1, -1)
 		  };
 	}
 	that.saveDocs[id] = doc;
