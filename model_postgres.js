@@ -114,6 +114,26 @@ Transaction.prototype.createNode = function(node, cb) {
 };
 
 /**
+ * cb(err, [{ node: String, title: String }])
+ */
+Transaction.prototype.listNodes = function(cb) {
+    step(function() {
+	/* TODO: order by COUNT(subscribers) */
+	db.query("SELECT node, title FROM nodes WHERE access_model IS NULL OR access_model = 'open' " +
+		 "ORDER BY node ASC", this);
+    }, function(err, res) {
+	if (err) throw err;
+
+	var nodes = res.rows.map(function(row) {
+	    return { node: row.node,
+		     title: row.title
+		   };
+	});
+	this(null, nodes);
+    }, cb);
+};
+
+/**
  * Subscription management
  */
 

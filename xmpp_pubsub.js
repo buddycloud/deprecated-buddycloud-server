@@ -200,9 +200,9 @@ function handleIq(iq) {
 	    map(function(feature) {
 		    return NS_PUBSUB + '#' + feature;
 		}).
-	    concat(NS_DISCO_INFO, NS_DISCO_ITEMS);
+	    concat(NS_DISCO_INFO);
 	if (!node)
-	    features.push(NS_REGISTER);
+	    features.push(NS_DISCO_ITEMS, NS_REGISTER);
 	features.forEach(function(feature) {
 	    queryEl.c('feature', { var: feature });
 	});
@@ -258,10 +258,32 @@ function handleIq(iq) {
      */
     var discoItemsEl = iq.getChild('query', NS_DISCO_ITEMS);
     if (iq.attrs.type === 'get' && discoItemsEl) {
+	var node = discoItemsEl.attrs.node;
 	var queryEl = new xmpp.Element('query', { xmlns: NS_DISCO_ITEMS });
-	/* TODO: browse users with open nodes */
 
-	replyCb(null, queryEl);
+	if (!node) {
+	    /* Discovering service, not a specific node */
+	    controller.request({ feature: 'browse-nodes',
+				 operation: 'list',
+				 from: 'xmpp:' + jid,
+				 callback: function(err, nodes) {
+	        if (err) {
+		    errorReply(err);
+		    return;
+		}
+
+		/* Iterate the controller browse-nodes result */
+		nodes.forEach(function(node) {
+		    var itemEl = queryEl.c('item', { jid: conn.jid,
+						     node: node.node
+						   });
+		    if (node.title)
+			itemEl.attrs.title = node.title;
+		});
+		replyCb(null, queryEl);
+	    } });
+	} else
+	    replyCb(null, queryEl);
 	return;
     }
 

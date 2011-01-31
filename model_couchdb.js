@@ -263,6 +263,23 @@ var VIEWS = {
 		      });
 		      return result;
 		  }
+	      },
+	      openNodes: {
+		  map: function(doc) {
+		      if (doc._id.indexOf('&') < 0) {
+			  /* is node */
+			  if (!doc.hasOwnProperty('accessModel') ||
+			      doc.accessModel === 'open')
+			      emit(doc._id, { node: doc._id,
+					      title: doc.title
+					    });
+		      }
+		  },
+		  reduce: function(keys, values, rereduce) {
+		      if (rereduce)
+			  values = Array.prototype.concat.apply([], values);
+		      return values;
+		  }
 	      }
 	  };
 
@@ -284,6 +301,13 @@ Transaction.prototype.createNode = function(node, cb) {
 	this.save({ _id: nodeKey(node) });
 	cb(null);
     });
+};
+
+/**
+ * cb(err, [{ node: String, title: String }])
+ */
+Transaction.prototype.listNodes = function(cb) {
+    this.view('channel-server/openNodes', { group: false }, cb);
 };
 
 /**

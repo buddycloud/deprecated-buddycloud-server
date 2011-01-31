@@ -248,6 +248,14 @@ var FEATURES = {
 		}, cb);
 	    }
 	}
+    },
+    /* Actually no pubsub feature but fits here snugly */
+    'browse-nodes': {
+	list: {
+	    transaction: function(req, t, cb) {
+		t.listNodes(cb);
+	    }
+	}
     }
 };
 
