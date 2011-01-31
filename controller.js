@@ -293,33 +293,42 @@ exports.request = function(req) {
 	/* Retrieve affiliation if needed */
 	if (operation.requiredAffiliation &&
 	    !isAffiliationSubset(operation.requiredAffiliation, req.affiliation)) {
-	    
+
+	    var config;
 	    steps.push(function(err) {
 		if (err) throw err;
 
 		t.getConfig(req.node, this);
-	    }, function(err, config) {
+	    }, function(err, config_) {
 		if (err) throw err;
 
-		if (req.affiliation === 'none' &&
-		    (!config.accessModel || config.accessModel === 'open'))
-		    /* 'open' model: members don't need to be approved */
-		    req.affiliation = 'member';
-		/* TODO: check publish model too and set affiliation =
-		 *   'publisher' only if user subscribed
-		 */
+		config = config_;
 
-		if (!isAffiliationSubset(operation.requiredAffiliation, req.affiliation))
-		    t.getAffiliation(req.node, req.from, this);
-		else
-		    this(null);
+		t.getAffiliation(req.node, req.from, this);
 	    }, function(err, affiliation) {
 		if (err) throw err;
 
-		if (!isAffiliationSubset(operation.requiredAffiliation, affiliation || req.affiliation))
-		    this(new errors.Forbidden(operation.requiredAffiliation + ' required'));
-		else
+		req.affiliation = affiliation || req.affiliation;
+
+		t.getSubscription(req.node, req.from, this);
+	    }, function(err, subscription) {
+		if (err) throw err;
+
+		if (req.affiliation === 'none' &&
+		    (!config.accessModel || config.accessModel === 'open')) {
+		    /* 'open' model: members don't need to be approved */
+		    req.affiliation = 'member';
+		} else if (req.affiliation === 'member' &&
+			   config.publishModel === 'publisher' &&
+			   subscription === 'subscribed') {
+		    /* set affiliation = 'publisher' only if user subscribed */
+		    req.affiliation = 'publisher';
+		}
+
+		if (isAffiliationSubset(operation.requiredAffiliation, req.affiliation))
 		    this();
+		else
+		    this(new errors.Forbidden(operation.requiredAffiliation + ' required'));
 	    });
 	}
 
