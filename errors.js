@@ -1,4 +1,13 @@
-var utils = require('utils');
+var inherits;
+try {
+    inherits = require('util').inherits;
+} catch (x) {
+    try {
+	inherits = require('utils').inherits;
+    } catch (x) {
+	inherits = require('sys').inherits;
+    }
+}
 var xmpp = require('node-xmpp');
 var NS_XMPP_STANZAS = 'urn:ietf:params:xml:ns:xmpp-stanzas';
 
@@ -11,7 +20,7 @@ function ServerError(message) {
     /* Isn't message set by Error()? */
     this.message = message;
 }
-utils.inherits(ServerError, Error);
+inherits(ServerError, Error);
 ServerError.prototype.condition = 'undefined-condition';
 ServerError.prototype.type = 'cancel';
 
@@ -33,7 +42,7 @@ function makePrototype(condition, type) {
     var p = function() {
 	ServerError.apply(this, arguments);
     };
-    utils.inherits(p, ServerError);
+    inherits(p, ServerError);
 
     if (condition)
 	p.prototype.condition = condition;
