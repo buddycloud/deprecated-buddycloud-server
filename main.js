@@ -4,6 +4,7 @@ process.on('uncaughtException', function(err) {
     console.error('uncaughtException: ' + (err.stack || err.message || err.toString()));
 });
 
+process.chdir(__dirname);
 var config = require('./config');
 
 var model = require('./model_' + config.modelBackend);

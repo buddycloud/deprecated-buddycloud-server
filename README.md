@@ -25,8 +25,13 @@ You will need [Node](http://nodejs.org/) and its package manager
 [npm](http://npmjs.org/). Then install development packages for
 installing the required libraries:
 
-    apt-get install libicu-dev libexpat-dev  # on Ubuntu/Debian
-    npm install node-xmpp step node-uuid
+    apt-get install -t testing libicu-dev libexpat-dev  # on Ubuntu/Debian
+    
+Next, depending on your preference, you may choose to just
+`npm install channel-server` or install further dependencies
+manually and run channel-server from the repository:
+    
+    npm install node-xmpp step node-uuid node-stringprep
     npm install cradle  # for CouchDB
     npm install pg      # for PostgreSQL
 
