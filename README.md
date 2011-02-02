@@ -113,9 +113,8 @@ backend is expected to yield high performance.
 * `grep TODO *.js`
 * [Result Set Management](http://xmpp.org/extensions/xep-0059.html)
 * Outcast affiliation
-* Access Models
+* Subscription notification messages
 * More configurability (channel presets)
 * Topic channels
 * More backends (MySQL? SQLite?)
-* Discoverability
 * Further frontends: Web, oStatus

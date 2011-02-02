@@ -35,7 +35,29 @@ var FEATURES = {
 	subscribe: {
 	    requiredAffiliation: 'member',
 	    transaction: function(req, t, cb) {
-		t.setSubscription(req.node, req.from, 'subscribed', cb);
+		var subscription;
+		step(function() {
+		    t.getConfig(req.node, this);
+		}, function(err, config) {
+		    if (err) throw err;
+
+		    subscription = (config.accessModel == 'authorize') ?
+			'pending' : 'subscribed';
+		    t.setSubscription(req.node, req.from, subscription, this);
+		}, function(err, config) {
+		    if (err) throw err;
+
+		    req.subscription = subscription;
+		    this(null, subscription);
+		}, cb);
+	    },
+	    /* TODO: get owners only if subscription approval pending */
+	    ownerNotification: function(req, owners) {
+		if (subscription === 'pending') {
+		    owners.forEach(function(owner) {
+			callFrontend('approve', owner, req.node, req.from);
+		    });
+		}
 	    }
 	}
     },
@@ -170,7 +192,7 @@ var FEATURES = {
 		     }, cb);
 	    },
 	    subscriberNotification: function(req, subscribers) {
-		/* TODO */
+		/* TODO: send out if subscriber !== req.from */
 	    }
 	}
     },
@@ -218,6 +240,32 @@ var FEATURES = {
 	    }
 	}
     },
+    'get-pending': {
+	'list-nodes': {
+	    transaction: function(req, t, cb) {
+		t.getPendingNodes(req.from, cb);
+	    }
+	},
+	'get-for-node': {
+	    requiredAffiliation: 'owner',
+	    transaction: function(req, t, cb) {
+		step(function() {
+		    t.getPending(req.node, this);
+		}, function(err, users) {
+		    if (err) throw err;
+
+		    req.pendingUsers = users;
+		    this(null);
+		}, cb);
+	    },
+	    /* TODO: actually doesn't need owners */
+	    ownerNotification: function(req, owners) {
+		req.pendingUsers.forEach(function(user) {
+		    callFrontend('approve', req.from, req.node, user);
+		});
+	    }
+	}
+    },
     /* Actually no pubsub feature but fits here snugly */
     register: {
 	register: {
@@ -232,7 +280,7 @@ var FEATURES = {
 		    return '/user/' + user + '/' + name;
 		});
 
-		step(function(err) {
+		step(function() {
 		    var g = this.group();
 		    nodes.forEach(function(node) {
 			t.createNode(node, g());
@@ -360,6 +408,22 @@ exports.request = function(req) {
 	     */
 	    this(null);
 	});
+	var owners;
+	if (operation.ownerNotification) {
+	    /* For owner notification, get the list of owners while
+	     * still inside transaction.
+	     */
+	    steps.push(function(err) {
+		if (err) throw err;
+
+		t.getOwners(req.node, this);
+	    }, function(err, owners_) {
+		if (err) throw err;
+
+		owners = owners_;
+		this(null);
+	    });
+	}
         var subscribers;
 	if (operation.subscriberNotification) {
 	    /* For subscriber notification, get the list of subscribers
@@ -391,6 +455,14 @@ exports.request = function(req) {
 		t.commit(this);
 	    }
 	});
+	if (operation.ownerNotification) {
+	    steps.push(function(err) {
+		if (err) throw err;
+
+		operation.ownerNotification(req, owners);
+		this(null);
+	    });
+	}
 	if (operation.subscriberNotification) {
 	    /* Transaction successful? Call subscriberNotification. */
 	    steps.push(function(err) {
@@ -403,9 +475,9 @@ exports.request = function(req) {
 	/* Last step: return to caller (view) */
 	steps.push(function(err) {
 	    debug('callback');
-	    if (err)
+	    if (err && req.callback)
 		req.callback(err);
-	    else
+	    else if (req.callback)
 		req.callback.apply(req, transactionResults);
 	});
 
@@ -422,7 +494,7 @@ exports.getAllSubscribers = function(cb) {
     model.transaction(function(err, t) {
 	if (err) {
 	    cb(err);
-	    return;	    
+	    return;
 	}
 
 	t.getAllSubscribers(function(err, subscribers) {

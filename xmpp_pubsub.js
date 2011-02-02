@@ -11,13 +11,15 @@ var NS_DISCO_INFO = 'http://jabber.org/protocol/disco#info';
 var NS_DISCO_ITEMS = 'http://jabber.org/protocol/disco#items';
 var NS_DATA = 'jabber:x:data';
 var NS_REGISTER = 'jabber:iq:register';
+var NS_COMMANDS = 'http://jabber.org/protocol/commands';
 
 /* Set by main.js */
 var controller;
 exports.setController = function(c) {
     controller = c;
     controller.hookFrontend('xmpp', { notify: notify,
-				      retracted: retracted
+				      retracted: retracted,
+				      approve: approve
 				    });
 };
 
@@ -44,7 +46,10 @@ exports.start = function(config) {
 		break;
 	    }
 	} else if (stanza.name === 'presence')
-		handlePresence(stanza);
+	    handlePresence(stanza);
+	} else if (stanza.name === 'message' &&
+		   stanza.attrs.type !== 'error')
+	    handleMessage(stanza);
     });
 };
 
@@ -329,8 +334,21 @@ function handleIq(iq) {
 				 operation: 'subscribe',
 				 from: 'xmpp:' + jid,
 				 node: subscribeNode,
-				 callback: replyCb
-			       });
+				 callback: function(err, subscription) {
+				     if (err) {
+					 replyCb(err);
+					 return;
+				     }
+
+				     if (subscription === 'pending') {
+					 replyCb(null, new xmpp.Element('pusub', { xmlns: NS_PUBSUB }).
+						       c('subscription', { node: subscribeNode,
+									   jid: jid,
+									   subscription: subscription }));
+				     } else {
+					 replyCb(null);
+				     }
+				 } });
 	    subscribeIfNeeded(jid);
 	    return;
 	}
@@ -770,10 +788,111 @@ function handleIq(iq) {
 			     callback: replyCb });
 	return;
     }
+    /*
+     * <iq type='set'
+     *     from='hamlet@denmark.lit/elsinore'
+     *     to='pubsub.shakespeare.lit'
+     *     id='pending1'>
+     *   <command xmlns='http://jabber.org/protocol/commands'
+     *            node='http://jabber.org/protocol/pubsub#get-pending'
+     *            action='execute'/>
+     * </iq>
+     */
+    var commandEl = iq.getChild('command', NS_COMMANDS);
+    if (iq.attrs.type === 'set' &&
+	commandEl.attrs.node === NS_PUBSUB + '#get-pending' &&
+	commandEl.attrs.action === 'execute') {
+
+	var node;
+	var xEl = commandEl.getChild('x', NS_DATA);
+	if (xEl && xEl.attrs.type === 'submit') {
+	    xEl.getChildren('field').forEach(function(fieldEl) {
+		if (field.attrs['var'] === 'pubsub#node') {
+		    node = fieldEl.getChildText('value');
+		}
+	    });
+	}
+
+	if (!node) {
+	    /* Requesting pending subscriptions for all nodes, just
+	     * reply with a nodes list.
+	     */
+	    controller.request({ feature: 'get-pending',
+				 operation: 'list-nodes',
+				 from: 'xmpp:' + jid,
+				 callback: function(err, nodes) {
+	        if (err) {
+		    replyCb(err);
+		    return;
+		}
+
+		var fieldEl = new xmpp.Element('command', { xmlns: NS_COMMANDS,
+							    node: NS_PUBSUB + '#get-pending',
+							    status: 'executing',
+							    action: 'execute',
+							    sessionid: '' }).
+					 c('x', { xmlns: NS_DATA,
+						  type: 'form' }).
+					 c('field', { var: 'FORM_TYPE',
+						      type: 'hidden' }).
+					 c('value').t(NS_PUBSUB + '#subscribe_authorization').
+					 up().up().
+					 c('field', { type: 'list-single',
+						      var: 'pubsub#node' });
+		nodes.forEach(function(node) {
+		    fieldEl.c('option').
+			    c('value').
+			    t(node);
+		});
+		replyCb(null, fieldEl);
+	    } });
+	} else {
+	    /* Requesting pending subscriptions for a specific
+	     * node. Reply ok and re-send form messages.
+	     */
+	    controller.request({ feature: 'get-pending',
+				 operation: 'get-for-node',
+				 from: 'xmpp:' + jid,
+				 node: node,
+				 callback: function(err, users) {
+	        if (err) {
+		    replyCb(err);
+		    return;
+		}
+
+		replyCb(null);
+		/* TODO: call notification hook from here */
+	    } });
+	}
+
+	return;
+    }
 
     /* Not yet returned? Catch all: */
     if (iq.attrs.type === 'get' || iq.attrs.type === 'set') {
 	replyCb(new errors.FeatureNotImplemented());
+    }
+}
+
+function handleMessage(msg) {
+    var xEl = msg.getChild('x', NS_DATA);
+    if (xEl.attrs.type === 'submit') {
+	var fields = {};
+	xEl.getChildren('field').forEach(function(fieldEl) {
+	    fields[fieldEl.attrs['var']] = fieldEl.getChildText('value');
+	});
+
+	if (field.FORM_TYPE === NS_PUBSUB + '#subscribe_authorization') {
+	    var subscriptions = {};
+	    subscriptions[fields['pubsub#subscriber_jid']] = (fields['pubsub#allow'] === 'true') ?
+		'subscribed' : 'none';
+	    controller.request({ feature: 'manage-subscriptions',
+				 operation: 'modify',
+				 from: 'xmpp:' + jid,
+				 node: fields['pubsub#node'],
+				 subscriptions: subscriptions
+			       });
+	}
     }
 }
 
@@ -815,4 +934,33 @@ function retracted(jid, node, itemIds) {
 	itemsEl.c('retract', { id: itemId });
     });
     conn.send(itemsEl.root());
+}
+
+function approve(jid, node, subscriber) {
+    conn.send(new xmpp.Element('message', { to: jid,
+					    from: conn.jid.toString()
+					  }).
+	      c('x', { xmlns: NS_DATA,
+		       type: 'submit' }).
+	      c('title').
+	      t('PubSub subscriber request').
+	      up().
+	      c('field', { var: 'FORM_TYPE',
+			   type: 'hidden' }).
+	      c('value').t(NS_PUBSUB + '#subscribe_authorization').
+	      up().up().
+	      c('field', { var: 'pubsub#node',
+			   type: 'text-single',
+			   label: 'Node ID' }).
+	      c('value').t(node).
+	      up().up().
+	      c('field', { var: 'pubsub#subscriber_jid',
+			   type: 'jid-single',
+			   label: 'Subscriber address' }).
+	      c('value').t(/* TODO: strip /^xmpp:/ */ subscriber).
+	      up().up().
+	      c('field', { var: 'pubsub#allow',
+			   type: 'boolean',
+			   label: 'Allow this JID to subscribe to this pubsub node?' }).
+	      c('value').t('false'));
 }

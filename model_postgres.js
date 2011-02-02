@@ -228,6 +228,36 @@ Transaction.prototype.getAllSubscribers = function(cb) {
     }, cb);
 };
 
+Transaction.prototype.getPendingNodes = function(user, cb) {
+    var db = this.db;
+
+    step(function() {
+	db.query("SELECT node FROM affiliations WHERE affiliation = 'owner' AND user = $1 AND EXISTS (SELECT user FROM subscriptions WHERE subscription = 'pending' AND node = affiliations.node)",
+		 [user], this);
+    }, function(err, res) {
+	if (err) throw err;
+
+	this(null, res.rows.map(function(row) {
+	    return row.node;
+	});
+    }, cb);
+};
+
+Transaction.prototype.getPending = function(node, cb) {
+    var db = this.db;
+
+    step(function() {
+	db.query("SELECT user FROM subscriptions WHERE subscription = 'pending' AND node = $1",
+		 [node], this);
+    }, function(err, res) {
+	if (err) throw err;
+
+	this(null, res.rows.map(function(row) {
+	    return row.user;
+	});
+    }, cb);
+};
+
 /**
  * Affiliation management
  */
@@ -306,6 +336,20 @@ Transaction.prototype.getAffiliated = function(node, cb) {
     }, cb);
 };
 
+Transaction.prototype.getOwners = function(node, cb) {
+    var db = this.db;
+
+    step(function() {
+	db.query("SELECT \"user\" FROM affiliations WHERE node=$1 AND affiliation='owner'",
+		 [node], this);
+    }, function(err, res) {
+	if (err) throw err;
+
+	this(null, res.rows.map(function(row) {
+	    return row.user;
+	}));
+    }, cb);
+};
 
 Transaction.prototype.writeItem = function(publisher, node, id, item, cb) {
     var db = this.db;

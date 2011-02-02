@@ -280,6 +280,31 @@ var VIEWS = {
 			  values = Array.prototype.concat.apply([], values);
 		      return values;
 		  }
+	      },
+	      /* by owner: which nodes are pending subscribers */
+	      pendingNodes: {
+		  map: function(doc) {
+		      if (doc._id.indexOf('&') < 0) {
+			  /* is node */
+			  var hasPending = false;
+			  if (doc.subscriptions)
+			      for(var user in doc.subscriptions) {
+				  hasPending = hasPending || (doc.subscriptions[user] === 'pending');
+				  if (hasPending)
+				      break;
+			      }
+			  if (hasPending)
+			      for(var user in doc.subscriptions) {
+				  if (doc.subscriptions[user] === 'owner')
+				      emit(user, doc._id);
+			      }
+		      }
+		  },
+		  reduce: function(keys, values, rereduce) {
+		      if (rereduce)
+			  values = Array.prototype.concat.apply([], values);
+		      return values;
+		  }
 	      }
 	  };
 
@@ -399,6 +424,33 @@ Transaction.prototype.getAllSubscribers = function(cb) {
     this.view('channel-server/subscribers', { group: false }, cb);
 };
 
+Transaction.prototype.getPendingNodes = function(user, cb) {
+    this.view('channel-server/pendingNodes', { group: true,
+					       key: user }, cb);
+};
+
+Transaction.prototype.getPending = function(node, cb) {
+    this.load(nodeKey(node), function(err, doc) {
+	if (err) {
+	    cb(err);
+	    return;
+	}
+	if (!doc) {
+	    cb(new errors.NotFound('No such node'));
+	    return;
+	}
+
+	var subscribers = [];
+	if (doc.subscribers) {
+	    for(var user in doc.subscribers)
+		if (doc.subscribers[user] === 'pending')
+		    subscribers.push(user);
+	}
+
+	cb(null, subscribers);
+    });
+};
+
 /**
  * Affiliation management
  */
@@ -477,6 +529,27 @@ Transaction.prototype.getAffiliated = function(node, cb) {
 				  });
 	}
 	cb(null, affiliations);
+    }));
+};
+
+Transaction.prototype.getOwners = function(node, cb) {
+    this.load(nodeKey(node, function(err, doc) {
+	if (err) {
+	    cb(err);
+	    return;
+	}
+	if (!doc) {
+	    cb(new errors.NotFound('No such node'));
+	    return;
+	}
+
+	var owners = [];
+	if (doc.affiliations) {
+	    for(var user in doc.affiliations)
+		if (doc.affiliations[user] === 'owner')
+		    owners.push(user);
+	}
+	cb(null, owners);
     }));
 };
 
