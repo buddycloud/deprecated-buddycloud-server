@@ -48,16 +48,24 @@ var FEATURES = {
 		    if (err) throw err;
 
 		    req.subscription = subscription;
-		    this(null, subscription);
+		    /* get owners only if subscription approval pending */
+		    if (subscription === 'pending') {
+			step(function() {
+				 t.getOwners(req.node, this);
+			     }, function(err, owners) {
+				 if (err) throw err;
+
+				 req.owners = owners;
+			     }, this);
+		    } else
+			this(null, subscription);
 		}, cb);
 	    },
-	    /* TODO: get owners only if subscription approval pending */
-	    ownerNotification: function(req, owners) {
-		if (subscription === 'pending') {
-		    owners.forEach(function(owner) {
+	    afterTransaction: function(req) {
+		if (req.subscription === 'pending' && req.owners)
+		    req.owners.forEach(function(owner) {
 			callFrontend('approve', owner, req.node, req.from);
 		    });
-		}
 	    }
 	}
     },
@@ -166,7 +174,7 @@ var FEATURES = {
 	    }
 	},
 	modify: {
-	    requiredAffiliation: 'moderator',
+	    requiredAffiliation: 'owner',
 	    /* TODO: only let owner subscribe users who intended to */
 	    transaction: function(req, t, cb) {
 		step(function() {
@@ -258,8 +266,7 @@ var FEATURES = {
 		    this(null);
 		}, cb);
 	    },
-	    /* TODO: actually doesn't need owners */
-	    ownerNotification: function(req, owners) {
+	    afterTransaction: function(req) {
 		req.pendingUsers.forEach(function(user) {
 		    callFrontend('approve', req.from, req.node, user);
 		});
@@ -408,22 +415,6 @@ exports.request = function(req) {
 	     */
 	    this(null);
 	});
-	var owners;
-	if (operation.ownerNotification) {
-	    /* For owner notification, get the list of owners while
-	     * still inside transaction.
-	     */
-	    steps.push(function(err) {
-		if (err) throw err;
-
-		t.getOwners(req.node, this);
-	    }, function(err, owners_) {
-		if (err) throw err;
-
-		owners = owners_;
-		this(null);
-	    });
-	}
         var subscribers;
 	if (operation.subscriberNotification) {
 	    /* For subscriber notification, get the list of subscribers
@@ -455,11 +446,11 @@ exports.request = function(req) {
 		t.commit(this);
 	    }
 	});
-	if (operation.ownerNotification) {
+	if (operation.afterTransaction) {
 	    steps.push(function(err) {
 		if (err) throw err;
 
-		operation.ownerNotification(req, owners);
+		operation.afterTransaction(req);
 		this(null);
 	    });
 	}
