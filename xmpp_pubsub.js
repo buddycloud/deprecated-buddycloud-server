@@ -19,7 +19,8 @@ exports.setController = function(c) {
     controller = c;
     controller.hookFrontend('xmpp', { notify: notify,
 				      retracted: retracted,
-				      approve: approve
+				      approve: approve,
+				      subscriptionModified: subscriptionModified
 				    });
 };
 
@@ -967,4 +968,14 @@ function approve(jid, node, subscriber) {
 			   type: 'boolean',
 			   label: 'Allow this JID to subscribe to this pubsub node?' }).
 	      c('value').t('false'));
+}
+
+function subscriptionModified(jid, node, subscription) {
+    conn.send(new xmpp.Element('message', { to: jid,
+					    from: conn.jid.toString()
+					  }).
+	      c('pubsub', { xmlns: NS_PUBSUB_EVENT }).
+	      c('subscription', { node: node,
+				  jid: jid,
+				  subscription: subscription }));
 }

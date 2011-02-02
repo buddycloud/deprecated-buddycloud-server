@@ -199,8 +199,10 @@ var FEATURES = {
 			 }
 		     }, cb);
 	    },
-	    subscriberNotification: function(req, subscribers) {
-		/* TODO: send out if subscriber !== req.from */
+	    afterTransaction: function(req) {
+		for(var user in req.subscriptions) {
+		    callFrontend('subscriptionModified', user, req.subscriptions[user]);
+		}
 	    }
 	}
     },
