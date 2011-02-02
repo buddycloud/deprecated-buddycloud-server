@@ -47,8 +47,8 @@ exports.start = function(config) {
 	    }
 	} else if (stanza.name === 'presence')
 	    handlePresence(stanza);
-	} else if (stanza.name === 'message' &&
-		   stanza.attrs.type !== 'error')
+	else if (stanza.name === 'message' &&
+		 stanza.attrs.type !== 'error')
 	    handleMessage(stanza);
     });
 };
@@ -937,6 +937,10 @@ function retracted(jid, node, itemIds) {
 }
 
 function approve(jid, node, subscriber) {
+    var m;
+    if ((m = subscriber.match(/^xmpp:(.+)$/)))
+	subscriber = m[1];
+
     conn.send(new xmpp.Element('message', { to: jid,
 					    from: conn.jid.toString()
 					  }).
