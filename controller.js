@@ -33,18 +33,14 @@ var FEATURES = {
     },
     subscribe: {
 	subscribe: {
-	    requiredAffiliation: 'member',
+	    requiredAffiliation: 'none',
 	    transaction: function(req, t, cb) {
 		var subscription;
 		step(function() {
-		    t.getConfig(req.node, this);
-		}, function(err, config) {
-		    if (err) throw err;
-
-		    subscription = (config.accessModel == 'authorize') ?
-			'pending' : 'subscribed';
+		    subscription = (req.affiliation === 'member') ?
+			'subscribed' : 'pending';
 		    t.setSubscription(req.node, req.from, subscription, this);
-		}, function(err, config) {
+		}, function(err) {
 		    if (err) throw err;
 
 		    req.subscription = subscription;
@@ -56,6 +52,7 @@ var FEATURES = {
 				 if (err) throw err;
 
 				 req.owners = owners;
+				 this(null, subscription);
 			     }, this);
 		    } else
 			this(null, subscription);
@@ -511,9 +508,10 @@ exports.getAllSubscribers = function(cb) {
  */
 
 var AFFILIATION_SUBSETS = {
-    owner: ['moderator', 'publisher', 'member'],
-    moderator: ['publisher', 'member'],
-    publisher: ['member']
+    owner: ['moderator', 'publisher', 'member', 'none'],
+    moderator: ['publisher', 'member', 'none'],
+    publisher: ['member', 'none'],
+    member: ['none']
 };
 function isAffiliationSubset(subset, affiliation) {
     return subset === affiliation ||

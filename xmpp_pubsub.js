@@ -741,10 +741,7 @@ function handleIq(iq) {
 
 	    var fields = {};
 	    xEl.getChildren('field').forEach(function(fieldEl) {
-		var k = fieldEl.attrs['var'];
-		var v = fieldEl.getChildText('value');
-		if (k && v)
-		    fields[k] = v;
+		fields[fieldEl.attrs['var']] = fieldEl.getChildText('value');
 	    });
 
 	    if (fields['FORM_TYPE'] !== NS_PUBSUB_NODE_CONFIG) {

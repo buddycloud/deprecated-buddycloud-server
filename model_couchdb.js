@@ -76,7 +76,7 @@ Transaction.prototype.load = function(id, cb) {
 	    cb.call(that, new errors.InternalServerError(err.error));
 	else {
 	    var doc = res.toJSON();
-	    that.saveDocs[doc._id] = doc;
+	    that.saveDocs[id] = doc;
 	    cb.call(that, null, doc);
 	}
     });
@@ -533,7 +533,7 @@ Transaction.prototype.getAffiliated = function(node, cb) {
 };
 
 Transaction.prototype.getOwners = function(node, cb) {
-    this.load(nodeKey(node, function(err, doc) {
+    this.load(nodeKey(node), function(err, doc) {
 	if (err) {
 	    cb(err);
 	    return;
@@ -550,7 +550,7 @@ Transaction.prototype.getOwners = function(node, cb) {
 		    owners.push(user);
 	}
 	cb(null, owners);
-    }));
+    });
 };
 
 /**
