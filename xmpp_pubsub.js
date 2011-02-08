@@ -798,6 +798,7 @@ function handleIq(iq) {
      */
     var commandEl = iq.getChild('command', NS_COMMANDS);
     if (iq.attrs.type === 'set' &&
+	commandEl &&
 	commandEl.attrs.node === NS_PUBSUB + '#get-pending' &&
 	commandEl.attrs.action === 'execute') {
 
