@@ -1,7 +1,21 @@
 var vows = require('vows'),
 assert = require('assert'),
+ltx = require('ltx'),
 controller = require('./../controller');
 
+var modelLog = [];
+function assertModelLog(condition) {
+    var any = modelLog.some(function(line) {
+	    var i;
+	    for(i = 0; i < line.length && i < condition.length; i++) {
+		if (typeof condition[i] !== 'undefined' &&
+		    line[i] !== condition[i])
+		    return false;
+	    }
+	    return true;
+	});
+    assert.ok(any, "Expected: " + condition.join(' '));
+}
 var mockModel = {
     transaction: function(cb) {
 	cb(null, { commit: function(cb) {
@@ -9,16 +23,28 @@ var mockModel = {
 	}, rollback: function(cb) {
 	    cb(null);
 	}, createNode: function(node, cb) {
+	    modelLog.push(['commit']);
 	    cb(null);
 	}, getConfig: function(node, cb) {
+	    modelLog.push(['getConfig', node]);
 	    cb(null, { title: 'A channel', accessModel: 'open', publishModel: 'subscribers' });
 	}, getAffiliation: function(node, user, cb) {
+	    modelLog.push(['getAffiliation', node, user]);
 	    cb(null, 'none');
 	}, getSubscription: function(node, user, cb) {
+	    modelLog.push(['getSubscription', node, user]);
 	    cb(null, 'none');
+	}, getSubscribers: function(node, cb) {
+	    modelLog.push(['getSubscribers', node]);
+	    cb(null, [{ user: 'xmpp:subscriber@example.com', subscription: 'subscribed' }]);
 	}, setAffiliation: function(node, user, affiliation, cb) {
+	    modelLog.push(['setAffiliation', node, user, affiliation]);
 	    cb(null);
 	}, setSubscription: function(node, user, subscription, cb) {
+	    modelLog.push(['setSubscription', node, user, subscription]);
+	    cb(null);
+	}, writeItem: function(publisher, node, id, item, cb) {
+	    modelLog.push(['writeItem', publisher, node, id, item]);
 	    cb(null);
 	} });
     }
@@ -53,6 +79,47 @@ vows.describe('request').addBatch({
 	    },
 	    'forbidden': function(err, a) {
 		assert.equal('forbidden', err.condition);
+	    }
+	}
+    },
+
+    'publish': {
+	'should send notifications': {
+	    topic: function() {
+		var that = this;
+		this.notified = [];
+		controller.hookFrontend('xmpp', {
+		    notify: function(jid, node, items) {
+			that.notified.push(jid);
+		    }
+		});
+		var entryEl =
+		    new ltx.Element('entry', { xmlns: 'http://jabber.org/protocol/pubsub' }).
+		    c('published').t('2010-02-09T22:58:00+0100').up().
+                    c('author').
+                    c('name').t('astro@spaceboyz.net').up().
+                    c('jid', { xmlns: 'http://buddycloud.com/atom-elements-0' }).
+		    t('astro@spaceboyz.net').up().up().
+		    c('content', { type: 'text' }).t('Hello Channel!').up().
+                    c('geoloc', { xmlns: 'http://jabber.org/protocol/geoloc' }).
+                    c('locality').t('Dresden');
+
+		controller.request({ feature: 'publish',
+				     operation: 'publish',
+				     from: 'xmpp:astro@spaceboyz.net',
+				     node: '/user/astro@spaceboyz.net/channel',
+				     items: { first: entryEl },
+				     callback: this.callback
+				   });
+	    },
+	    'should have notified': function() {
+		assert.ok(this.notified.indexOf('subscriber@example.com') >= 0,
+			  'Not notified subscriber@example.com');
+	    },
+	    'should have written the item': function() {
+		assertModelLog(['writeItem',
+				'xmpp:astro@spaceboyz.net', '/user/astro@spaceboyz.net/channel',
+				'first', undefined]);
 	    }
 	}
     }
