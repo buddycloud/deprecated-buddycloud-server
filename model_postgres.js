@@ -13,16 +13,19 @@ function connectDB(config) {
     var db = new pg.Client(config);
     db.connect();
 
-    /* TODO: hook connect & error handlers */
+    /* Reconnect in up to 5s */
     db.on('error', function(err) {
-	console.log({dbError:err});
-    });
-    db.on('drain', function() {
-	console.log('drain');
+	console.error('Postgres: ' + err.message);
+	setTimeout(function() {
+	    connectDB(config);
+	}, Math.ceil(Math.random() * 5000));
+	try { db.end(); } catch (e) { /* Alright */ }
     });
 
-    /* TODO: wait until connected & authed */
-    dbIsAvailable(db);
+    /* wait until connected & authed */
+    db.connection.once('readyForQuery', function() {
+	dbIsAvailable(db);
+    });
 }
 
 function dbIsAvailable(db) {
