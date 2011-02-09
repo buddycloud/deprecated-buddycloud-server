@@ -51,9 +51,9 @@ exports.transaction = function(cb) {
 	new Transaction(db, cb);
     } else {
 	/* Pool was empty, waiting... TODO: limit length, shift first */
-	queued.push(function() {
-			exports.transaction(cb);
-		    });
+	queue.push(function() {
+		       exports.transaction(cb);
+		   });
     }
 };
 
