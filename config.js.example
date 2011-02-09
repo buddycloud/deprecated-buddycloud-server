@@ -16,8 +16,7 @@ exports.modelBackend = 'couchdb';
 exports.modelConfig = {
     host: 'localhost',
     port: 5984,
-    database: 'channel-server',
-    poolSize: 4
+    database: 'channel-server'
 };
 
 /*
@@ -28,6 +27,7 @@ exports.modelConfig = {
     port: 5432,
     database: 'channel-server',
     user: 'node',
-    password: '***'
+    password: '***',
+    poolSize: 4
 };
 */
