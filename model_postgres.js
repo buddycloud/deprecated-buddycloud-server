@@ -239,7 +239,7 @@ Transaction.prototype.getPendingNodes = function(user, cb) {
 
 	this(null, res.rows.map(function(row) {
 	    return row.node;
-	});
+	}));
     }, cb);
 };
 
@@ -254,7 +254,7 @@ Transaction.prototype.getPending = function(node, cb) {
 
 	this(null, res.rows.map(function(row) {
 	    return row.user;
-	});
+	}));
     }, cb);
 };
 
