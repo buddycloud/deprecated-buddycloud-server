@@ -120,6 +120,8 @@ Transaction.prototype.createNode = function(node, cb) {
  * cb(err, [{ node: String, title: String }])
  */
 Transaction.prototype.listNodes = function(cb) {
+    var db = this.db;
+
     step(function() {
 	/* TODO: order by COUNT(subscribers) */
 	db.query("SELECT node, title FROM nodes WHERE access_model IS NULL OR access_model = 'open' " +
