@@ -197,6 +197,26 @@ vows.describe('request').addBatch({
 		assert.equal(subscription, 'pending');
 	    }
 	}
+    },
+
+    'unsubscribe': {
+	'unsubscribing': {
+	},
+	'unsubscribing owner': {
+	    'forbidden': function() {
+	    }
+	}
+    },
+
+    'delete-nodes': {
+	'deletion by owner': {
+	    'should remove channel': {
+	    },
+	    'should remove affiliations': {
+	    },
+	    'should remove subscriptions': {
+	    }
+	}
     }
 
 }).run();
