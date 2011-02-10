@@ -869,7 +869,7 @@ function handleIq(iq) {
 
     /* Not yet returned? Catch all: */
     if (iq.attrs.type === 'get' || iq.attrs.type === 'set') {
-	replyCb(new errors.FeatureNotImplemented());
+	replyCb(new errors.FeatureNotImplemented('Feature is not implemented yet'));
     }
 }
 
