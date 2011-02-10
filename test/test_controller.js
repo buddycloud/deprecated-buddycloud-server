@@ -30,6 +30,8 @@ var mockModel = {
 	    var config = { title: 'A channel', accessModel: 'open', publishModel: 'subscribers' };
 	    if (/\/geoloc\/previous$/.test(node))
 		config.accessModel = 'whitelist';
+	    if (/\/geoloc\/current$/.test(node))
+		config.accessModel = 'authorize';
 	    if (/channel$/.test(node))
 		config.publishModel = 'publishers';
 	    cb(null, config);
@@ -52,6 +54,12 @@ var mockModel = {
 	}, setSubscription: function(node, user, subscription, cb) {
 	    modelLog.push(['setSubscription', node, user, subscription]);
 	    cb(null);
+	}, getOwners: function(node, cb) {
+	    modelLog.push(['getOwners', node]);
+	    var owners = [], m;
+	    if ((m = node.match(/^\/user\/(.+?)/)))
+		owners.push('xmpp:' + m[1]);
+	    cb(null, owners);
 	}, writeItem: function(publisher, node, id, item, cb) {
 	    modelLog.push(['writeItem', publisher, node, id, item]);
 	    cb(null);
@@ -87,7 +95,7 @@ vows.describe('request').addBatch({
 				   });
 	    },
 	    'forbidden': function(err, a) {
-		assert.equal('forbidden', err.condition);
+		assert.equal(err && err.condition, 'forbidden');
 	    }
 	}
     },
@@ -142,7 +150,7 @@ vows.describe('request').addBatch({
 				   });
 	    },
 	    'forbidden': function(err, a) {
-		assert.equal('forbidden', err.condition);
+		assert.equal(err && err.condition, 'forbidden');
 	    }
 	},
 	'for a member to an open node': {
@@ -157,6 +165,36 @@ vows.describe('request').addBatch({
 	    },
 	    'success': function(err, a) {
 		assert.isNull(err);
+	    }
+	}
+    },
+
+    'subscribe': {
+	'for a hidden channel': {
+	    topic: function() {
+		controller.request({ feature: 'subscribe',
+				     operation: 'subscribe',
+				     from: 'xmpp:eve@example.gov',
+				     node: '/user/astro@spaceboyz.net/geoloc/previous',
+				     callback: this.callback
+				   });
+	    },
+	    'forbidden': function(err, a) {
+		assert.equal(err && err.condition, 'forbidden');
+	    }
+	},
+	'for an authorization-only channel': {
+	    topic: function() {
+		controller.request({ feature: 'subscribe',
+				     operation: 'subscribe',
+				     from: 'xmpp:eve@example.gov',
+				     node: '/user/astro@spaceboyz.net/geoloc/current',
+				     callback: this.callback
+				   });
+	    },
+	    'forbidden': function(err, subscription) {
+		assert.isNull(err);
+		assert.equal(subscription, 'pending');
 	    }
 	}
     }
