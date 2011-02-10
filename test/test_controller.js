@@ -169,6 +169,15 @@ vows.describe('request').addBatch({
 	}
     },
 
+    'retract': {
+	'when retracting': {
+	    'should delete item': {
+	    },
+	    'should notify': {
+	    }
+	}
+    },
+
     'subscribe': {
 	'for a hidden channel': {
 	    topic: function() {
