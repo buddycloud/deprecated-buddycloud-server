@@ -381,7 +381,7 @@ exports.request = function(req) {
 		    /* 'open' model: members don't need to be approved */
 		    req.affiliation = 'member';
 		} else if (req.affiliation === 'member' &&
-			   config.publishModel === 'publisher' &&
+			   config.publishModel === 'publishers' &&
 			   subscription === 'subscribed') {
 		    /* set affiliation = 'publisher' only if user subscribed */
 		    req.affiliation = 'publisher';

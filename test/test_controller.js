@@ -27,13 +27,22 @@ var mockModel = {
 	    cb(null);
 	}, getConfig: function(node, cb) {
 	    modelLog.push(['getConfig', node]);
-	    cb(null, { title: 'A channel', accessModel: 'open', publishModel: 'subscribers' });
+	    var config = { title: 'A channel', accessModel: 'open', publishModel: 'subscribers' };
+	    if (/\/geoloc\/previous$/.test(node))
+		config.accessModel = 'whitelist';
+	    if (/channel$/.test(node))
+		config.publishModel = 'publishers';
+	    cb(null, config);
 	}, getAffiliation: function(node, user, cb) {
 	    modelLog.push(['getAffiliation', node, user]);
-	    cb(null, 'none');
+	    var affiliation = 'none', m;
+	    if ((m = user.match(/^xmpp:(.+?)@affiliation.test/)))
+		affiliation = m[1];
+	    cb(null, affiliation);
 	}, getSubscription: function(node, user, cb) {
 	    modelLog.push(['getSubscription', node, user]);
-	    cb(null, 'none');
+	    var subscription = 'subscribed';
+	    cb(null, subscription);
 	}, getSubscribers: function(node, cb) {
 	    modelLog.push(['getSubscribers', node]);
 	    cb(null, [{ user: 'xmpp:subscriber@example.com', subscription: 'subscribed' }]);
@@ -84,7 +93,7 @@ vows.describe('request').addBatch({
     },
 
     'publish': {
-	'should send notifications': {
+	'when publishing': {
 	    topic: function() {
 		var that = this;
 		this.notified = [];
@@ -120,6 +129,34 @@ vows.describe('request').addBatch({
 		assertModelLog(['writeItem',
 				'xmpp:astro@spaceboyz.net', '/user/astro@spaceboyz.net/channel',
 				'first', undefined]);
+	    }
+	},
+	'for a member to a read-only node': {
+	    topic: function() {
+		controller.request({ feature: 'publish',
+				     operation: 'publish',
+				     from: 'xmpp:member@example.com',
+				     node: '/user/astro@spaceboyz.net/geoloc/current',
+				     items: { first: new ltx.Element('entry', { xmlns: 'http://jabber.org/protocol/pubsub' }) },
+				     callback: this.callback
+				   });
+	    },
+	    'forbidden': function(err, a) {
+		assert.equal('forbidden', err.condition);
+	    }
+	},
+	'for a member to an open node': {
+	    topic: function() {
+		controller.request({ feature: 'publish',
+				     operation: 'publish',
+				     from: 'xmpp:member@affiliation.test',
+				     node: '/user/astro@spaceboyz.net/channel',
+				     items: { first: new ltx.Element('entry', { xmlns: 'http://jabber.org/protocol/pubsub' }) },
+				     callback: this.callback
+				   });
+	    },
+	    'success': function(err, a) {
+		assert.isNull(err);
 	    }
 	}
     }
