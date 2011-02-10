@@ -52,9 +52,10 @@ Transaction.prototype.preload = function(id, cb) {
 	    cb(err);
 	    return;
 	} else {
-	    doc = { _id: id,
-		    _rev: (headers['etag'] || '').slice(1, -1)
-		  };
+	    doc = { _id: id };
+	    var etag = headers['etag'];
+	    if (etag)
+		doc._rev = etag.slice(1, -1);
 	}
 	that.saveDocs[id] = doc;
 	cb.call(that, null, doc);
@@ -115,9 +116,10 @@ Transaction.prototype.commit = function(cb) {
 	    that.retries++;
 	    console.warn('CouchDB transaction retry ' + that.retries);
 	    that.transactionCb(null, that);
-	} else if (err)
+	} else if (err) {
+	    console.error({CouchDB: err});
 	    cb(new errors.InternalServerError(err.error));
-	else
+	} else
 	    cb(null);
     });
 };
