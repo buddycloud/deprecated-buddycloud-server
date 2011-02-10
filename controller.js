@@ -477,10 +477,20 @@ exports.request = function(req) {
 	/* Last step: return to caller (view) */
 	steps.push(function(err) {
 	    debug('callback');
-	    if (err && req.callback)
+	    if (err && req.callback) {
+		if (!err.stack) {
+		    /* Simulate a stack for developer/administrator
+		     * information in case the error wasn't thrown but
+		     * emitted manually.
+		     */
+		    err.stack = (err.message || err.condition || 'Error') +
+			' @ ' + req.feature + '/' + req.operation;
+		}
+
 		req.callback(err);
-	    else if (req.callback)
+	    } else if (req.callback) {
 		req.callback.apply(req, transactionResults);
+	    }
 	});
 
 	/* Finally, run all the steps we assembled above */
