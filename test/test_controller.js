@@ -68,6 +68,9 @@ var mockModel = {
 	}, writeItem: function(publisher, node, id, item, cb) {
 	    modelLog.push(['writeItem', publisher, node, id, item]);
 	    cb(null);
+	}, deleteItem: function(node, id) {
+	    modelLog.push(['deleteItem', node, id]);
+	    cb(null);
 	} });
     }
 };
@@ -176,9 +179,29 @@ vows.describe('request').addBatch({
 
     'retract': {
 	'when retracting': {
-	    'should delete item': {
+	    topic: function() {
+		var that = this;
+		this.notified = [];
+		controller.hookFrontend('xmpp', {
+		    retracted: function(jid, node, itemIds) {
+			that.notified.push(jid);
+		    }
+		});
+		controller.request({ feature: 'retract-items',
+				     operation: 'retract',
+				     from: 'xmpp:astro@spaceboyz.net',
+				     node: '/user/astro@spaceboyz.net/channel',
+				     itemIds: ['unwanted'],
+				     callback: this.callback
+				   });
 	    },
-	    'should notify': {
+	    'should delete item': function() {
+		assertModelLog(['deleteItem',
+				'/user/astro@spaceboyz.net/channel', ['unwanted']]);
+	    },
+	    'should notify': function() {
+		assert.ok(this.notified.indexOf('subscriber@example.com') >= 0,
+			  'Not notified subscriber@example.com');
 	    }
 	}
     },
