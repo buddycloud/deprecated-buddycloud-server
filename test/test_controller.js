@@ -201,9 +201,32 @@ vows.describe('request').addBatch({
 
     'unsubscribe': {
 	'unsubscribing': {
+	    topic: function() {
+		controller.request({ feature: 'subscribe',
+				     operation: 'unsubscribe',
+				     from: 'xmpp:member@affiliation.test',
+				     node: '/user/astro@spaceboyz.net/channel',
+				     callback: this.callback
+				   });
+	    },
+	    'should have removed subscription': function() {
+		assertModelLog(['setSubscription',
+				'/user/astro@spaceboyz.net/channel', 'xmpp:member@affiliation.test',
+				'none']);
+
+	    }
 	},
 	'unsubscribing owner': {
-	    'forbidden': function() {
+	    topic: function() {
+		controller.request({ feature: 'subscribe',
+				     operation: 'unsubscribe',
+				     from: 'xmpp:astro@spaceboyz.net',
+				     node: '/user/astro@spaceboyz.net/channel',
+				     callback: this.callback
+				   });
+	    },
+	    'not-allowed': function(err, a) {
+		assert.equal(err && err.condition, 'not-allowed');
 	    }
 	}
     },

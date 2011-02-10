@@ -64,6 +64,18 @@ var FEATURES = {
 			callFrontend('approve', owner, req.node, req.from);
 		    });
 	    }
+	},
+	unsubscribe: {
+	    /* Let request() fetch affiliation */
+	    requiredAffiliation: 'none',
+	    transaction: function(req, t, cb) {
+		if (req.affiliation === 'owner') {
+		    cb(new errors.NotAllowed('Owners must not abandon their channels'));
+		    return;
+		}
+
+		t.setSubscription(req.node, req.from, 'none', cb);
+	    }
 	}
     },
     publish: {
