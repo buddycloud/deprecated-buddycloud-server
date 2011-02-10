@@ -22,6 +22,11 @@ var mockModel = {
 	    cb(null);
 	}, rollback: function(cb) {
 	    cb(null);
+	}, listNodes: function(cb) {
+	    cb(null, [{ node: '/user/astro@spaceboyz.net/channel',
+			title: 'Astro\'s channel' },
+		      { node: '/user/astro@spaceboyz.net/feedback',
+			title: 'Give feedback to Astro' }]);
 	}, createNode: function(node, cb) {
 	    modelLog.push(['commit']);
 	    cb(null);
@@ -248,6 +253,24 @@ vows.describe('request').addBatch({
 	    },
 	    'should remove subscriptions': {
 	    }
+	}
+    },
+
+    'browse-nodes': {
+	topic: function() {
+	    controller.request({ feature: 'browse-nodes',
+				 operation: 'list',
+				 from: 'xmpp:astro@spaceboyz.net',
+				 callback: this.callback
+			       });
+	},
+	'should return open nodes': function(err, nodes) {
+	    assert.isNull(err);
+	    assert.equal(nodes.length, 2);
+	    assert.equal(nodes[0].node, '/user/astro@spaceboyz.net/channel');
+	    assert.equal(nodes[0].title, 'Astro\'s channel');
+	    assert.equal(nodes[1].node, '/user/astro@spaceboyz.net/feedback');
+	    assert.equal(nodes[1].title, 'Give feedback to Astro');
 	}
     }
 
