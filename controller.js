@@ -66,10 +66,10 @@ var FEATURES = {
 	    }
 	},
 	unsubscribe: {
-	    /* Let request() fetch affiliation */
-	    requiredAffiliation: 'none',
 	    transaction: function(req, t, cb) {
-		if (req.affiliation === 'owner') {
+		var nodeM = req.node.match(/^\/user\/(.+?)\/([a-zA-Z0-9\/\-]+)$/);
+		var userM = req.from.match(/^(.+?):(.+)$/);
+		if (nodeM && nodeM[1] === userM[2]) {
 		    cb(new errors.NotAllowed('Owners must not abandon their channels'));
 		    return;
 		}
