@@ -196,12 +196,6 @@ function handleIq(iq) {
 	var queryEl = new xmpp.Element('query', { xmlns: NS_DISCO_INFO });
 	if (node)
 	    queryEl.attrs.node = node;
-	queryEl.c('identity', { category: 'pubsub',
-				type: 'service',
-				name: 'Channels service' });
-	queryEl.c('identity', { category: 'pubsub',
-				type: 'channels',  /* not in registry yet */
-				name: 'Channels service' });
 	var features = controller.pubsubFeatures().
 	    map(function(feature) {
 		    return NS_PUBSUB + '#' + feature;
@@ -224,6 +218,9 @@ function handleIq(iq) {
 		    return;
 		}
 
+		queryEl.c('identity', { category: 'pubsub',
+					type: 'leaf',
+					name: config.title });
 		queryEl.c('x', { xmlns: NS_DATA,
 				 type: 'result' }).
 			c('field', { var: 'FORM_TYPE',
@@ -246,11 +243,18 @@ function handleIq(iq) {
 			c('value').t(config.publishModel || 'subscribers');
 		replyCb(null, queryEl);
 	    } });
-	} else
+	} else {
 	    /* Didn't request info about specific node, hence no need
 	     * to get node config but respond immediately.
 	     */
+	    queryEl.c('identity', { category: 'pubsub',
+				    type: 'service',
+				    name: 'Channels service' });
+	    queryEl.c('identity', { category: 'pubsub',
+				    type: 'channels',  /* not in registry yet */
+				    name: 'Channels service' });
 	    replyCb(null, queryEl);
+	}
 
 	return;
     }
