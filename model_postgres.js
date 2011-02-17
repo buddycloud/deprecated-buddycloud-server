@@ -151,7 +151,7 @@ Transaction.prototype.getSubscription = function(node, user, cb) {
     }, function(err, res) {
 	if (err) throw err;
 
-	this(null, res.rows[0].subscription);
+	this(null, (res.rows[0] && res.rows[0].subscription) || 'none');
     }, cb);
 };
 
@@ -276,7 +276,7 @@ Transaction.prototype.getAffiliation = function(node, user, cb) {
     }, function(err, res) {
 	if (err) throw err;
 
-	this(null, res.rows[0].affiliation);
+	this(null, (res.rows[0] && res.rows[0].affiliation) || 'none');
     }, cb);
 };
 
