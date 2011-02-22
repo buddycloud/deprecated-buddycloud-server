@@ -75,11 +75,11 @@ function Transaction(db, cb) {
 Transaction.prototype.commit = function(cb) {
     var db = this.db;
     db.query("COMMIT", [], function(err, res) {
-	cb(err);
-
 	process.nextTick(function() {
 	    dbIsAvailable(db);
 	});
+
+	cb(err);
     });
 };
 
@@ -87,11 +87,11 @@ Transaction.prototype.rollback = function(cb) {
     var db = this.db;
 
     db.query("ROLLBACK", [], function(err, res) {
-	cb(err);
-
 	process.nextTick(function() {
 	    dbIsAvailable(db);
 	});
+
+	cb(err);
     });
 };
 
