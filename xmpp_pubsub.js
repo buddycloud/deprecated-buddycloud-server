@@ -111,14 +111,12 @@ function handlePresence(presence) {
 	    onlineResources[user].push(resource);
     }
 }
-function isOnline(jid) {
-    if (!jid.hasOwnProperty('resource'))
-	jid = new xmpp.JID(jid);
-    var user = jid.bare().toString();
-    var resource = jid.resource;
-
-    return onlineResources.hasOwnProperty(user) &&
-	onlineResources[user].indexOf(resource) >= 0;
+/**
+ * Returns all full JIDs we've seen presence from for a bare JID.
+ */
+function getOnlineResources(bareJid) {
+    return onlineResources.hasOwnProperty(bareJid) ?
+	onlineResources[bareJid] : [];
 }
 function startPresenceTracking() {
     onlineResources = {};
@@ -904,39 +902,37 @@ function handleMessage(msg) {
  */
 
 function notify(jid, node, items) {
-    if (!isOnline(jid))
-	return;
-
-    var itemsEl = new xmpp.Element('message', { to: jid,
-						from: conn.jid.toString(),
-						type: 'headline'
-					      }).
-	          c('event', { xmlns: NS_PUBSUB_EVENT }).
-		  c('items', { node: node });
-    for(var id in items)
-	if (items.hasOwnProperty(id)) {
-	    var itemEl = itemsEl.c('item', { id: id });
-	    items[id].forEach(function(child) {
-		itemEl.cnode(child);
-	    });
-	}
-    conn.send(itemsEl.root());
+    getOnlineResources(jid).forEach(function(fullJid) {
+	var itemsEl = new xmpp.Element('message', { to: jid,
+						    from: conn.jid.toString(),
+						    type: 'headline'
+						  }).
+	    c('event', { xmlns: NS_PUBSUB_EVENT }).
+	    c('items', { node: node });
+	for(var id in items)
+	    if (items.hasOwnProperty(id)) {
+		var itemEl = itemsEl.c('item', { id: id });
+		items[id].forEach(function(child) {
+		    itemEl.cnode(child);
+		});
+	    }
+	conn.send(itemsEl.root());
+    });
 }
 
 function retracted(jid, node, itemIds) {
-    if (!isOnline(jid))
-	return;
-
-    var itemsEl = new xmpp.Element('message', { to: jid,
-						from: conn.jid.toString(),
-						type: 'headline'
-					      }).
-	          c('event', { xmlns: NS_PUBSUB_EVENT }).
-		  c('items', { node: node });
-    itemIds.forEach(function(itemId) {
-	itemsEl.c('retract', { id: itemId });
+    getOnlineResources(jid).forEach(function(fullJid) {
+	var itemsEl = new xmpp.Element('message', { to: jid,
+						    from: conn.jid.toString(),
+						    type: 'headline'
+						  }).
+	    c('event', { xmlns: NS_PUBSUB_EVENT }).
+	    c('items', { node: node });
+	itemIds.forEach(function(itemId) {
+	    itemsEl.c('retract', { id: itemId });
+	});
+	conn.send(itemsEl.root());
     });
-    conn.send(itemsEl.root());
 }
 
 function approve(jid, node, subscriber) {
