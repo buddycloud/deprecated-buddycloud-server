@@ -1,12 +1,20 @@
 var step = require('step');
 var errors = require('./errors');
 
-/* Set by main.js */
+/** Set by main.js */
 var model;
 exports.setModel = function(m) {
     model = m;
 };
 
+/** TODO: something configurable and/or meaningful */
+function defaultConfig(req) {
+    return {
+	title: 'Node',
+	accessModel: 'open',
+	publishModel: 'subscribers'
+    };
+}
 
 /**
  * Transactions with result data better callback with an Array, so we
@@ -246,16 +254,35 @@ var FEATURES = {
 	retrieve: {
 	    requiredAffiliation: 'owner',
 	    transaction: function(req, t, cb) {
-		t.getConfig(req.node, cb);
+		step(function() {
+		    t.getConfig(req.node, this);
+		}, function(err, config) {
+		    if (!config)
+			config = defaultConfig(req);
+
+		    this(null, config);
+		}, cb);
 	    }
 	},
 	modify: {
 	    requiredAffiliation: 'owner',
+	    /**
+	     * Get default config first, so clients don't have send
+	     * back all fields.
+	     */
 	    transaction: function(req, t, cb) {
-		t.setConfig(req.node, { title: req.title,
-					accessModel: req.accessModel,
-					publishModel: req.publishModel
-				      }, cb);
+		step(function() {
+		    t.getConfig(req.node, this);
+		}, function(err, config) {
+		    if (!config)
+			config = defaultConfig(req);
+
+		    t.setConfig(req.node,
+				{ title: req.title || config.title,
+				  accessModel: req.accessModel || config.accessModel,
+				  publishModel: req.publishModel || config.publishModel
+				}, this);
+		}, cb);
 	    }
 	}
     },
