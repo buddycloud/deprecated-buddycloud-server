@@ -46,6 +46,9 @@ listener configuration should look like this:
 
     {5233, ejabberd_service, [{hosts, ["channels.example.com"], [{password, "secret"}]}]}
 
+For OpenFire, configure an external component in the server settings
+in the admin interface.
+
 
 #### CouchDB configuration
 
