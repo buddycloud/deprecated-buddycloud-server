@@ -252,7 +252,7 @@ var FEATURES = {
     },
     'config-node': {
 	retrieve: {
-	    requiredAffiliation: 'owner',
+	    requiredAffiliation: 'member',
 	    transaction: function(req, t, cb) {
 		step(function() {
 		    t.getConfig(req.node, this);
