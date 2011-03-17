@@ -100,8 +100,13 @@ Transaction.prototype.rollback = function(cb) {
  * Actual data model
  */
 
-Transaction.prototype.nodeExists = function(db, node) {
-    return function(cb) {
+/**
+ * Can be dropped in a step() sequence to validate presence of a node.
+ */
+Transaction.prototype.nodeExists = function(node) {
+    var db = this.db;
+
+    return function() {
 	step(function() {
 		 db.query("SELECT node FROM nodes WHERE node=$1",
 			  [node], this);
@@ -112,7 +117,7 @@ Transaction.prototype.nodeExists = function(db, node) {
 		     throw new errors.NotFound('Node does not exist');
 
 		 this();
-	     }, cb);
+	     }, this);
     };
 };
 
@@ -458,8 +463,10 @@ Transaction.prototype.getItem = function(node, id, cb) {
 Transaction.prototype.getConfig = function(node, cb) {
     var db = this.db;
 
-    step(this.nodeExists(db, node),
-    function() {
+    step(this.nodeExists(node),
+    function(err) {
+	if (err) throw err;
+
 	db.query("SELECT \"key\", \"value\" FROM node_config WHERE node=$1",
 		 [node], this);
     }, function(err, res) {
@@ -479,13 +486,23 @@ Transaction.prototype.getConfig = function(node, cb) {
 Transaction.prototype.setConfig = function(node, config, cb) {
     var db = this.db;
 
-    step(this.nodeExists(db, node),
-    function() {
+console.log('setConfig ' + node + ': ' + require('util').inspect(config));
+    step(this.nodeExists(node),
+    function(err) {
+	if (err) throw err;
+
+	/* If user supplied only partial information, old/default
+	 * values will be added by controller. That way we can just
+	 * INSERT later. */
+	 db.query("DELETE FROM node_config WHERE node=$1", [node], this);
+    }, function(err) {
+	if (err) throw err;
+
 	var g = this.group();
 	for(var key in config)
 	    if (config.hasOwnProperty(key)) {
 		var value = config[key];
-		db.query("UPDATE node_config SET key=$1, value=$2 WHERE node=$3",
+		db.query("INSERT node_config SET key=$1, value=$2 WHERE node=$3",
 		    [key, value, node], g);
 	    }
 	g();
