@@ -270,11 +270,10 @@ var VIEWS = {
 		  map: function(doc) {
 		      if (doc._id.indexOf('&') < 0) {
 			  /* is node */
-			  if (!doc.hasOwnProperty('accessModel') ||
-			      doc.accessModel === 'open')
-			      emit(doc._id, { node: doc._id,
-					      title: doc.title
-					    });
+			  if (!(doc.hasOwnProperty('config') &&
+				doc.config.hasOwnProperty('accessModel')) ||
+			      doc.config.accessModel === 'open')
+			      emit(doc._id, doc.config);
 		      }
 		  },
 		  reduce: function(keys, values, rereduce) {

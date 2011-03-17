@@ -7,12 +7,19 @@ exports.setModel = function(m) {
     model = m;
 };
 
-/** TODO: something configurable and/or meaningful */
+/** TODO: something configurable and/or meaningful, defaults for geo nodes */
 function defaultConfig(req) {
+    var owner = req.from;
+    var a = owner.split(':');
+    owner = a[a.length - 1].split('@')[0];
+
     return {
-	title: 'Node',
+	title: owner + '\'s node',
+	description: 'Where ' + owner + ' publishes things',
+	type: 'http://www.w3.org/2005/Atom',
 	accessModel: 'open',
-	publishModel: 'subscribers'
+	publishModel: 'subscribers',
+	creationDate: new Date().toISOString()
     };
 }
 
