@@ -30,6 +30,10 @@ var FEATURES = {
 		     }, function(err) {
 			 if (err) throw err;
 
+			 t.setConfig(req.node, defaultConfig(req), this);
+		     }, function(err) {
+			 if (err) throw err;
+
 			 t.setAffiliation(req.node, req.from, 'owner', this);
 		     }, function(err) {
 			 if (err) throw err;
@@ -279,8 +283,11 @@ var FEATURES = {
 
 		    t.setConfig(req.node,
 				{ title: req.title || config.title,
+				  description: req.description || config.description,
+				  type: req.type || config.type,
 				  accessModel: req.accessModel || config.accessModel,
-				  publishModel: req.publishModel || config.publishModel
+				  publishModel: req.publishModel || config.publishModel,
+				  creationDate: config.creationDate
 				}, this);
 		}, cb);
 	    }
@@ -335,6 +342,7 @@ var FEATURES = {
 
 		    var g = this.group();
 		    nodes.forEach(function(node) {
+			t.setConfig(node, defaultConfig(req), g());
 			t.setAffiliation(node, req.from, 'owner', g());
 			t.setSubscription(node, req.from, 'subscribed', g());
 		    });
@@ -346,6 +354,7 @@ var FEATURES = {
     'browse-nodes': {
 	list: {
 	    transaction: function(req, t, cb) {
+		/* TODO: add stats like num_subscribers */
 		t.listNodes(cb);
 	    }
 	}

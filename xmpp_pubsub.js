@@ -235,6 +235,16 @@ function handleIq(iq) {
 				     label: 'A friendly name for the node' }).
 			c('value').t(config.title || '').up().
 			up().
+			c('field', { var: 'pubsub#description',
+				     type: 'text-single',
+				     label: 'A description text for the node' }).
+			c('value').t(config.description || '').up().
+			up().
+			c('field', { var: 'pubsub#type',
+				     type: 'text-single',
+				     label: 'Payload type' }).
+			c('value').t(config.type || '').up().
+			up().
 			c('field', { var: 'pubsub#access_model',
 				     type: 'list-single',
 				     label: 'Who can subscribe and browse your channel?' }).
@@ -244,6 +254,11 @@ function handleIq(iq) {
 				     type: 'list-single',
 				     label: 'May new subscribers post on your channel?' }).
 			c('value').t(config.publishModel || 'subscribers');
+			up().
+			c('field', { var: 'pubsub#creation_date',
+				     type: 'text-single',
+				     label: 'Creation date' }).
+			c('value').t(config.creationDate || new Date().toISOString());
 		replyCb(null, queryEl);
 	    } });
 	} else {
@@ -761,8 +776,11 @@ function handleIq(iq) {
 				 from: 'xmpp:' + jid,
 				 node: configureNode,
 				 title: fields['pubsub#title'],
+				 description: fields['pubsub#description'],
+				 type: fields['pubsub#type'],
 				 accessModel: fields['pubsub#access_model'],
 				 publishModel: fields['pubsub#publish_model'],
+				 creationDate: fields['pubsub#creation_date'],
 				 callback: replyCb });
 	    return;
 	}
