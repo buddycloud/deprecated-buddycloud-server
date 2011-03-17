@@ -1,7 +1,8 @@
-CREATE TABLE nodes (node TEXT NOT NULL PRIMARY KEY,
-       	     	    title TEXT,
-		    access_model TEXT,
-		    publish_model TEXT);
+CREATE TABLE nodes (node TEXT NOT NULL PRIMARY KEY);
+CREATE TABLE node_config (node TEXT NOT NULL REFERENCES nodes (node),
+       	     		  "key" TEXT,
+			  "value" TEXT,
+			  PRIMARY KEY (node, "key"));
 CREATE TABLE items (node TEXT REFERENCES nodes (node),
        	     	    id TEXT NOT NULL,
 		    published TIMESTAMP,

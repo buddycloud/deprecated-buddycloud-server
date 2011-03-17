@@ -643,10 +643,7 @@ Transaction.prototype.getConfig = function(node, cb) {
 	    return;
 	}
 
-	var config = { title: doc.title,
-		       accessModel: doc.accessModel,
-		       publishModel: doc.publishModel
-		     };
+	var config = doc.config || {};
 	cb(null, config);
     });
 };
@@ -662,12 +659,7 @@ Transaction.prototype.setConfig = function(node, config, cb) {
 	    return;
 	}
 
-	if (config.title)
-	    doc.title = config.title;
-	if (config.accessModel)
-	    doc.accessModel = config.accessModel;
-	if (config.publishModel)
-	    doc.publishModel = config.publishModel;
+	doc.config = config;
 	db.save(doc);
 	cb(null);
     });

@@ -100,6 +100,22 @@ Transaction.prototype.rollback = function(cb) {
  * Actual data model
  */
 
+Transaction.prototype.nodeExists = function(db, node) {
+    return function(cb) {
+	step(function() {
+		 db.query("SELECT node FROM nodes WHERE node=$1",
+			  [node], this);
+	     }, function(err, res) {
+		 if (err) throw err;
+
+		 if (res.rowCount < 1)
+		     throw new errors.NotFound('Node does not exist');
+
+		 this();
+	     }, cb);
+    };
+};
+
 Transaction.prototype.createNode = function(node, cb) {
     var db = this.db;
 
@@ -124,7 +140,7 @@ Transaction.prototype.listNodes = function(cb) {
 
     step(function() {
 	/* TODO: order by COUNT(subscribers) */
-	db.query("SELECT node, title FROM nodes WHERE access_model IS NULL OR access_model = 'open' " +
+	db.query("SELECT node FROM nodes WHERE node IN (SELECT node FROM node_config WHERE \"key\"=\'accessModel\' AND \"value\"=\'open\') " +
 		 "ORDER BY node ASC", this);
     }, function(err, res) {
 	if (err) throw err;
@@ -442,18 +458,20 @@ Transaction.prototype.getItem = function(node, id, cb) {
 Transaction.prototype.getConfig = function(node, cb) {
     var db = this.db;
 
-    step(function() {
-	db.query("SELECT title, access_model, publish_model FROM nodes WHERE node=$1",
+    step(this.nodeExists(db, node),
+    function() {
+	db.query("SELECT \"key\", \"value\" FROM node_config WHERE node=$1",
 		 [node], this);
     }, function(err, res) {
 	if (err) throw err;
 
-	if (res.rows && res.rows[0])
-	    this(null, { title: res.rows[0].title,
-			 accessModel: res.rows[0].access_model,
-			 publishModel: res.rows[0].publish_model
-		       });
-	else
+	if (res.rows) {
+	    var config = {};
+	    res.rows.forEach(function(row) {
+		config[row.key] = row.value;
+	    });
+	    this(null, config);
+	} else
 	    throw new errors.NotFound('No such node');
     }, cb);
 };
@@ -461,14 +479,18 @@ Transaction.prototype.getConfig = function(node, cb) {
 Transaction.prototype.setConfig = function(node, config, cb) {
     var db = this.db;
 
-    step(function() {
-	db.query("UPDATE nodes SET title=$1, access_model=$2, publish_model=$3 WHERE node=$4",
-		 [config.title, config.accessModel, config.publishModel, node], this);
+    step(this.nodeExists(db, node),
+    function() {
+	var g = this.group();
+	for(var key in config)
+	    if (config.hasOwnProperty(key)) {
+		var value = config[key];
+		db.query("UPDATE node_config SET key=$1, value=$2 WHERE node=$3",
+		    [key, value, node], g);
+	    }
+	g();
     }, function(err, res) {
 	if (err) throw err;
-
-	if (res.rowCount < 1)
-	    throw new errors.NotFound('No such node');
 
 	this(null);
     }, cb);
