@@ -98,11 +98,16 @@ function handlePresence(presence) {
 	    delete onlineResources[user];
 	    break;
 	}
+	/* error from a full JID, fall-through: */
     case 'unavailable':
-	if (onlineResources[user])
+	if (onlineResources[user]) {
 	    onlineResources[user] = onlineResources[user].filter(function(r) {
 		return r != resource;
 	    });
+	    /* No resources left? */
+	    if (onlineResources[user].length < 1)
+		delete onlineResources[user];
+	}
 	break;
     default:
 	if (!onlineResources.hasOwnProperty(user))
