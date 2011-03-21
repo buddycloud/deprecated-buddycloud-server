@@ -196,7 +196,7 @@ var FEATURES = {
     },
     'manage-subscriptions': {
 	retrieve: {
-	    requiredAffiliation: 'moderator',
+	    requiredAffiliation: 'member',
 	    transaction: function(req, t, cb) {
 		t.getSubscribers(req.node, cb);
 	    }
@@ -236,7 +236,7 @@ var FEATURES = {
     },
     'modify-affiliations': {
 	retrieve: {
-	    requiredAffiliation: 'owner',
+	    requiredAffiliation: 'member',
 	    /* TODO: outcast only if req.affiliation == 'owner' or 'publisher' */
 	    transaction: function(req, t, cb) {
 		t.getAffiliated(req.node, cb);
