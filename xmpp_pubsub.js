@@ -7,6 +7,7 @@ var NS_PUBSUB = 'http://jabber.org/protocol/pubsub';
 var NS_PUBSUB_EVENT = 'http://jabber.org/protocol/pubsub#event';
 var NS_PUBSUB_OWNER = 'http://jabber.org/protocol/pubsub#owner';
 var NS_PUBSUB_NODE_CONFIG = 'http://jabber.org/protocol/pubsub#node_config';
+var NS_PUBSUB_META_DATA = 'http://jabber.org/protocol/pubsub#meta-data';
 var NS_DISCO_INFO = 'http://jabber.org/protocol/disco#info';
 var NS_DISCO_ITEMS = 'http://jabber.org/protocol/disco#items';
 var NS_DATA = 'jabber:x:data';
@@ -228,7 +229,7 @@ function handleIq(iq) {
 				 type: 'result' }).
 			c('field', { var: 'FORM_TYPE',
 				     type: 'hidden' }).
-			c('value').t(NS_PUBSUB_NODE_CONFIG).up().
+			c('value').t(NS_PUBSUB_META_DATA).up().
 			up().
 			c('field', { var: 'pubsub#title',
 				     type: 'text-single',
