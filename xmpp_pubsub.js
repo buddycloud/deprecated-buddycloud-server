@@ -254,7 +254,7 @@ function handleIq(iq) {
 			c('field', { var: 'pubsub#publish_model',
 				     type: 'list-single',
 				     label: 'May new subscribers post on your channel?' }).
-			c('value').t(config.publishModel || 'subscribers');
+			c('value').t(config.publishModel || 'subscribers').
 			up().
 			c('field', { var: 'pubsub#creation_date',
 				     type: 'text-single',
