@@ -584,9 +584,9 @@ function handleIq(iq) {
 					      c('subscriptions', { node: subscriptionsNode });
 		    subscribers.forEach(function(subscriber) {
 			var m;
-			if ((m = subscriber.match(/^xmpp:(.+)$/)))
+			if ((m = subscriber.user.match(/^xmpp:(.+)$/)))
 			    subscriptionsEl.c('subscription', { jid: m[1],
-								subscription: 'subscribed'
+								subscription: subscriber.subscription
 							      });
 		    });
 		    replyCb(null, subscriptionsEl);
