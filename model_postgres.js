@@ -502,8 +502,13 @@ console.log('setConfig ' + node + ': ' + require('util').inspect(config));
 	for(var key in config)
 	    if (config.hasOwnProperty(key)) {
 		var value = config[key];
-		db.query("INSERT node_config SET key=$1, value=$2 WHERE node=$3",
-		    [key, value, node], g);
+		/* Do not set configuration fields that have:
+		 * * not been specified
+		 * * no default config
+		 */
+		if (value === '' || value)
+		    db.query("INSERT node_config SET key=$1, value=$2 WHERE node=$3",
+			     [key, value, node], g);
 	    }
 	g();
     }, function(err, res) {
