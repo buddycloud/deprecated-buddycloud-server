@@ -312,6 +312,8 @@ var FEATURES = {
 		}, function(err, config) {
 		    if (!config)
 			config = defaultConfig(req);
+		    /* keep for subscriberNotification */
+		    req.config = config;
 
 		    t.setConfig(req.node,
 				{ title: req.title || config.title,
@@ -322,6 +324,11 @@ var FEATURES = {
 				  creationDate: config.creationDate
 				}, this);
 		}, cb);
+	    },
+	    subscriberNotification: function(req, subscribers) {
+		subscribers.forEach(function(subscriber) {
+		    callFrontend('configured', subscriber.user, req.node, req.config);
+		});
 	    }
 	}
     },

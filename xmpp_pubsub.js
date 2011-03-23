@@ -21,7 +21,8 @@ exports.setController = function(c) {
     controller.hookFrontend('xmpp', { notify: notify,
 				      retracted: retracted,
 				      approve: approve,
-				      subscriptionModified: subscriptionModified
+				      subscriptionModified: subscriptionModified,
+				      configured: configured
 				    });
 };
 
@@ -723,6 +724,16 @@ function handleIq(iq) {
 				     label: 'A friendly name for the node' }).
 			c('value').t(config.title || '').up().
 			up().
+			c('field', { var: 'pubsub#description',
+				     type: 'text-single',
+				     label: 'A description text for the node' }).
+			c('value').t(config.description || '').up().
+			up().
+			c('field', { var: 'pubsub#type',
+				     type: 'text-single',
+				     label: 'Payload type' }).
+			c('value').t(config.type || '').up().
+			up().
 			c('field', { var: 'pubsub#access_model',
 				     type: 'list-single',
 				     label: 'Who can subscribe and browse your channel?' }).
@@ -737,7 +748,11 @@ function handleIq(iq) {
 			c('option').c('value').t('publishers').up().up().
 			c('option').c('value').t('subscribers').up().up().
 			c('value').t(config.publishModel || 'subscribers').
-			up()
+			up().
+			c('field', { var: 'pubsub#creation_date',
+				     type: 'text-single',
+				     label: 'Creation date' }).
+			c('value').t(config.creationDate || new Date().toISOString())
 		       );
 	    } });
 	    return;
@@ -1000,4 +1015,48 @@ function subscriptionModified(jid, node, subscription) {
 	      c('subscription', { node: node,
 				  jid: jid,
 				  subscription: subscription }));
+}
+
+function configured(jid, node, config) {
+    conn.send(new xmpp.Element('message', { to: jid,
+					    from: conn.jid.toString()
+					  }).
+	      c('pubsub', { xmlns: NS_PUBSUB_EVENT }).
+	      c('configuration', { node: node }).
+	      c('x', { xmlns: NS_DATA,
+		       type: 'result' }).
+	      c('field', { var: 'FORM_TYPE',
+			   type: 'hidden' }).
+	      c('value').t(NS_PUBSUB_META_DATA).up().
+	      up().
+	      c('field', { var: 'pubsub#title',
+			   type: 'text-single',
+			   label: 'A friendly name for the node' }).
+	      c('value').t(config.title || '').up().
+	      up().
+	      c('field', { var: 'pubsub#description',
+			   type: 'text-single',
+			   label: 'A description text for the node' }).
+	      c('value').t(config.description || '').up().
+	      up().
+	      c('field', { var: 'pubsub#type',
+			   type: 'text-single',
+			   label: 'Payload type' }).
+	      c('value').t(config.type || '').up().
+	      up().
+	      c('field', { var: 'pubsub#access_model',
+			   type: 'list-single',
+			   label: 'Who can subscribe and browse your channel?' }).
+	      c('value').t(config.accessModel || 'open').up().
+	      up().
+	      c('field', { var: 'pubsub#publish_model',
+			   type: 'list-single',
+			   label: 'May new subscribers post on your channel?' }).
+	      c('value').t(config.publishModel || 'subscribers').
+	      up().
+	      c('field', { var: 'pubsub#creation_date',
+			   type: 'text-single',
+			   label: 'Creation date' }).
+	      c('value').t(config.creationDate || new Date().toISOString())
+	     );
 }
