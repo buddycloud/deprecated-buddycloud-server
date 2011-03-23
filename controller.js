@@ -52,29 +52,54 @@ var FEATURES = {
     },
     subscribe: {
 	subscribe: {
-	    requiredAffiliation: 'none',
+	    /* We don't use requiredAffiliation here because we are transitioning */
 	    transaction: function(req, t, cb) {
-		var subscription;
+		var config;
 		step(function() {
-		    subscription = (req.affiliation === 'member') ?
-			'subscribed' : 'pending';
+		    t.getConfig(req.node, this);
+		}, function(err, config_) {
+		    if (err) throw err;
+
+		    config = config_;
+		    if (!config.accessModel ||
+			config.accessModel === 'open')
+			/* Shortcut, no need to get previous subscription */
+			this(null, 'subscribed');
+		    else
+			t.getSubscription(req.node, req.from, this);
+		}, function(err, subscription) {
+		    if (err) throw err;
+
+		    if (!subscription) {
+			switch(config.accessModel) {
+			    case 'authorize':
+				this(null, 'pending');
+				break;
+			    default:
+				throw new errors.Forbidden();
+			}
+		    } else
+			this(null, subscription);
+		}, function(err, subscription) {
+		    if (err) throw err;
+
+		    req.subscription = subscription;
 		    t.setSubscription(req.node, req.from, subscription, this);
 		}, function(err) {
 		    if (err) throw err;
 
-		    req.subscription = subscription;
 		    /* get owners only if subscription approval pending */
-		    if (subscription === 'pending') {
+		    if (req.subscription === 'pending') {
 			step(function() {
 				 t.getOwners(req.node, this);
 			     }, function(err, owners) {
 				 if (err) throw err;
 
 				 req.owners = owners;
-				 this(null, subscription);
+				 this(null, req.subscription);
 			     }, this);
 		    } else
-			this(null, subscription);
+			this(null, req.subscription);
 		}, cb);
 	    },
 	    afterTransaction: function(req) {
