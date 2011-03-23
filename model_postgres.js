@@ -108,16 +108,16 @@ Transaction.prototype.nodeExists = function(node) {
 
     return function() {
 	step(function() {
-		 db.query("SELECT node FROM nodes WHERE node=$1",
-			  [node], this);
-	     }, function(err, res) {
-		 if (err) throw err;
+	    db.query("SELECT node FROM nodes WHERE node=$1",
+		     [node], this);
+	}, function(err, res) {
+	    if (err) throw err;
 
-		 if (res.rowCount < 1)
-		     throw new errors.NotFound('Node does not exist');
+	    if (res.rowCount < 1)
+		throw new errors.NotFound('Node does not exist');
 
-		 this();
-	     }, this);
+	    this();
+	}, this);
     };
 };
 
