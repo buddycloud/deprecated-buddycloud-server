@@ -498,7 +498,7 @@ console.log('setConfig ' + node + ': ' + require('util').inspect(config));
     }, function(err) {
 	if (err) throw err;
 
-	var g = this.group();
+	var g = this.parallel();
 	for(var key in config)
 	    if (config.hasOwnProperty(key)) {
 		var value = config[key];
@@ -507,7 +507,7 @@ console.log('setConfig ' + node + ': ' + require('util').inspect(config));
 		 * * no default config
 		 */
 		if (value === '' || value)
-		    db.query("INSERT node_config SET key=$1, value=$2 WHERE node=$3",
+		    db.query("INSERT INTO node_config SET key=$1, value=$2 WHERE node=$3",
 			     [key, value, node], g);
 	    }
 	g();
