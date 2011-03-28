@@ -526,7 +526,8 @@ console.log('setConfig ' + node + ': ' + require('util').inspect(config));
 		 * * no default config
 		 */
 		if (value === '' || value)
-		    db.query("INSERT INTO node_config SET key=$1, value=$2 WHERE node=$3",
+		    db.query("INSERT INTO node_config (key, value, node) " +
+			     "VALUES ($1, $2, $3)",
 			     [key, value, node], g);
 	    }
 	g();
