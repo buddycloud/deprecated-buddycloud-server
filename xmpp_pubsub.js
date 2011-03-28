@@ -312,7 +312,30 @@ function handleIq(iq) {
 		});
 		replyCb(null, queryEl);
 	    } });
+	} else if (/^\/user\/[^\/]+$/.test(node)) {
+	    /* Discovery to all user's node */
+	    controller.request({ feature: 'browse-nodes',
+				 operation: 'by-user',
+				 node: node,
+				 from: 'xmpp:' + jid,
+				 callback: function(err, nodes) {
+	        if (err) {
+		    errorReply(err);
+		    return;
+		}
+
+		/* Iterate the controller browse-nodes result */
+		nodes.forEach(function(node) {
+		    var itemEl = queryEl.c('item', { jid: conn.jid,
+						     node: node.node
+						   });
+		    if (node.title)
+			itemEl.attrs.title = node.title;
+		});
+		replyCb(null, queryEl);
+	    } });
 	} else
+	    /* Anything else: empty */
 	    replyCb(null, queryEl);
 	return;
     }

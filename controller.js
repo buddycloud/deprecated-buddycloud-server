@@ -396,6 +396,16 @@ var FEATURES = {
 		/* TODO: add stats like num_subscribers */
 		t.listNodes(cb);
 	    }
+	},
+	'by-user': {
+	    transaction: function(req, t, cb) {
+		/* TODO: add stats like num_subscribers */
+		var m;
+		if ((m = req.node.match(/^\/user\/([^\/]+)$/)))
+		    t.listNodesByUser(m[1], cb);
+		else
+		    throw new errors.NotFound('User not found');
+	    }
 	}
     }
 };
