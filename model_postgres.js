@@ -159,6 +159,25 @@ Transaction.prototype.listNodes = function(cb) {
     }, cb);
 };
 
+Transaction.prototype.listNodesByUser = function(user, cb) {
+    var db = this.db;
+
+    step(function() {
+	/* TODO: order by COUNT(subscribers) */
+	db.query("SELECT node FROM nodes WHERE position('/user/' || $1 IN node) = 1 AND node IN (SELECT node FROM node_config WHERE \"key\"=\'accessModel\' AND \"value\"=\'open\') " +
+		 "ORDER BY node ASC", [user], this);
+    }, function(err, res) {
+	if (err) throw err;
+
+	var nodes = res.rows.map(function(row) {
+	    return { node: row.node,
+		     title: row.title
+		   };
+	});
+	this(null, nodes);
+    }, cb);
+};
+
 /**
  * Subscription management
  */
