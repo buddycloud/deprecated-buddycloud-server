@@ -272,8 +272,33 @@ var VIEWS = {
 			  /* is node */
 			  if (!(doc.hasOwnProperty('config') &&
 				doc.config.hasOwnProperty('accessModel')) ||
-			      doc.config.accessModel === 'open')
-			      emit(doc._id, doc.config);
+			      doc.config.accessModel === 'open') {
+
+			      emit(doc._id, { title: doc.config.title,
+					      node: doc._id  });
+			  }
+		      }
+		  },
+		  reduce: function(keys, values, rereduce) {
+		      if (rereduce)
+			  values = Array.prototype.concat.apply([], values);
+		      return values;
+		  }
+	      },
+	      openNodesByUser: {
+		  map: function(doc) {
+		      var m;
+		      if (doc._id.indexOf('&') < 0 &&
+			  (m = doc._id.match(/^\/user\/(.+?)\//))) {
+			  /* is node & belongs to user m[1] */
+			  var user = m[1];
+			  if (!(doc.hasOwnProperty('config') &&
+				doc.config.hasOwnProperty('accessModel')) ||
+			      doc.config.accessModel === 'open') {
+
+			      emit(user, { title: doc.config.title,
+					   node: doc._id  });
+			  }
 		      }
 		  },
 		  reduce: function(keys, values, rereduce) {
@@ -334,6 +359,11 @@ Transaction.prototype.createNode = function(node, cb) {
  */
 Transaction.prototype.listNodes = function(cb) {
     this.view('channel-server/openNodes', { group: false }, cb);
+};
+
+Transaction.prototype.listNodesByUser = function(user, cb) {
+    this.view('channel-server/openNodesByUser', { group: true,
+						  key: user }, cb);
 };
 
 /**
