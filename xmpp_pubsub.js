@@ -438,7 +438,7 @@ function handleIq(iq) {
 	    var items = {};
 	    publishEl.getChildren('item').forEach(function(itemEl) {
 		var itemNode = itemEl.attrs.node || uuid();
-		items[itemNode] = itemEl.children;
+		items[itemNode] = itemEl.children[0];
 	    });
 	    controller.request({ feature: 'publish',
 				 operation: 'publish',
@@ -506,10 +506,8 @@ function handleIq(iq) {
 				      c('items', { node: itemsNode });
 		    for(var id in items) {
 			var itemEl = itemsEl.c('item', { id: id  });
-			items[id].forEach(function(el) {
-			    if (el.name)
-				itemEl.cnode(el);
-			});
+			if (items[id])
+			    itemEl.cnode(items[id]);
 		    }
 		    replyCb(null, itemsEl);
 		}

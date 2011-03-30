@@ -594,7 +594,7 @@ Transaction.prototype.writeItem = function(publisher, node, id, item, cb) {
 	    return;
 	}
 
-	doc.xml = item.join('').toString();
+	doc.xml = item.toString();
 	doc.date = new Date().toISOString();
 	this.save(doc);
 	cb(null);
@@ -648,10 +648,10 @@ Transaction.prototype.getItem = function(node, id, cb) {
 
 	var item;
 	try {
-	    item = ltx.parse('<r>' + res.toJSON().xml + '</r>').children;
+	    item = ltx.parse(res.toJSON().xml);
 	} catch (e) {
 	    console.error('Parsing ' + JSON.stringify({node:node,id:id}) + ': ' + e.stack);
-	    item = [];
+	    item = undefined;
 	}
 	cb(null, item);
     });

@@ -398,7 +398,7 @@ Transaction.prototype.getOwners = function(node, cb) {
 
 Transaction.prototype.writeItem = function(publisher, node, id, item, cb) {
     var db = this.db;
-    var xml = item.join('').toString();
+    var xml = item.toString();
 
     step(function() {
 	db.query("SELECT id FROM items WHERE node=$1 AND id=$2",
@@ -463,10 +463,10 @@ Transaction.prototype.getItem = function(node, id, cb) {
 	if (res && res.rows && res.rows[0]) {
 	    var item;
 	    try {
-		item = ltx.parse('<r>' + res.rows[0].xml + '</r>').children;
+		item = ltx.parse(res.rows[0].xml);
 	    } catch (e) {
 		console.error('Parsing ' + JSON.stringify({node:node,id:id}) + ': ' + e.stack);
-		item = [];
+		item = undefined;
 	    }
 	    this(null, item);
 	} else {
