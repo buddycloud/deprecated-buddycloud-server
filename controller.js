@@ -1,5 +1,6 @@
 var step = require('step');
 var errors = require('./errors');
+var normalize = require('./normalize');
 
 /** Set by main.js */
 var model;
@@ -134,8 +135,19 @@ var FEATURES = {
 			 else {
 			     var g = this.group();
 			     for(var id in req.items) {
-				 if (req.items.hasOwnProperty(id))
-				     t.writeItem(req.from, req.node, id, req.items[id], g());
+				 if (req.items.hasOwnProperty(id)) {
+				     step(function() {
+					 t.getItem(req.node, id, this);
+				     }, function(err, oldItem) {
+					 /* Ignore error; normalize may look for oldItem */
+					 var reqItem = Object.create(req, { item: req.items[id],
+									    itemId: id,
+									    oldItem: oldItem });
+					 normalize.normalizeItem(reqItem, this);
+				     }, function(err, reqNormalized) {
+					 t.writeItem(req.from, req.node, reqNormalized.itemId, reqNormalized.item, this);
+				     }, g());
+				 }
 			     }
 			 }
 		     }, cb);
