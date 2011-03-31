@@ -140,11 +140,14 @@ var FEATURES = {
 					 t.getItem(req.node, id, this);
 				     }, function(err, oldItem) {
 					 /* Ignore error; normalize may look for oldItem */
-					 var reqItem = Object.create(req, { item: req.items[id],
-									    itemId: id,
-									    oldItem: oldItem });
+					 var reqItem = Object.create(req);
+					 reqItem.item = req.items[id];
+					 reqItem.itemId = id;
+					 reqItem.oldItem = oldItem;
 					 normalize.normalizeItem(reqItem, this);
 				     }, function(err, reqNormalized) {
+					 if (err) throw err;
+
 					 t.writeItem(req.from, req.node, reqNormalized.itemId, reqNormalized.item, this);
 				     }, g());
 				 }

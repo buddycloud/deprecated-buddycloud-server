@@ -2,8 +2,10 @@ var NS_ATOM = 'http://www.w3.org/2005/Atom';
 
 exports.normalizeItem = function(req, cb) {
     /* TODO: what if no ATOM? */
-    normalizeEntry(Object.create(req, { entry: req.item,
-					oldEntry: req.oldItem }), cb);
+    var reqNormalize = Object.create(req);
+    reqNormalize.entry = req.item;
+    reqNormalize.oldEntry = req.oldItem;
+    normalizeEntry(reqNormalize, cb);
 };
 
 /**

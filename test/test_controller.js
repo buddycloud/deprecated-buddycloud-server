@@ -5,7 +5,7 @@ controller = require('./../controller');
 
 var modelLog = [];
 function assertModelLog(condition) {
-    var any = modelLog.some(function(line) {
+    var matches = modelLog.filter(function(line) {
 	    var i;
 	    for(i = 0; i < line.length && i < condition.length; i++) {
 		if (typeof condition[i] !== 'undefined' &&
@@ -14,7 +14,8 @@ function assertModelLog(condition) {
 	    }
 	    return true;
 	});
-    assert.ok(any, "Expected: " + condition.join(' '));
+    assert.ok(matches.length > 0, "Expected: " + condition.join(' '));
+    return matches[matches.length - 1];
 }
 var mockModel = {
     transaction: function(cb) {
@@ -66,6 +67,7 @@ var mockModel = {
 		owners.push('xmpp:' + m[1]);
 	    cb(null, owners);
 	}, writeItem: function(publisher, node, id, item, cb) {
+	    console.log(['writeItem', publisher, node, id, item]);
 	    modelLog.push(['writeItem', publisher, node, id, item]);
 	    cb(null);
 	}, deleteItem: function(node, id) {
@@ -173,6 +175,27 @@ vows.describe('request').addBatch({
 	    },
 	    'success': function(err, a) {
 		assert.isNull(err);
+	    }
+	},
+	'normalize the content': {
+	    'author': {
+		topic: function() {
+		    controller.request({ feature: 'publish',
+					 operation: 'publish',
+					 from: 'xmpp:member@affiliation.test',
+					 node: '/user/astro@spaceboyz.net/channel',
+					 items: { first: new ltx.Element('entry', { xmlns: 'http://jabber.org/protocol/pubsub' }).
+						              c('entry', { xmlns: "http://www.w3.org/2005/Atom" }).
+							      up()
+						},
+					 callback: this.callback
+				       });
+		},
+		success: function(err, a) {
+		    assert.isNull(err);
+		    var write = assertModelLog(['writeItem', undefined, undefined, 'first', undefined]);
+		    assert.equal(write[4].getChild('author').getChild('jid').getText(), 'member@affiliation.test');
+		}
 	    }
 	}
     },
