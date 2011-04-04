@@ -381,8 +381,9 @@ var FEATURES = {
 		    user = m[1]; /* strip proto prefix */
 
 		/* TODO: make configurable */
-		var nodes = ['channel', 'mood', 'geo/current',
-			     'geo/future', 'geo/previous'].map(function(name) {
+		var nodes = ['channel', 'mood', 'subscriptions',
+			     'geo/current', 'geo/future',
+			     'geo/previous'].map(function(name) {
 		    return '/user/' + user + '/' + name;
 		});
 
