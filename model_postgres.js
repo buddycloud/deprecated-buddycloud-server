@@ -451,6 +451,29 @@ Transaction.prototype.getItemIds = function(node, cb) {
     }, cb);
 };
 
+Transaction.prototype.getItemIdsByTime = function(node, timeStart, timeEnd, cb) {
+    var db = this.db;
+
+    step(function() {
+	var conditions = ['node=$1'];
+	if (timeStart)
+	    conditions.push('published >= timestamp $2');
+	if (timeEnd)
+	    conditions.push('pubslished <= timestamp $3');
+	db.query("SELECT id FROM items WHERE " +
+		 conditions.join(' AND ') +
+		 " ORDER BY published DESC",
+		 [node, timeStart, timeEnd], this);
+    }, function(err, res) {
+	if (err) throw err;
+
+	var ids = res.rows.map(function(row) {
+	    return row.id;
+	});
+	this(null, ids);
+    }, cb);
+};
+
 Transaction.prototype.getItem = function(node, id, cb) {
     var db = this.db;
 

@@ -218,6 +218,44 @@ var FEATURES = {
 			 this(null, result);
 		     }, cb);
 	    }
+	},
+	/**
+	 * For Message Archive Management
+	 *
+	 * Calls notifications before calling back with no result
+	 */
+	'replay': {
+	    requiredAffiliation: 'member',
+	    transaction: function(req, t, cb) {
+		var ids, items;
+		step(function() {
+			 /* FIXME: no node! */
+			 t.getItemIdsByTime(req.node, req.timeStart, req.timeEnd, this);
+		     }, function(err, ids_) {
+			 if (err) throw err;
+
+			 ids = ids_;
+			 if (ids.length < 1)
+			     this(null);
+			 else {
+			     var g = this.group();
+			     ids.forEach(function(id) {
+				 t.getItem(req.node, id, function(err, item) {
+				     if (item) {
+					 var items = {};
+					 items[id] = item;
+					 callFrontend('notify', req.from, req.node, items);
+				     }
+				     g(err);
+				 });
+			     });
+			 }
+		     }, function(err, items) {
+			 if (err) throw err;
+
+			 this(null);
+		     }, cb);
+	    }
 	}
     },
     'retrieve-subscriptions': {

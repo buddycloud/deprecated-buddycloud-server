@@ -13,6 +13,7 @@ var NS_DISCO_ITEMS = 'http://jabber.org/protocol/disco#items';
 var NS_DATA = 'jabber:x:data';
 var NS_REGISTER = 'jabber:iq:register';
 var NS_COMMANDS = 'http://jabber.org/protocol/commands';
+var NS_ARCHIVE_MANAGEMENT = 'urn:xmpp:archive#management';
 
 /* Set by main.js */
 var controller;
@@ -927,6 +928,16 @@ function handleIq(iq) {
 	}
 
 	return;
+    }
+
+    var archiveQueryEl = iq.getChild('query', NS_ARCHIVE_MANAGEMENT);
+    if (iq.attrs.type === 'get' && archiveQueryEl) {
+	var timeStart = archiveQueryEl.attrs.start;
+	var timeEnd = archiveQueryEl.attrs.end;
+	controller.request({ feature: 'retrieve-items',
+			     operation: 'replay',
+			     from: 'xmpp:' + jid,
+			     callback: replyCb });
     }
 
     /* Not yet returned? Catch all: */
