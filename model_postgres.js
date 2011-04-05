@@ -497,7 +497,6 @@ Transaction.prototype.getUpdatesByTime = function(subscriber, timeStart, timeEnd
 			  " ORDER BY published ASC",
 			  params);
     q.on('row', function(row) {
-console.log({row:row})
 	var item = parseItem(row.xml);
 	if (item)
 	    itemCb({ node: row.node,

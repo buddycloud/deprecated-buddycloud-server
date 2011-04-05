@@ -226,12 +226,7 @@ var FEATURES = {
 	 */
 	'replay': {
 	    transaction: function(req, t, cb) {
-		var notifyCb = function(r) {
-		    var items = {};
-		    items[r.id] = r.item;
-		    callFrontend('notify', req.from, r.node, items);
-		};
-		t.getUpdatesByTime(req.from, req.timeStart, req.timeEnd, notifyCb, cb);
+		t.getUpdatesByTime(req.from, req.timeStart, req.timeEnd, req.notifyCb, cb);
 	    }
 	}
     },

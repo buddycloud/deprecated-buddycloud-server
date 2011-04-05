@@ -930,13 +930,31 @@ function handleIq(iq) {
 	return;
     }
 
+    /**
+     * <iq type='get' id='juliet1'>
+     *   <query xmlns='urn:xmpp:archive#management'
+     *          start='2002-06-07T00:00:00Z'
+     *          end='2010-07-07T13:23:54Z'/>
+     * </iq>
+     */
     var archiveQueryEl = iq.getChild('query', NS_ARCHIVE_MANAGEMENT);
     if (iq.attrs.type === 'get' && archiveQueryEl) {
+	/* TODO: not only items */
 	controller.request({ feature: 'retrieve-items',
 			     operation: 'replay',
 			     from: 'xmpp:' + jid,
 			     timeStart: archiveQueryEl.attrs.start,
 			     timeEnd: archiveQueryEl.attrs.end,
+			     notifyCb: function(item) {
+				 conn.send(new xmpp.Element('message', { to: iq.attrs.from,
+									 from: conn.jid.toString(),
+									 type: 'headline'
+								       }).
+					   c('event', { xmlns: NS_PUBSUB_EVENT }).
+					   c('items', { node: node }).
+					   c('item', { id: item.id }).
+					   cnode(item.item));
+			     },
 			     callback: replyCb });
 	return;
     }
