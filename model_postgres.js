@@ -451,28 +451,14 @@ Transaction.prototype.getItemIds = function(node, cb) {
     }, cb);
 };
 
-Transaction.prototype.getItemIdsByTime = function(node, timeStart, timeEnd, cb) {
-    var db = this.db;
-
-    step(function() {
-	var conditions = ['node=$1'];
-	if (timeStart)
-	    conditions.push('published >= timestamp $2');
-	if (timeEnd)
-	    conditions.push('pubslished <= timestamp $3');
-	db.query("SELECT id FROM items WHERE " +
-		 conditions.join(' AND ') +
-		 " ORDER BY published DESC",
-		 [node, timeStart, timeEnd], this);
-    }, function(err, res) {
-	if (err) throw err;
-
-	var ids = res.rows.map(function(row) {
-	    return row.id;
-	});
-	this(null, ids);
-    }, cb);
-};
+function parseItem(xml) {
+    try {
+	return ltx.parse(xml);
+    } catch (e) {
+	console.error('Parsing ' + xml + ': ' + e.stack);
+	return undefined;
+    }
+}
 
 Transaction.prototype.getItem = function(node, id, cb) {
     var db = this.db;
@@ -484,18 +470,48 @@ Transaction.prototype.getItem = function(node, id, cb) {
 	if (err) throw err;
 
 	if (res && res.rows && res.rows[0]) {
-	    var item;
-	    try {
-		item = ltx.parse(res.rows[0].xml);
-	    } catch (e) {
-		console.error('Parsing ' + JSON.stringify({node:node,id:id}) + ': ' + e.stack);
-		item = undefined;
-	    }
+	    var item = parseItem(res.rows[0].xml);
 	    this(null, item);
 	} else {
 	    throw new errors.NotFound('No such item');
 	}
     }, cb);
+};
+
+/**
+ * @param itemCb {Function} itemCb({ node: String, id: String, item: Element })
+ */
+Transaction.prototype.getUpdatesByTime = function(subscriber, timeStart, timeEnd, itemCb, cb) {
+    var conditions = ['node IN (SELECT node FROM subscriptions WHERE "user"=$1 AND subscription=\'subscribed\')'],
+	params = [subscriber], i = 1;
+    if (timeStart) {
+	conditions.push('published >= $' + (++i) + '::timestamp');
+	params.push(timeStart);
+    }
+    if (timeEnd) {
+	conditions.push('published <= $' + (++i) + '::timestamp');
+	params.push(timeEnd);
+    }
+    var q = this.db.query("SELECT id, node, xml FROM items WHERE " +
+			  conditions.join(' AND ') +
+			  " ORDER BY published ASC",
+			  params);
+    q.on('row', function(row) {
+console.log({row:row})
+	var item = parseItem(row.xml);
+	if (item)
+	    itemCb({ node: row.node,
+		     id: row.id,
+		     item: item
+		   });
+    });
+    var err;
+    q.on('error', function(err_) {
+	err = err_;
+    });
+    q.on('end', function() {
+	cb(err);
+    });
 };
 
 /**

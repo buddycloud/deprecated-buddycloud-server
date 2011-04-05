@@ -932,12 +932,13 @@ function handleIq(iq) {
 
     var archiveQueryEl = iq.getChild('query', NS_ARCHIVE_MANAGEMENT);
     if (iq.attrs.type === 'get' && archiveQueryEl) {
-	var timeStart = archiveQueryEl.attrs.start;
-	var timeEnd = archiveQueryEl.attrs.end;
 	controller.request({ feature: 'retrieve-items',
 			     operation: 'replay',
 			     from: 'xmpp:' + jid,
+			     timeStart: archiveQueryEl.attrs.start,
+			     timeEnd: archiveQueryEl.attrs.end,
 			     callback: replyCb });
+	return;
     }
 
     /* Not yet returned? Catch all: */
