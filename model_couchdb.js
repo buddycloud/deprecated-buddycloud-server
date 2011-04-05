@@ -657,6 +657,10 @@ Transaction.prototype.getItem = function(node, id, cb) {
     });
 };
 
+Transaction.prototype.getUpdatesByTime = function(subscriber, timeStart, timeEnd, itemCb, cb) {
+    cb(new errors.FeatureNotImplemented('Too difficult with CouchDB'));
+};
+
 /**
  * Config management
  */
