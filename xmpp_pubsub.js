@@ -14,6 +14,7 @@ var NS_DATA = 'jabber:x:data';
 var NS_REGISTER = 'jabber:iq:register';
 var NS_COMMANDS = 'http://jabber.org/protocol/commands';
 var NS_ARCHIVE_MANAGEMENT = 'urn:xmpp:archive#management';
+var NS_RSM = 'http://jabber.org/protocol/rsm';
 
 /* Set by main.js */
 var controller;
@@ -202,6 +203,7 @@ function handleIq(iq) {
 	var queryEl = new xmpp.Element('query', { xmlns: NS_DISCO_INFO });
 	if (node)
 	    queryEl.attrs.node = node;
+	/* TODO: add MAM & RSM */
 	var features = controller.pubsubFeatures().
 	    map(function(feature) {
 		    return NS_PUBSUB + '#' + feature;
@@ -343,6 +345,9 @@ function handleIq(iq) {
 
     var pubsubEl = iq.getChild('pubsub', NS_PUBSUB);
     if (pubsubEl) {
+	/** XEP-0059: Result Set Management */
+	var rsmQuery = getRSMQuery(pubsubEl);
+
 	/*
 	 * <iq type='set'
 	 *     from='hamlet@denmark.lit/elsinore'
@@ -499,17 +504,19 @@ function handleIq(iq) {
 				 operation: 'retrieve',
 				 from: 'xmpp:' + jid,
 				 node: itemsNode,
+				 rsmQuery: rsmQuery,
 				 callback: function(err, items) {
 		if (err)
 		    replyCb(err);
 		else {
 		    var itemsEl = new xmpp.Element('pubsub', { xmlns: NS_PUBSUB }).
 				      c('items', { node: itemsNode });
-		    for(var id in items) {
-			var itemEl = itemsEl.c('item', { id: id  });
+		    items.forEach(function(item) {
+			var itemEl = itemsEl.c('item', { id: item.id  });
 			if (items[id])
-			    itemEl.cnode(items[id]);
-		    }
+			    itemEl.cnode(item.item);
+		    });
+		    addRSMResult(items.rsmResult, itemsEl.up());
 		    replyCb(null, itemsEl);
 		}
 	    } });
@@ -985,6 +992,39 @@ function handleMessage(msg) {
 			       });
 	}
     }
+}
+
+/** XEP-0059: Result Set Management */
+function getRSMQuery(el) {
+    var setEl = el.getChild('set', NS_RSM);
+    if (!setEl)
+	return undefined;
+
+    var q = {};
+    var el;
+    if ((el = setEl.getChild('max'))) {
+	q.max = parseInt(el.getText(), 10);
+    }
+    if ((el = setEl.getChild('after'))) {
+	q.after = el.getText();
+    }
+    if ((el = setEl.getChild('before'))) {
+	q.before = el.getText();
+    }
+    return q;
+}
+
+function addRSMResult(r, el) {
+    if (!r)
+	return;
+
+    var setEl = el.c('set', NS_RSM);
+    if (r.hasOwnProperty('count'))
+	setEl.c('count').t(r.count + '');
+    if (r.hasOwnProperty('first'))
+	setEl.c('first').t(r.first);
+    if (r.hasOwnProperty('last'))
+	setEl.c('last').t(r.last);
 }
 
 /**

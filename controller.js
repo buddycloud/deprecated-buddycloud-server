@@ -197,7 +197,10 @@ var FEATURES = {
 		     }, function(err, ids_) {
 			 if (err) throw err;
 
-			 ids = ids_;
+			 /* Applying RSM now avoids fetching too many items.
+			  * Later, this should become ie. SQL queries.
+			  */
+			 ids = applyRSM(req.rsmQuery, ids_);
 			 if (ids.length < 1)
 			     this(null, []);
 			 else {
@@ -209,13 +212,15 @@ var FEATURES = {
 		     }, function(err, items) {
 			 if (err) throw err;
 
-			 /* Assemble ids & items lists into result dictionary */
-			 var result = {};
+			 var results = [];
 			 var id, item;
 			 while((id = ids.shift()) && (item = items.shift())) {
-			     result[id] = item;
+			     results.push({ id: id,
+					    item: item });
 			 }
-			 this(null, result);
+			 /* RSM was applied to just ids, copy info: */
+			 results.rsmResult = ids.rsmResult;
+			 this(null, results);
 		     }, cb);
 	    }
 	},
@@ -635,6 +640,49 @@ exports.getAllSubscribers = function(cb) {
     });
 
 };
+
+/**
+ * Applies Result Set Management
+ * 
+ * @param results {Array}
+ * @return {Array} Annotated with rsmResult key
+ */
+/* TODO: default max length */
+function applyRSM(rsmQuery, results) {
+    /* We always return RSM even if queried w/o */
+    rsmQuery = rsmQuery || {};
+    /* rsmResult with total length */
+    var rsmResult = { count: results.length };
+
+    if (rsmQuery.after) {
+	while(results.length > 0) {
+	    var key = results.shift();
+	    if (key === rsmQuery.after)
+		break;
+	}
+    }
+    if (rsmQuery.before) {
+	while(results.length > 0) {
+	    var key = results.pop();
+	    if (key === rsmQuery.before)
+		break;
+	}
+	/* If queried before a certain id, the front is snapped off: */
+	if (rsmQuery.count) {
+	    results = results.slice(Math.max(0, results.length - rsmQuery.count));
+	}
+    }
+    if (rsmQuery.count) {
+	results = results.slice(0, rsmQuery.count);
+    }
+
+    /* rsmResult indicating first & last id of this selection */
+    if (results.length > 0) {
+	rsmResult.first = results[0];
+	rsmResult.last = results[results.length - 1];
+    }
+    return Object.create({ rsmResult: rsmResult }, { o: results });
+}
 
 /**
  * Affiliations comparison
