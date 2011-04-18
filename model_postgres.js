@@ -198,7 +198,10 @@ Transaction.prototype.getSubscription = function(node, user, cb) {
 Transaction.prototype.setSubscription = function(node, user, subscription, cb) {
     var db = this.db;
 
-    step(function() {
+    step(this.nodeExists(node),
+    function(err) {
+	if (err) throw err;
+
 	db.query("SELECT subscription FROM subscriptions WHERE node=$1 AND user=$2",
 		 [node, user], this);
     }, function(err, res) {
@@ -400,7 +403,10 @@ Transaction.prototype.writeItem = function(publisher, node, id, item, cb) {
     var db = this.db;
     var xml = item.toString();
 
-    step(function() {
+    step(this.nodeExists(node),
+    function(err) {
+	if (err) throw err;
+
 	db.query("SELECT id FROM items WHERE node=$1 AND id=$2",
 		 [node, id], this);
     }, function(err, res) {
