@@ -7,7 +7,7 @@ it exposes your data to the network, featuring access control and
 real-time update notification.
 
 The primary network protocol is
-[Buddycloud Channels](http://open.buddycloud.com/).
+[buddycloud channels](http://buddycloud.org/).
 
 channel-server is distributed under the Apache License 2.0. See the
 `LICENSE` file.
