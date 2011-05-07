@@ -395,7 +395,7 @@ function handleIq(iq) {
 				     }
 
 				     if (subscription === 'pending') {
-					 replyCb(null, new xmpp.Element('pusub', { xmlns: NS_PUBSUB }).
+					 replyCb(null, new xmpp.Element('pubsub', { xmlns: NS_PUBSUB }).
 						       c('subscription', { node: subscribeNode,
 									   jid: jid,
 									   subscription: subscription }));
