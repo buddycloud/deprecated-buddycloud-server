@@ -429,10 +429,10 @@ Transaction.prototype.getSubscribers = function(node, cb) {
 	}
 
 	var subscribers = [];
-	if (doc.subscribers) {
-	    for(var user in doc.subscribers)
+	if (doc.subscriptions) {
+	    for(var user in doc.subscriptions)
 		subscribers.push({ user: user,
-				   subscription: doc.subscribers[user]
+				   subscription: doc.subscription[user]
 				 });
 	}
 
@@ -472,9 +472,9 @@ Transaction.prototype.getPending = function(node, cb) {
 	}
 
 	var subscribers = [];
-	if (doc.subscribers) {
-	    for(var user in doc.subscribers)
-		if (doc.subscribers[user] === 'pending')
+	if (doc.subscriptions) {
+	    for(var user in doc.subscriptions)
+		if (doc.subscriptions[user] === 'pending')
 		    subscribers.push(user);
 	}
 
