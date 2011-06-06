@@ -44,7 +44,7 @@ can use unquoted object keys and even code.
 The `xmpp` section sets up a component connection. For ejabberd the
 listener configuration should look like this:
 
-    {5233, ejabberd_service, [{hosts, ["channels.example.com"], [{password, "secret"}]}]}
+    {5347, ejabberd_service, [{hosts, ["channels.example.com"], [{password, "secret"}]}]}
 
 For OpenFire, configure an external component in the server settings
 in the admin interface.
