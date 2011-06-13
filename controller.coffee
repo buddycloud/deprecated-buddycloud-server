@@ -1,8 +1,38 @@
+##
+# Is created with options from the request
+#
+# Implementations set result
+class Operation
+    constructor: (opts) ->
+        @opts = opts
+
+    run: (cb) ->
+        model.transaction (err, t) ->
+            if err
+                return req.callback err
+
+            @transaction t, (err) ->
+                if err
+                    t.rollback ->
+                        cb err
+                else
+                    t.commit ->
+                        cb
+
+    transaction: (t, cb) ->
+        # Must be implemented by subclass
+        cb null
+
+class PrivilegedOperation extends Operation
+
+    transaction: (t, cb) ->
+        # Check privileges
+
 defaultConfig = (req) ->
   owner = req.from
   a = owner.split(":")
   owner = a[a.length - 1].split("@")[0]
-  
+
     title: owner + "'s node"
     description: "Where " + owner + " publishes things"
     type: "http://www.w3.org/2005/Atom"
@@ -42,12 +72,12 @@ callFrontend = (hook, uri) ->
   args = Array::.slice.call(arguments, 1)
   frontend = frontends.hasOwnProperty(proto) and frontends[proto]
   hookFun = frontend and frontend.hasOwnProperty(hook) and frontend[hook]
-  console.log 
+  console.log
     callFrontend: arguments
     frontent: frontend
     hookFun: hookFun
     args: args
-  
+
   if hookFun
     return hookFun.apply(frontend, args)
 objectIsEmpty = (o) ->
@@ -62,8 +92,8 @@ normalize = require("./normalize")
 exports.setModel = (m) ->
   model = m
 
-FEATURES = 
-  "create-nodes": create: 
+FEATURES =
+  "create-nodes": create:
     requiredAffiliation: "owner"
     transaction: (req, t, cb) ->
       step ->
@@ -81,9 +111,9 @@ FEATURES =
           throw err
         t.setSubscription req.node, req.from, "subscribed", this
       , cb
-  
-  subscribe: 
-    subscribe: 
+
+  subscribe:
+    subscribe:
       transaction: (req, t, cb) ->
         step ->
           t.getConfig req.node, this
@@ -126,12 +156,12 @@ FEATURES =
           else
             this null, req.subscription
         , cb
-      
+
       afterTransaction: (req) ->
         if req.subscription == "pending" and req.owners
           req.owners.forEach (owner) ->
             callFrontend "approve", owner, req.node, req.from
-    
+
     unsubscribe: transaction: (req, t, cb) ->
       nodeM = req.node.match(/^\/user\/(.+?)\/([a-zA-Z0-9\/\-]+)$/)
       userM = req.from.match(/^(.+?):(.+)$/)
@@ -139,8 +169,8 @@ FEATURES =
         cb new errors.NotAllowed("Owners must not abandon their channels")
         return
       t.setSubscription req.node, req.from, "none", cb
-  
-  publish: publish: 
+
+  publish: publish:
     requiredAffiliation: "publisher"
     transaction: (req, t, cb) ->
       step ->
@@ -164,12 +194,12 @@ FEATURES =
                 t.writeItem req.from, req.node, reqNormalized.itemId, reqNormalized.item, this
               , g()
       , cb
-    
+
     subscriberNotification: (req, subscribers) ->
       subscribers.forEach (subscriber) ->
         callFrontend "notify", subscriber.user, req.node, req.items
-  
-  "retract-items": retract: 
+
+  "retract-items": retract:
     requiredAffiliation: "publisher"
     transaction: (req, t, cb) ->
       step ->
@@ -180,13 +210,13 @@ FEATURES =
           req.itemIds.forEach (itemId) ->
             t.deleteItem req.node, itemId, g()
       , cb
-    
+
     subscriberNotification: (req, subscribers) ->
       subscribers.forEach (subscriber) ->
         callFrontend "retracted", subscriber.user, req.node, req.itemIds
-  
-  "retrieve-items": 
-    retrieve: 
+
+  "retrieve-items":
+    retrieve:
       requiredAffiliation: "member"
       transaction: (req, t, cb) ->
         step ->
@@ -205,31 +235,31 @@ FEATURES =
           if err
             throw err
           results = []
-          
+
           while (id = ids.shift()) and (item = items.shift())
-            results.push 
+            results.push
               id: id
               item: item
           results.rsmResult = ids.rsmResult
           this null, results
         , cb
-    
+
     replay: transaction: (req, t, cb) ->
       t.getUpdatesByTime req.from, req.timeStart, req.timeEnd, req.notifyCb, cb
-  
+
   "retrieve-subscriptions": retrieve: transaction: (req, t, cb) ->
     t.getSubscriptions req.from, cb
-  
+
   "retrieve-affiliations": retrieve: transaction: (req, t, cb) ->
     t.getAffiliations req.from, cb
-  
-  "manage-subscriptions": 
-    retrieve: 
+
+  "manage-subscriptions":
+    retrieve:
       requiredAffiliation: "member"
       transaction: (req, t, cb) ->
         t.getSubscribers req.node, cb
-    
-    modify: 
+
+    modify:
       requiredAffiliation: "owner"
       transaction: (req, t, cb) ->
         step ->
@@ -247,18 +277,18 @@ FEATURES =
               else
                 throw new errors.BadRequest(subscription + " is no subscription type")
         , cb
-      
+
       afterTransaction: (req) ->
         for user of req.subscriptions
           callFrontend "subscriptionModified", user, req.subscriptions[user]
-  
-  "modify-affiliations": 
-    retrieve: 
+
+  "modify-affiliations":
+    retrieve:
       requiredAffiliation: "member"
       transaction: (req, t, cb) ->
         t.getAffiliated req.node, cb
-    
-    modify: 
+
+    modify:
       requiredAffiliation: "owner"
       transaction: (req, t, cb) ->
         if objectIsEmpty(req.affiliations)
@@ -270,9 +300,9 @@ FEATURES =
             affiliation = req.affiliations[user]
             t.setAffiliation req.node, user, affiliation, g()
         , cb
-  
-  "config-node": 
-    retrieve: 
+
+  "config-node":
+    retrieve:
       requiredAffiliation: "member"
       transaction: (req, t, cb) ->
         step ->
@@ -282,8 +312,8 @@ FEATURES =
             config = defaultConfig(req)
           this null, config
         , cb
-    
-    modify: 
+
+    modify:
       requiredAffiliation: "owner"
       transaction: (req, t, cb) ->
         step ->
@@ -292,7 +322,7 @@ FEATURES =
           unless config
             config = defaultConfig(req)
           req.config = config
-          t.setConfig req.node, 
+          t.setConfig req.node,
             title: req.title or config.title
             description: req.description or config.description
             type: req.type or config.type
@@ -301,16 +331,16 @@ FEATURES =
             creationDate: config.creationDate
           , this
         , cb
-      
+
       subscriberNotification: (req, subscribers) ->
         subscribers.forEach (subscriber) ->
           callFrontend "configured", subscriber.user, req.node, req.config
-  
-  "get-pending": 
+
+  "get-pending":
     "list-nodes": transaction: (req, t, cb) ->
       t.getPendingNodes req.from, cb
-    
-    "get-for-node": 
+
+    "get-for-node":
       requiredAffiliation: "owner"
       transaction: (req, t, cb) ->
         step ->
@@ -321,11 +351,11 @@ FEATURES =
           req.pendingUsers = users
           this null
         , cb
-      
+
       afterTransaction: (req) ->
         req.pendingUsers.forEach (user) ->
           callFrontend "approve", req.from, req.node, user
-  
+
   register: register: transaction: (req, t, cb) ->
     user = req.from
     if (m = user.match(/^.+:(.+)$/))
@@ -346,11 +376,11 @@ FEATURES =
         t.setAffiliation node, req.from, "owner", g()
         t.setSubscription node, req.from, "subscribed", g()
     , cb
-  
-  "browse-nodes": 
+
+  "browse-nodes":
     list: transaction: (req, t, cb) ->
       t.listNodes cb
-    
+
     "by-user": transaction: (req, t, cb) ->
       if (m = req.node.match(/^\/user\/([^\/]+)$/))
         t.listNodesByUser m[1], cb
@@ -372,7 +402,7 @@ exports.request = (req) ->
     return
   debug = (s) ->
     console.log req.from + " >> " + req.feature + "/" + req.operation + ": " + s
-  
+
   if req.node and req.from
     nodeM = req.node.match(/^\/user\/(.+?)\/([a-zA-Z0-9\/\-]+)$/)
     userM = req.from.match(/^(.+?):(.+)$/)
@@ -411,7 +441,7 @@ exports.request = (req) ->
           this()
         else
           this new errors.Forbidden(operation.requiredAffiliation + " required")
-    
+
     steps.push (err) ->
       if err
         throw err
@@ -423,8 +453,8 @@ exports.request = (req) ->
       debug "transaction done"
       transactionResults = arguments
       this null
-    
-    
+
+
     if operation.subscriberNotification
       steps.push (err) ->
         if err
@@ -444,7 +474,7 @@ exports.request = (req) ->
       else
         debug "transaction commit"
         t.commit this
-    
+
     if operation.afterTransaction
       steps.push (err) ->
         if err
@@ -465,7 +495,7 @@ exports.request = (req) ->
         req.callback err
       else if req.callback
         req.callback.apply req, transactionResults
-    
+
     step.apply null, steps
 
 exports.getAllSubscribers = (cb) ->
@@ -477,12 +507,12 @@ exports.getAllSubscribers = (cb) ->
       if err
         t.rollback ->
           cb err
-        
+
         return
       t.commit ->
         cb null, subscribers
 
-AFFILIATION_SUBSETS = 
+AFFILIATION_SUBSETS =
   owner: [ "moderator", "publisher", "member", "none" ]
   moderator: [ "publisher", "member", "none" ]
   publisher: [ "member", "none" ]
