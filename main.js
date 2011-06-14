@@ -7,12 +7,12 @@ process.on('uncaughtException', function(err) {
 process.chdir(__dirname);
 var config = require('./config');
 
-var model = require('./model_' + config.modelBackend);
+var model = require('./build/default/model_' + config.modelBackend);
 model.start(config.modelConfig);
 
-var controller = require('./controller');
+var controller = require('./build/default/controller');
 controller.setModel(model);
 
-var xmpp = require('./xmpp_pubsub');
+var xmpp = require('./build/default/xmpp_pubsub');
 xmpp.setController(controller);
 xmpp.start(config);

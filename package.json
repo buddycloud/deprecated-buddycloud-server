@@ -3,24 +3,29 @@
 ,"bin": { "channel-server": "./main.js" }
 ,"description": "buddycloud channels service for XMPP"
 ,"author": "Stephan Maka"
-,"dependencies": {"node-xmpp": ">=0.2.5",
-		  "node-stringprep": ">=0.0.3",
-		  "node-expat": ">=1.2.0",
-		  "ltx": ">=0.0.4",
-		  "step": ">=0.0.3",
-		  "node-uuid": ">=1.1.0",
-		  "cradle": "0.3.1",
-		  "pg": ">=0.2.6"
-		 }
+,"dependencies": {"coffee-script": ">=1.1.1",
+        "node-xmpp": ">=0.2.5",
+        "node-stringprep": ">=0.0.3",
+        "node-expat": ">=1.2.0",
+        "ltx": ">=0.0.4",
+        "step": ">=0.0.3",
+        "node-uuid": ">=1.1.0",
+        "cradle": "0.3.1",
+        "pg": ">=0.2.6"
+        }
 ,"repositories": [{"type": "git"
-		  ,"path": "git://github.com/astro/channel-server.git"
-		  }]
+        ,"path": "git://github.com/astro/channel-server.git"
+        }]
+,"scripts": {
+    "install": "node-waf configure build",
+    "update": "node-waf build"
+    }
 ,"homepage": "http://github.com/astro/channel-server"
 ,"bugs": "http://github.com/astro/channel-server/issues"
 ,"maintainers": [{"name": "Astro"
-		 ,"email": "astro@spaceboyz.net"
-		 ,"web": "http://spaceboyz.net/~astro/"
-		 }]
+        ,"email": "astro@spaceboyz.net"
+        ,"web": "http://spaceboyz.net/~astro/"
+        }]
 ,"contributors": ["Stephan Maka"]
 ,"licenses": [{"type": "APL2"}]
 ,"engine": "node"
