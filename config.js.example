@@ -7,19 +7,6 @@ exports.xmpp = { jid: 'channels.example.com',
 		 port: 5347
 	       };
 
-/**
- * Enable & configure one of the following backends.
- */
-
-// CouchDB backend
-exports.modelBackend = 'couchdb';
-exports.modelConfig = {
-    host: 'localhost',
-    port: 5984,
-    database: 'channel-server'
-};
-
-/*
 // PostgreSQL backend
 exports.modelBackend = 'postgres';
 exports.modelConfig = {
@@ -30,4 +17,3 @@ exports.modelConfig = {
     password: '***',
     poolSize: 4
 };
-*/
