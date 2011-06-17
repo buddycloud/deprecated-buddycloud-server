@@ -1,6 +1,12 @@
+###
+# Encapsulate XMPP Component connection
+#
+# * Provide <iq/> RPC interface
+# * Track presence
+###
 xmpp = require("node-xmpp")
-uuid = require("node-uuid")
-errors = require("./errors")
+#uuid = require("node-uuid")
+#errors = require("./errors")
 
 IQ_TIMEOUT = 10000
 
@@ -64,7 +70,7 @@ class exports.Connection
         # Wrap callback to cancel timeout in case of success
         @iqCallbacks[id] = (error, result) ->
             cancelTimeout timeout
-            cb error, result
+            cb(error, result)
         # Finally, send out:
         @conn.send iq
 
@@ -150,6 +156,9 @@ class exports.Connection
                     @onlineResources[user].push resource
 
     _handleIq: (stanza) ->
+        if @iqHandler
+            handler = new @iqHandler(stanza)
+            handler.run(@conn) if handler.matches()
 
 
 ###
