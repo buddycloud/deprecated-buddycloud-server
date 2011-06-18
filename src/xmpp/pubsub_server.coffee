@@ -1,18 +1,7 @@
 xmpp = require('node-xmpp')
+NS = require('./ns')
 IqHandler = require('./iqhandler')
 
-NS_PUBSUB = "http://jabber.org/protocol/pubsub"
-NS_PUBSUB_EVENT = "http://jabber.org/protocol/pubsub#event"
-NS_PUBSUB_OWNER = "http://jabber.org/protocol/pubsub#owner"
-NS_PUBSUB_NODE_CONFIG = "http://jabber.org/protocol/pubsub#node_config"
-NS_PUBSUB_META_DATA = "http://jabber.org/protocol/pubsub#meta-data"
-NS_DISCO_INFO = "http://jabber.org/protocol/disco#info"
-NS_DISCO_ITEMS = "http://jabber.org/protocol/disco#items"
-NS_DATA = "jabber:x:data"
-NS_REGISTER = "jabber:iq:register"
-NS_COMMANDS = "http://jabber.org/protocol/commands"
-NS_ARCHIVE_MANAGEMENT = "urn:xmpp:archive#management"
-NS_RSM = "http://jabber.org/protocol/rsm"
 
 # <iq type='get'
 #     from='romeo@montague.net/orchard'
@@ -24,7 +13,7 @@ class DiscoInfoHandler extends IqHandler.Handler
     constructor: (stanza) ->
         super stanza
 
-        @discoInfoEl = @iq.getChild("query", NS_DISCO_INFO)
+        @discoInfoEl = @iq.getChild("query", NS.DISCO_INFO)
         @node = @discoInfoEl && @discoInfoEl.attrs.node
 
     matches: () ->
@@ -33,12 +22,12 @@ class DiscoInfoHandler extends IqHandler.Handler
 
     run: () ->
         console.log 'run DiscoInfoHandler'
-        queryEl = new xmpp.Element("query", xmlns: NS_DISCO_INFO)
+        queryEl = new xmpp.Element("query", xmlns: NS.DISCO_INFO)
         if @node
             queryEl.attrs.node = @node
         features = []
         unless @node
-            features.push NS_DISCO_ITEMS, NS_REGISTER
+            features.push NS.DISCO_ITEMS, NS.REGISTER
         features.forEach (feature) ->
             queryEl.c "feature", var: feature
         for x in [1..1]
@@ -84,12 +73,12 @@ exports.handler =
                         name: config.title
 
                     queryEl.c("x",
-                        xmlns: NS_DATA
+                        xmlns: NS.DATA
                         type: "result"
                     ).c("field",
                         var: "FORM_TYPE"
                         type: "hidden"
-                    ).c("value").t(NS_PUBSUB_META_DATA).up().up().c("field",
+                    ).c("value").t(NS.PUBSUB_META_DATA).up().up().c("field",
                         var: "pubsub#title"
                         type: "text-single"
                         label: "A friendly name for the node"
@@ -164,10 +153,10 @@ handleIq = (iq) ->
     #     id='items1'>
     #   <query xmlns='http://jabber.org/protocol/disco#items'/>
     # </iq>
-    discoItemsEl = iq.getChild("query", NS_DISCO_ITEMS)
+    discoItemsEl = iq.getChild("query", NS.DISCO_ITEMS)
     if iq.attrs.type == "get" and discoItemsEl
         node = discoItemsEl.attrs.node
-        queryEl = new xmpp.Element("query", xmlns: NS_DISCO_ITEMS)
+        queryEl = new xmpp.Element("query", xmlns: NS.DISCO_ITEMS)
         unless node
             # Discovering service, not a specific node
             controller.request
@@ -213,7 +202,7 @@ handleIq = (iq) ->
             # Anything else: empty
             replyCb null, queryEl
         return
-    pubsubEl = iq.getChild("pubsub", NS_PUBSUB)
+    pubsubEl = iq.getChild("pubsub", NS.PUBSUB)
     if pubsubEl
         # XEP-0059: Result Set Management
         rsmQuery = getRSMQuery(pubsubEl)
@@ -260,7 +249,7 @@ handleIq = (iq) ->
                         replyCb err
                         return
                     if subscription == "pending"
-                        replyCb null, new xmpp.Element("pubsub", xmlns: NS_PUBSUB).c("subscription",
+                        replyCb null, new xmpp.Element("pubsub", xmlns: NS.PUBSUB).c("subscription",
                             node: subscribeNode
                             jid: jid
                             subscription: subscription
@@ -364,7 +353,7 @@ handleIq = (iq) ->
                     if err
                         replyCb err
                     else
-                        itemsEl = new xmpp.Element("pubsub", xmlns: NS_PUBSUB).c("items", node: itemsNode)
+                        itemsEl = new xmpp.Element("pubsub", xmlns: NS.PUBSUB).c("items", node: itemsNode)
                         items.forEach (item) ->
                             itemEl = itemsEl.c("item", id: item.id)
                             if items[id]
@@ -392,7 +381,7 @@ handleIq = (iq) ->
                     if err
                         replyCb err
                     else
-                        subscriptionsEl = new xmpp.Element("pubsub", xmlns: NS_PUBSUB).c("subscriptions")
+                        subscriptionsEl = new xmpp.Element("pubsub", xmlns: NS.PUBSUB).c("subscriptions")
                         nodes.forEach (node) ->
                             subscriptionsEl.c "subscription",
                                 node: node.node
@@ -420,7 +409,7 @@ handleIq = (iq) ->
                     if err
                         replyCb err
                     else
-                        affiliationsEl = new xmpp.Element("pubsub", xmlns: NS_PUBSUB).c("affiliations")
+                        affiliationsEl = new xmpp.Element("pubsub", xmlns: NS.PUBSUB).c("affiliations")
                         affiliations.forEach (affiliation) ->
                             affiliationsEl.c "affiliation",
                                 node: affiliation.node
@@ -429,7 +418,7 @@ handleIq = (iq) ->
                         replyCb null, affiliationsEl
 
             return
-    pubsubOwnerEl = iq.getChild("pubsub", NS_PUBSUB_OWNER)
+    pubsubOwnerEl = iq.getChild("pubsub", NS.PUBSUB_OWNER)
     if pubsubOwnerEl
 	    # <iq type='get'
 	    #     from='hamlet@denmark.lit/elsinore'
@@ -451,7 +440,7 @@ handleIq = (iq) ->
                     if err
                         replyCb err
                     else
-                        subscriptionsEl = new xmpp.Element("pubsub", xmlns: NS_PUBSUB_OWNER).c("subscriptions", node: subscriptionsNode)
+                        subscriptionsEl = new xmpp.Element("pubsub", xmlns: NS.PUBSUB_OWNER).c("subscriptions", node: subscriptionsNode)
                         subscribers.forEach (subscriber) ->
                             if (m = subscriber.user.match(/^xmpp:(.+)$/))
                                 subscriptionsEl.c "subscription",
@@ -508,7 +497,7 @@ handleIq = (iq) ->
                     if err
                         replyCb err
                     else
-                        affiliationsEl = new xmpp.Element("pubsub", xmlns: NS_PUBSUB_OWNER).c("affiliations", node: affiliationsNode)
+                        affiliationsEl = new xmpp.Element("pubsub", xmlns: NS.PUBSUB_OWNER).c("affiliations", node: affiliationsNode)
                         affiliations.forEach (affiliation) ->
                             if (m = affiliation.user.match(/^xmpp:(.+)$/))
                                 affiliationsEl.c "affiliation",
@@ -565,13 +554,13 @@ handleIq = (iq) ->
                     if err
                         replyCb err
                         return
-                    replyCb null, new xmpp.Element("pubsub", xmlns: NS_PUBSUB_OWNER).c("configure", node: configureNode).c("x",
-                        xmlns: NS_DATA
+                    replyCb null, new xmpp.Element("pubsub", xmlns: NS.PUBSUB_OWNER).c("configure", node: configureNode).c("x",
+                        xmlns: NS.DATA
                         type: "form"
                     ).c("field",
                         var: "FORM_TYPE"
                         type: "hidden"
-                    ).c("value").t(NS_PUBSUB_NODE_CONFIG).up().up().c("field",
+                    ).c("value").t(NS.PUBSUB_NODE_CONFIG).up().up().c("field",
                         var: "pubsub#title"
                         type: "text-single"
                         label: "A friendly name for the node"
@@ -618,7 +607,7 @@ handleIq = (iq) ->
             xEl.getChildren("field").forEach (fieldEl) ->
                 fields[fieldEl.attrs["var"]] = fieldEl.getChildText("value")
 
-            if fields["FORM_TYPE"] != NS_PUBSUB_NODE_CONFIG
+            if fields["FORM_TYPE"] != NS.PUBSUB_NODE_CONFIG
                 replyCb new errors.BadRequest("Invalid form type")
                 return
             controller.request
@@ -639,9 +628,9 @@ handleIq = (iq) ->
     # <iq type='get' id='reg1'>
     #   <query xmlns='jabber:iq:register'/>
     # </iq>
-    registerEl = iq.getChild("query", NS_REGISTER)
+    registerEl = iq.getChild("query", NS.REGISTER)
     if iq.attrs.type == "get" and registerEl
-        replyCb null, new xmpp.Element("query", xmlns: NS_REGISTER).c("instructions").t("Simply register here")
+        replyCb null, new xmpp.Element("query", xmlns: NS.REGISTER).c("instructions").t("Simply register here")
         return
     # <iq type='set' id='reg2'>
     #   <query xmlns='jabber:iq:register'/>
@@ -661,9 +650,9 @@ handleIq = (iq) ->
     #   <command xmlns='http://jabber.org/protocol/commands'
     #            node='http://jabber.org/protocol/pubsub#get-pending'
     #            action='execute'/>
-    commandEl = iq.getChild("command", NS_COMMANDS)
-    if iq.attrs.type == "set" and commandEl and commandEl.attrs.node == NS_PUBSUB + "#get-pending" and commandEl.attrs.action == "execute"
-        xEl = commandEl.getChild("x", NS_DATA)
+    commandEl = iq.getChild("command", NS.COMMANDS)
+    if iq.attrs.type == "set" and commandEl and commandEl.attrs.node == NS.PUBSUB + "#get-pending" and commandEl.attrs.action == "execute"
+        xEl = commandEl.getChild("x", NS.DATA)
         if xEl and xEl.attrs.type == "submit"
             xEl.getChildren("field").forEach (fieldEl) ->
                 if field.attrs["var"] == "pubsub#node"
@@ -680,18 +669,18 @@ handleIq = (iq) ->
                         replyCb err
                         return
                     fieldEl = new xmpp.Element("command",
-                        xmlns: NS_COMMANDS
-                        node: NS_PUBSUB + "#get-pending"
+                        xmlns: NS.COMMANDS
+                        node: NS.PUBSUB + "#get-pending"
                         status: "executing"
                         action: "execute"
                         sessionid: ""
                     ).c("x",
-                        xmlns: NS_DATA
+                        xmlns: NS.DATA
                         type: "form"
                     ).c("field",
                         var: "FORM_TYPE"
                         type: "hidden"
-                    ).c("value").t(NS_PUBSUB + "#subscribe_authorization").up().up().c("field",
+                    ).c("value").t(NS.PUBSUB + "#subscribe_authorization").up().up().c("field",
                         type: "list-single"
                         var: "pubsub#node"
                     )
@@ -720,7 +709,7 @@ handleIq = (iq) ->
     #          start='2002-06-07T00:00:00Z'
     #          end='2010-07-07T13:23:54Z'/>
     # </iq>
-    archiveQueryEl = iq.getChild("query", NS_ARCHIVE_MANAGEMENT)
+    archiveQueryEl = iq.getChild("query", NS.ARCHIVE_MANAGEMENT)
     if iq.attrs.type == "get" and archiveQueryEl
         # TODO: not only items
         controller.request
@@ -734,7 +723,7 @@ handleIq = (iq) ->
                     to: iq.attrs.from
                     from: conn.jid.toString()
                     type: "headline"
-                ).c("event", xmlns: NS_PUBSUB_EVENT).c("items", node: node).c("item", id: item.id).cnode(item.item)
+                ).c("event", xmlns: NS.PUBSUB_EVENT).c("items", node: node).c("item", id: item.id).cnode(item.item)
 
             callback: replyCb
 
@@ -746,13 +735,13 @@ handleIq = (iq) ->
 
 
 handleMessage = (msg) ->
-    xEl = msg.getChild("x", NS_DATA)
+    xEl = msg.getChild("x", NS.DATA)
     if xEl.attrs.type == "submit"
         fields = {}
         xEl.getChildren("field").forEach (fieldEl) ->
             fields[fieldEl.attrs["var"]] = fieldEl.getChildText("value")
 
-        if field.FORM_TYPE == NS_PUBSUB + "#subscribe_authorization"
+        if field.FORM_TYPE == NS.PUBSUB + "#subscribe_authorization"
             subscriptions = {}
             subscriptions[fields["pubsub#subscriber_jid"]] = (if (fields["pubsub#allow"] == "true") then "subscribed" else "none")
             controller.request
@@ -765,7 +754,7 @@ handleMessage = (msg) ->
 ##
 # XEP-0059: Result Set Management
 getRSMQuery = (el) ->
-    setEl = el.getChild("set", NS_RSM)
+    setEl = el.getChild("set", NS.RSM)
     unless setEl
         return undefined
     q = {}
@@ -781,7 +770,7 @@ getRSMQuery = (el) ->
 addRSMResult = (r, el) ->
     unless r
         return
-    setEl = el.c("set", NS_RSM)
+    setEl = el.c("set", NS.RSM)
     if r.hasOwnProperty("count")
         setEl.c("count").t r.count + ""
     if r.hasOwnProperty("first")
@@ -800,7 +789,7 @@ notify = (jid, node, items) ->
             to: jid
             from: conn.jid.toString()
             type: "headline"
-        ).c("event", xmlns: NS_PUBSUB_EVENT).c("items", node: node)
+        ).c("event", xmlns: NS.PUBSUB_EVENT).c("items", node: node)
         for id of items
             if items.hasOwnProperty(id)
                 itemEl = itemsEl.c("item", id: id)
@@ -814,7 +803,7 @@ retracted = (jid, node, itemIds) ->
             to: jid
             from: conn.jid.toString()
             type: "headline"
-        ).c("event", xmlns: NS_PUBSUB_EVENT).c("items", node: node)
+        ).c("event", xmlns: NS.PUBSUB_EVENT).c("items", node: node)
         itemIds.forEach (itemId) ->
             itemsEl.c "retract", id: itemId
 
@@ -827,12 +816,12 @@ approve = (jid, node, subscriber) ->
         to: jid
         from: conn.jid.toString()
     ).c("x",
-        xmlns: NS_DATA
+        xmlns: NS.DATA
         type: "submit"
     ).c("title").t("PubSub subscriber request").up().c("field",
         var: "FORM_TYPE"
         type: "hidden"
-    ).c("value").t(NS_PUBSUB + "#subscribe_authorization").up().up().c("field",
+    ).c("value").t(NS.PUBSUB + "#subscribe_authorization").up().up().c("field",
         var: "pubsub#node"
         type: "text-single"
         label: "Node ID"
@@ -850,7 +839,7 @@ subscriptionModified = (jid, node, subscription) ->
     conn.send new xmpp.Element("message",
         to: jid
         from: conn.jid.toString()
-    ).c("pubsub", xmlns: NS_PUBSUB_EVENT).c("subscription",
+    ).c("pubsub", xmlns: NS.PUBSUB_EVENT).c("subscription",
         node: node
         jid: jid
         subscription: subscription
@@ -860,13 +849,13 @@ configured = (jid, node, config) ->
     conn.send new xmpp.Element("message",
         to: jid
         from: conn.jid.toString()
-    ).c("pubsub", xmlns: NS_PUBSUB_EVENT).c("configuration", node: node).c("x",
-        xmlns: NS_DATA
+    ).c("pubsub", xmlns: NS.PUBSUB_EVENT).c("configuration", node: node).c("x",
+        xmlns: NS.DATA
         type: "result"
     ).c("field",
         var: "FORM_TYPE"
         type: "hidden"
-    ).c("value").t(NS_PUBSUB_META_DATA).up().up().c("field",
+    ).c("value").t(NS.PUBSUB_META_DATA).up().up().c("field",
         var: "pubsub#title"
         type: "text-single"
         label: "A friendly name for the node"
