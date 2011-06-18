@@ -1,7 +1,10 @@
+errors = require('../errors')
+
 class exports.Handler
-    constructor: (conn, stanza) ->
-        @conn = conn
+    constructor: (stanza) ->
         @iq = stanza
+        @reply = stanza.reply
+        @replyError = stanza.replyError
 
     ##
     # Is this handler eligible for the request, or proceed to next
@@ -11,50 +14,27 @@ class exports.Handler
 
     run: () ->
 
-    reply: (child) ->
-        reply = new xmpp.Element("iq",
-            from: @iq.attrs.to
-            to: @iq.attrs.from
-            id: @iq.attrs.id or ""
-            type: "result"
-        )
-        reply.cnode(child.root()) if child
-
-        @conn.send reply
-
-    replyError: (err) ->
-        reply = new xmpp.Element("iq",
-            from: @iq.attrs.to
-            to: @iq.attrs.from
-            id: @iq.attrs.id or ""
-            type: "error"
-        )
-        if err.xmppElement
-            reply.cnode err.xmppElement()
-        else
-            reply.c("error", type: "cancel").c("text").t "" + err.message
-
-        @conn.send reply
-
 ##
 # To match for a group of sub-handlers in a tree-like way
-class exports.GroupHandler extends exports.Handler
-    constructor: (conn, stanza) ->
-        super conn, stanza
+exports.GroupHandler = (subhandlers...) ->
+    class groupHandler extends exports.Handler
+        matches: () ->
+            true
 
-        @subhandlers = []
+        run: () ->
+            console.log 'run groupHandler'
+            subhandler = null
+            for h in subhandlers
+                subhandler = new h(@iq)
+                if subhandler.matches()
+                    console.log 'found subhandler', subhandler
+                    break
+                else
+                    subhandler = null
+            subhandler.run()
 
-    addHandler: (handler)
-        @subhandlers.push handler
-
-    run: () ->
-        subhandler = null
-        for h in @iqHandlers
-            subhandler = new h(stanza)
-            if subhandler.matches()
-                break
-            else
-                subhandler = null
+    console.log 'groupHandler', groupHandler
+    groupHandler
 
 class exports.NotImplemented extends exports.Handler
     matches: () ->
@@ -62,3 +42,4 @@ class exports.NotImplemented extends exports.Handler
 
     run: () ->
         @replyError(new errors.FeatureNotImplemented("Feature is not implemented"))
+

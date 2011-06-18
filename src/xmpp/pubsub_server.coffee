@@ -1,3 +1,6 @@
+xmpp = require('node-xmpp')
+IqHandler = require('./iqhandler')
+
 NS_PUBSUB = "http://jabber.org/protocol/pubsub"
 NS_PUBSUB_EVENT = "http://jabber.org/protocol/pubsub#event"
 NS_PUBSUB_OWNER = "http://jabber.org/protocol/pubsub#owner"
@@ -11,71 +14,66 @@ NS_COMMANDS = "http://jabber.org/protocol/commands"
 NS_ARCHIVE_MANAGEMENT = "urn:xmpp:archive#management"
 NS_RSM = "http://jabber.org/protocol/rsm"
 
-exports.setController = (c) ->
-    controller = c
-    controller.hookFrontend "xmpp",
-        notify: notify
-        retracted: retracted
-        approve: approve
-        subscriptionModified: subscriptionModified
-        configured: configured
+# <iq type='get'
+#     from='romeo@montague.net/orchard'
+#     to='plays.shakespeare.lit'
+#     id='info1'>
+#   <query xmlns='http://jabber.org/protocol/disco#info'/>
+# </iq>
+class DiscoInfoHandler extends IqHandler.Handler
+    constructor: (stanza) ->
+        super stanza
 
-##
-# Request handling
-handleIq = (iq) ->
-    jid = new xmpp.JID(iq.attrs.from).bare().toString()
-    reply = new xmpp.Element("iq",
-        from: iq.attrs.to
-        to: iq.attrs.from
-        id: iq.attrs.id or ""
-        type: "result"
-    )
-    errorReply = (err) ->
-        if err.stack
-            console.error err.stack
-        else
-            console.error err: err
-        reply.attrs.type = "error"
-        if err.xmppElement
-            reply.cnode err.xmppElement()
-        else
-            reply.c("error", type: "cancel").c("text").t "" + err.message
-        reply
+        @discoInfoEl = @iq.getChild("query", NS_DISCO_INFO)
+        @node = @discoInfoEl && @discoInfoEl.attrs.node
 
-    replyCb = (err, child) ->
-        if err
-            conn.send errorReply(err)
-        else if not err and child and child.root
-            conn.send reply.cnode(child.root())
-        else
-            conn.send reply
+    matches: () ->
+        @iq.attrs.type is 'get' &&
+        @discoInfoEl?
 
-    # <iq type='get'
-    #     from='romeo@montague.net/orchard'
-    #     to='plays.shakespeare.lit'
-    #     id='info1'>
-    #   <query xmlns='http://jabber.org/protocol/disco#info'/>
-    # </iq>
-    discoInfoEl = iq.getChild("query", NS_DISCO_INFO)
-    if iq.attrs.type == "get" and discoInfoEl
-        node = discoInfoEl.attrs.node
+    run: () ->
+        console.log 'run DiscoInfoHandler'
         queryEl = new xmpp.Element("query", xmlns: NS_DISCO_INFO)
-        if node
-            queryEl.attrs.node = node
-        features = controller.pubsubFeatures().map((feature) ->
-            NS_PUBSUB + "#" + feature
-        ).concat(NS_DISCO_INFO)
-        unless node
+        if @node
+            queryEl.attrs.node = @node
+        features = []
+        unless @node
             features.push NS_DISCO_ITEMS, NS_REGISTER
         features.forEach (feature) ->
             queryEl.c "feature", var: feature
+        for x in [1..1]
+    	    # Didn't request info about specific node, hence no need
+    	    # to get node config but respond immediately.
+            queryEl.c "identity",
+                category: "pubsub"
+                type: "service"
+                name: "Channels service"
 
-        if node
+            queryEl.c "identity",
+                category: "pubsub"
+                type: "channels"
+                name: "Channels service"
+
+            console.log 'replying'
+            @reply queryEl
+
+
+exports.handler =
+    IqHandler.GroupHandler(
+        DiscoInfoHandler,
+        IqHandler.NotImplemented
+    );
+
+
+###
+
+
+        if @node
             controller.request
                 feature: "config-node"
                 operation: "retrieve"
                 from: "xmpp:" + jid
-                node: node
+                node: @node
                 callback: (err, config) ->
                     if err
                         replyCb err
@@ -118,20 +116,48 @@ handleIq = (iq) ->
                     ).c("value").t config.creationDate or new Date().toISOString()
                     replyCb null, queryEl
         else
-    	    # Didn't request info about specific node, hence no need
-    	    # to get node config but respond immediately.
-            queryEl.c "identity",
-                category: "pubsub"
-                type: "service"
-                name: "Channels service"
 
-            queryEl.c "identity",
-                category: "pubsub"
-                type: "channels"
-                name: "Channels service"
+##################
 
-            replyCb null, queryEl
-        return
+exports.setController = (c) ->
+    controller = c
+    controller.hookFrontend "xmpp",
+        notify: notify
+        retracted: retracted
+        approve: approve
+        subscriptionModified: subscriptionModified
+        configured: configured
+
+##
+# Request handling
+handleIq = (iq) ->
+    jid = new xmpp.JID(iq.attrs.from).bare().toString()
+    reply = new xmpp.Element("iq",
+        from: iq.attrs.to
+        to: iq.attrs.from
+        id: iq.attrs.id or ""
+        type: "result"
+    )
+    errorReply = (err) ->
+        if err.stack
+            console.error err.stack
+        else
+            console.error err: err
+        reply.attrs.type = "error"
+        if err.xmppElement
+            reply.cnode err.xmppElement()
+        else
+            reply.c("error", type: "cancel").c("text").t "" + err.message
+        reply
+
+    replyCb = (err, child) ->
+        if err
+            conn.send errorReply(err)
+        else if not err and child and child.root
+            conn.send reply.cnode(child.root())
+        else
+            conn.send reply
+
     # <iq type='get'
     #     from='romeo@montague.net/orchard'
     #     to='shakespeare.lit'

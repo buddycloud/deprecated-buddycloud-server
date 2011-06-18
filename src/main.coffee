@@ -6,3 +6,9 @@ if process.argv.length < 3
     process.exit 1
 
 process.chdir __dirname
+
+config = require(process.argv[2])
+
+xmppConn = new (require('./xmpp/connection').Connection)(config.xmpp)
+xmppConn.iqHandler = require('./xmpp/pubsub_server').handler;
+console.log 'xmppConn', xmppConn

@@ -23,8 +23,8 @@ class exports.Connection
         @onlineResources = {}
 
         # Setup connection:
-        @conn = new xmpp.Component(config.xmpp)
-        @conn.on "online", startPresenceTracking
+        @conn = new xmpp.Component(config)
+        #@conn.on "online", startPresenceTracking
         @conn.on "stanza", (stanza) =>
             # Just debug output:
             console.log stanza.toString()
@@ -48,8 +48,7 @@ class exports.Connection
             switch stanza.name
                 when "iq"
                     switch stanza.attrs.type
-                        when "get"
-                        when "set"
+                        when "get" or "set"
                             @_handleIq stanza
                 when "presence"
                     @_handlePresence stanza
@@ -136,29 +135,75 @@ class exports.Connection
                     id: presence.attrs.id
                 ).c("status").t("buddycloud channel-server")
 
-            when "subscribed"
+            when "subscribed" then
                 # User allowed us subscription
-            when "unsubscribed"
+            when "unsubscribed" then
                 # User denied us subscription
 
             when "error"
                 # Error from a bare JID?
                 unless resource
                     # Remove all resources
-                    delete @onlineResources[user]
+                    delete @onlineResources[userId]
                 else
                      rmUserResource()
             when "unavailable"
                 rmUserResource()
             else # available
-                @onlineResources[user] = [] unless user of @onlineResources
-                if @onlineResources[user].indexOf(resource) < 0
-                    @onlineResources[user].push resource
+                @onlineResources[userId] = [] unless user of @onlineResources
+                if @onlineResources[userId].indexOf(resource) < 0
+                    @onlineResources[userId].push resource
 
     _handleIq: (stanza) ->
-        if @iqHandler
+        console.log 'handleIq', @iqHandler, @
+        if @iqHandler?
             handler = new @iqHandler(stanza)
-            handler.run(@conn) if handler.matches()
+            console.log 'handler', handler
+            console.log 'matches', handler.matches()
+            if handler.matches()
+                # Safety first:
+                replied = false
+                replying = () ->
+                    if replied
+                        throw 'Sending additional iq reply'
+                    replied = true
+
+                # Interface for <iq type='result'/>
+                stanza.reply = (child) =>
+                    console.log 'reply!'
+                    replying()
+
+                    reply = new xmpp.Element("iq",
+                        from: stanza.attrs.to
+                        to: stanza.attrs.from
+                        id: stanza.attrs.id or ""
+                        type: "result"
+                    )
+                    reply.cnode(child.root()) if child
+
+                    @conn.send reply
+                # Interface for <iq type='error'/>
+                stanza.replyError = (err) =>
+                    replying()
+
+                    reply = new xmpp.Element("iq",
+                        from: stanza.attrs.to
+                        to: stanza.attrs.from
+                        id: stanza.attrs.id or ""
+                        type: "error"
+                    )
+                    if err.xmppElement
+                        reply.cnode err.xmppElement()
+                    else
+                        reply.c("error", type: "cancel").
+                            c("text").
+                            t('' + err.message)
+
+                    @conn.send reply
+
+                # Fire handler, done.
+                console.log 'running handler', handler
+                handler.run()
 
 
 ###
