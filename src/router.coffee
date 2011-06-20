@@ -37,6 +37,7 @@ class RemoteRouter
                         result: result
                 setTimeout () =>
                     delete @cache[userId]
+                    # TODO: shorter for the error case
                 , CACHE_TIMEOUT
 
     do_resolve_: (userId, cb) ->

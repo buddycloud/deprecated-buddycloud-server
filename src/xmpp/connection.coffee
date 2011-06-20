@@ -29,27 +29,22 @@ class exports.Connection
             # Just debug output:
             console.log stanza.toString()
 
-            # IQ replies
-            if stanza.name is 'iq' and
-               (stanza.attrs.type is 'result' or
-                stanza.attrs.type is 'error') and
-               stanza.attrs.id? and
-               @iqCallbacks.hasOwnProperty(stanza.attrs.id)
-                cb = @iqCallbacks[stanza.attrs.id]
-                delete @iqCallbacks[stanza.attrs.id]
-                if stanza.attrs.type is 'error'
-                    cb(stanza)
-                else
-                    cb(null, stanza)
-                # Don't handle further
-                return
-
-            # Serve requests
             switch stanza.name
                 when "iq"
                     switch stanza.attrs.type
                         when "get" or "set"
+                            # IQ requests
                             @_handleIq stanza
+                        when "result" or "error" and stanza.attrs.id?
+                            # IQ replies
+                            @iqCallbacks.hasOwnProperty(stanza.attrs.id)
+                            cb = @iqCallbacks[stanza.attrs.id]
+                            delete @iqCallbacks[stanza.attrs.id]
+                            if stanza.attrs.type is 'error'
+                                # TODO: wrap into new Error(...)
+                                cb(stanza)
+                            else
+                                cb(null, stanza)
                 when "presence"
                     @_handlePresence stanza
                 when "message" and stanza.attrs.type isnt "error"
