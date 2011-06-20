@@ -89,19 +89,25 @@ Network applications are proxies. In general, they provide a
 well-defined interface to databases with additional access control,
 data sanitization, and in this case, notification hooks.
 
-Additionally, the MVC pattern influenced this application much:
+    Request                    subscribed
+    ------>Frontend---->Router------------>.Database.
+    <------|      |      |                 |  own & |
+           |      |      |not subscribed   |synchro-|
+      proxy|      |      |                 |  nized |
+    <------|      |<-----/                 |  data  |
+           |______|                        |________|
 
-* View: network frontend such as `xmpp_pubsub.js`
-* Controller: core logic in `controller.js`
-* Model: database-specific backends with transaction support
+### Frontends
+
+#### XEP-0060 Publish-Subscribe w/ buddycloud conventions
+
+Top priority
+
+#### OStatus
+
+Future
 
 ### Backends
-
-#### CouchDB
-
-Implementing new features is easy with CouchDB as developers may
-change their database schema as they please. Unless you're able to
-optimize the hell out of it, don't use in production.
 
 #### PostgreSQL
 
