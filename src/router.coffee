@@ -65,3 +65,4 @@ class Router
         # First, look if already subscribed, therefore database is up to date:
 
         # Otherwise, fan out to remote service
+        @remote.resolve

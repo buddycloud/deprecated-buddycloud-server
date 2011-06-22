@@ -12,3 +12,6 @@ config = require(process.argv[2])
 xmppConn = new (require('./xmpp/connection').Connection)(config.xmpp)
 xmppConn.iqHandler = require('./xmpp/pubsub_server').handler;
 console.log 'xmppConn', xmppConn
+
+router = (require('./router').Router)()
+router.addFrontend new (require('./xmpp/pubsub_client').Client)(xmppConn)
