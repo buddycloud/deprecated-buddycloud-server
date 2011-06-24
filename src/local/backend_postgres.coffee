@@ -1,7 +1,7 @@
 pg = require("pg")
 step = require("step")
 ltx = require("ltx")
-errors = require("./errors")
+errors = require("../errors")
 
 # ready DB connections
 pool = []

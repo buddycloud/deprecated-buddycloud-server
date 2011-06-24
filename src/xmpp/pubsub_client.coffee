@@ -112,6 +112,6 @@ class PubsubClient
             		result.forms.push(form);
         	cb null, result
 
-class PubsubUser
+class PubsubNode
     constructor: (client, userId) ->
 

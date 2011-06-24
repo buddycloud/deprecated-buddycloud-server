@@ -61,8 +61,14 @@ class Router
     addFrontend: (frontend) ->
         @remote.addFrontend frontend
 
-    operation: () ->
+    resolve: (userId, cb) ->
         # First, look if already subscribed, therefore database is up to date:
-
-        # Otherwise, fan out to remote service
-        @remote.resolve
+        @local.resolve userId, (error, node) ->
+            if node
+                cb null, node
+            else if !error || error.constructor is errors.NotFound
+                # Otherwise, fan out to remote service
+                @remote.resolve userId, cb
+                # TODO: catch if remote frontend found ourselves
+            else
+                cb error
