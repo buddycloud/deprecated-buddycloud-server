@@ -11,7 +11,7 @@ IqHandler = require('./iqhandler')
 # </iq>
 class DiscoInfoHandler extends IqHandler.Handler
     constructor: (stanza) ->
-        super stanza
+        super
 
         @discoInfoEl = @iq.getChild("query", NS.DISCO_INFO)
         @node = @discoInfoEl && @discoInfoEl.attrs.node
@@ -22,29 +22,43 @@ class DiscoInfoHandler extends IqHandler.Handler
 
     run: () ->
         console.log 'run DiscoInfoHandler'
-        queryEl = new xmpp.Element("query", xmlns: NS.DISCO_INFO)
-        if @node
-            queryEl.attrs.node = @node
         features = []
         unless @node
             features.push NS.DISCO_ITEMS, NS.REGISTER
-        features.forEach (feature) ->
-            queryEl.c "feature", var: feature
-        for x in [1..1]
-    	    # Didn't request info about specific node, hence no need
-    	    # to get node config but respond immediately.
-            queryEl.c "identity",
+
+        console.log 'replying'
+        @reply
+            node: @node
+            features: features
+            identities: [
                 category: "pubsub"
                 type: "service"
-                name: "Channels service"
-
-            queryEl.c "identity",
+                name: "Channels service",
                 category: "pubsub"
                 type: "channels"
                 name: "Channels service"
+            ]
 
-            console.log 'replying'
-            @reply queryEl
+    reply: (result) ->
+        queryEl = new xmpp.Element("query", xmlns: NS.DISCO_INFO)
+        if result.node?
+            queryEl.attrs.node = result.node
+
+        if result.identities?
+            for identity in result.identities
+                queryEl.c "identity",
+                    category: identity.category
+                    type: identity.type
+                    name: identity.name
+
+        if result.features?
+            for feature in result.features
+                queryEl.c "feature",
+                    var: feature
+
+        # TODO: result.forms
+
+        super queryEl
 
 
 exports.handler =
