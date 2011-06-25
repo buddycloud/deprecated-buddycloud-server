@@ -2,6 +2,9 @@ xmpp = require('node-xmpp')
 NS = require('./ns')
 IqHandler = require('./iqhandler')
 
+###
+# XEP-0030: Service Discovery
+###
 
 # <iq type='get'
 #     from='romeo@montague.net/orchard'
@@ -59,6 +62,294 @@ class DiscoInfoHandler extends IqHandler.Handler
         # TODO: result.forms
 
         super queryEl
+
+
+# <iq type='get'
+#     from='romeo@montague.net/orchard'
+#     to='plays.shakespeare.lit'
+#     id='info1'>
+#   <query xmlns='http://jabber.org/protocol/disco#items'/>
+# </iq>
+class DiscoItemsHandler extends IqHandler.Handler
+    constructor: (stanza) ->
+        super
+
+        @discoItemsEl = @iq.getChild("query", NS.DISCO_ITEMS)
+        @node = @discoItemsEl && @discoItemsEl.attrs.node
+
+    matches: () ->
+        @iq.attrs.type is 'get' &&
+        @discoItemsEl?
+
+    run: () ->
+        console.log 'run DiscoItemsHandler'
+        features = []
+        unless @node
+            features.push NS.DISCO_ITEMS, NS.REGISTER
+
+        console.log 'replying'
+        @reply
+            node: @node
+            features: features
+            identities: [
+                category: "pubsub"
+                type: "service"
+                name: "Channels service",
+                category: "pubsub"
+                type: "channels"
+                name: "Channels service"
+            ]
+
+    reply: (results) ->
+        queryEl = new xmpp.Element("query", xmlns: NS.DISCO_ITEMS)
+        if results.node?
+            queryEl.attrs.node = results.node
+
+        for item in results
+            attrs =
+                jid: result.jid
+            if item.name?
+                attrs.name = item.name
+            queryEl.c "item", attrs
+
+        super queryEl
+
+###
+# XEP-0060: Publish-Subscribe
+###
+
+class PubsubHandler extends IqHandler.Handler
+    constructor: (stanza) ->
+        super
+
+        @pubsubEl = @iq.getChild("pubsub", NS.PUBSUB)
+
+    matches: () ->
+        (@iq.attrs.type is 'get' ||
+         @iq.attrs.type is 'set') &&
+        @pubsubEl?
+
+# <iq type='set'
+#     from='hamlet@denmark.lit/elsinore'
+#     to='pubsub.shakespeare.lit'
+#     id='create1'>
+#   <pubsub xmlns='http://jabber.org/protocol/pubsub'>
+#     <create node='princely_musings'/>
+#   </pubsub>
+# </iq>
+class PubsubCreateHandler extends PubsubHandler
+    constructor: (stanza) ->
+        super
+
+        @createEl = @pubsubEl.getChild("create")
+        @node = @createEl && @createEl.attrs.node
+
+    matches: () ->
+        super &&
+        @iq.attrs.type is 'set' &&
+        @node
+
+# <iq type='set'
+#     from='francisco@denmark.lit/barracks'
+#     to='pubsub.shakespeare.lit'
+#     id='sub1'>
+#   <pubsub xmlns='http://jabber.org/protocol/pubsub'>
+#     <subscribe node='princely_musings'/>
+#   </pubsub>
+# </iq>
+class PubsubSubscribeHandler extends PubsubHandler
+    constructor: (stanza) ->
+        super
+
+        @subscribeEl = @pubsubEl.getChild("subscribe")
+        @node = @subscribeEl && @subscribeEl.attrs.node
+
+    matches: () ->
+        super &&
+        @iq.attrs.type is 'set' &&
+        @node
+
+    reply: (result) ->
+        attrs = {}
+        attrs.jid = result.jid if result && result.jid
+        attrs.subscription = result.subscription if result && result.subscription
+        if attrs.jid || attrs.subscription
+            super new xmpp.Element("pubsub", xmlns: NS.PUBSUB).
+                c("subscription", attrs)
+        else
+            super
+
+# <iq type='set'
+#     from='francisco@denmark.lit/barracks'
+#     to='pubsub.shakespeare.lit'
+#     id='unsub1'>
+#   <pubsub xmlns='http://jabber.org/protocol/pubsub'>
+#      <unsubscribe
+#          node='princely_musings'/>
+#   </pubsub>
+# </iq>
+class PubsubUnsubscribeHandler extends PubsubHandler
+    constructor: (stanza) ->
+        super
+
+        @unsubscribeEl = @pubsubEl.getChild("unsubscribe")
+        @node = @unsubscribeEl && @unsubscribeEl.attrs.node
+
+    matches: () ->
+        super &&
+        @iq.attrs.type is 'set' &&
+        @node
+
+# <iq type='set'
+#     from='hamlet@denmark.lit/blogbot'
+#     to='pubsub.shakespeare.lit'
+#     id='publish1'>
+#   <pubsub xmlns='http://jabber.org/protocol/pubsub'>
+#     <publish node='princely_musings'>
+#       <item id='bnd81g37d61f49fgn581'>
+# ...
+class PubsubPublishHandler extends PubsubHandler
+    constructor: (stanza) ->
+        super
+
+        @publishEl = @pubsubEl.getChild("publish")
+        @items = []
+        if @publishEl
+            @node = @publishEl.attrs.node
+            for itemEl in @publishEl.getChildren("item")
+                item =
+                    els: itemEl.children
+                if itemEl.attrs.id
+                    item.id = itemEl.attrs.id
+                @items.push item
+
+    matches: () ->
+        super &&
+        @iq.attrs.type is 'set' &&
+        @node
+
+# <iq type='set'
+#     from='hamlet@denmark.lit/elsinore'
+#     to='pubsub.shakespeare.lit'
+#     id='retract1'>
+#   <pubsub xmlns='http://jabber.org/protocol/pubsub'>
+#     <retract node='princely_musings'>
+#       <item id='ae890ac52d0df67ed7cfdf51b644e901'/>
+#     </retract>
+#   </pubsub>
+# </iq>
+class PubsubRetractHandler extends PubsubHandler
+    constructor: (stanza) ->
+        super
+
+        @retractEl = @pubsubEl.getChild("retract")
+        @items = []
+        if @retractEl
+            @node = @retractEl.attrs.node
+            for itemEl in @retractEl.getChildren("item")
+                if itemEl.attrs.id
+                    @items.push itemEl.attrs.id
+
+    matches: () ->
+        super &&
+        @iq.attrs.type is 'set' &&
+        @node
+
+# <iq type='get'
+#     from='francisco@denmark.lit/barracks'
+#     to='pubsub.shakespeare.lit'
+#     id='items1'>
+#   <pubsub xmlns='http://jabber.org/protocol/pubsub'>
+#     <items node='princely_musings'/>
+#   </pubsub>
+# </iq>
+class PubsubItemsHandler extends PubsubHandler
+    constructor: (stanza) ->
+        super
+
+        @itemsEl = @pubsubEl.getChild("items")
+        @node = @itemEl && @itemsEl.attrs.node
+
+    matches: () ->
+        super &&
+        @iq.attrs.type is 'get' &&
+        @node
+
+    reply: (items) ->
+        itemsEl = new xmpp.Element("pubsub", xmlns: NS.PUBSUB).
+            c("items", node: itemsNode)
+        for item in items
+            itemEl = itemsEl.c("item", id: item.id)
+            itemEl.children = item.els
+
+        super itemsEl.up()
+
+
+
+# <iq type='get'
+#     from='francisco@denmark.lit/barracks'
+#     to='pubsub.shakespeare.lit'
+#     id='subscriptions1'>
+#   <pubsub xmlns='http://jabber.org/protocol/pubsub'>
+#     <subscriptions/>
+#   </pubsub>
+# </iq>
+class PubsubSubscriptionsHandler extends PubsubHandler
+    constructor: (stanza) ->
+        super
+
+        @subscriptionsEl = @pubsubEl.getChild("items")
+
+    matches: () ->
+        super &&
+        @iq.attrs.type is 'get' &&
+        @subscriptionsEl
+
+    reply: (nodes) ->
+        subscriptionsEl = new xmpp.Element("pubsub", xmlns: NS.PUBSUB).
+            c("subscriptions")
+        for node in nodes
+            attrs =
+                node: node.node
+                subscription: node.subscription
+            if node.jid
+                attrs.jid = node.jid
+            subscriptionsEl.c "subscription", attrs
+
+        super subscriptionsEl.up()
+
+# <iq type='get'
+#     from='francisco@denmark.lit/barracks'
+#     to='pubsub.shakespeare.lit'
+#     id='affil1'>
+#   <pubsub xmlns='http://jabber.org/protocol/pubsub'>
+#     <affiliations/>
+#   </pubsub>
+# </iq>
+class PubsubAffiliationsHandler extends PubsubHandler
+    constructor: (stanza) ->
+        super
+
+        @affiliationsEl = @pubsubEl.getChild("affiliations")
+
+    matches: () ->
+        super &&
+        @iq.attrs.type is 'get' &&
+        @affiliationsEl
+
+    reply: (nodes) ->
+        affiliationsEl = new xmpp.Element("pubsub", xmlns: NS.PUBSUB).
+            c("affiliations")
+        for node in nodes
+            attrs =
+                node: node.node
+                affiliation: node.affiliation
+            if node.jid
+                attrs.jid = node.jid
+            affiliationsEl.c "affiliation", attrs
+
+        super affiliationsEl.up()
+
 
 
 exports.handler =

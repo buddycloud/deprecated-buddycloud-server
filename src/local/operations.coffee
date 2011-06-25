@@ -8,7 +8,7 @@ class exports.LocalOperations
         cb null, node
 
 class LocalContext
-    constructor: (backend) ->
+    constructor: (backend, userId) ->
         @backend = backend
 
     register: operation () ->
