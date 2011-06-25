@@ -298,7 +298,7 @@ class PubsubSubscriptionsHandler extends PubsubHandler
     constructor: (stanza) ->
         super
 
-        @subscriptionsEl = @pubsubEl.getChild("items")
+        @subscriptionsEl = @pubsubEl.getChild("subscriptions")
 
     matches: () ->
         super &&
@@ -351,6 +351,134 @@ class PubsubAffiliationsHandler extends PubsubHandler
         super affiliationsEl.up()
 
 
+class PubsubOwnerHandler extends IqHandler.Handler
+    constructor: (stanza) ->
+        super
+
+        @pubsubEl = @iq.getChild("pubsub", NS.PUBSUB_OWNER)
+
+    matches: () ->
+        (@iq.attrs.type is 'get' ||
+         @iq.attrs.type is 'set') &&
+        @pubsubEl?
+
+# <iq type='get'
+#     from='hamlet@denmark.lit/elsinore'
+#     to='pubsub.shakespeare.lit'
+#     id='subman1'>
+#   <pubsub xmlns='http://jabber.org/protocol/pubsub#owner'>
+#     <subscriptions node='princely_musings'/>
+#   </pubsub>
+# </iq>
+class PubsubOwnerGetSubscriptionsHandler extends PubsubHandler
+    constructor: (stanza) ->
+        super
+
+        @subscriptionsEl = @pubsubEl.getChild("subscriptions")
+        @node = @subscriptionsEl && @subscriptionsEl.attrs.node
+
+    matches: () ->
+        super &&
+        @iq.attrs.type is 'get' &&
+        @subscriptionsEl
+
+    reply: (subscriptions) ->
+        subscriptionsEl = new xmpp.Element("pubsub", xmlns: NS.PUBSUB_OWNER).
+            c("subscriptions")
+        for subscription in subscriptions
+            subscriptionsEl.c 'subscription',
+                jid: subscription.jid
+                subscription: subscription.subscription
+
+        super subscriptionsEl.up()
+
+# <iq type='set'
+#     from='hamlet@denmark.lit/elsinore'
+#     to='pubsub.shakespeare.lit'
+#     id='subman2'>
+#   <pubsub xmlns='http://jabber.org/protocol/pubsub#owner'>
+#     <subscriptions node='princely_musings'>
+#       <subscription jid='bard@shakespeare.lit' subscription='subscribed'/>
+#     </subscriptions>
+#   </pubsub>
+# </iq>
+class PubsubOwnerSetSubscriptionsHandler extends PubsubHandler
+    constructor: (stanza) ->
+        super
+
+        @subscriptionsEl = @pubsubEl.getChild("subscriptions")
+        @subscriptions = []
+        if @subscriptionsEl
+            @node = @subscriptionsEl.attrs.node
+            for subscriptionEl in @subscriptionsEl.getChildren("subscription")
+                @subscriptions.push
+                    jid: subscriptionEl.attrs.jid
+                    subscription: subscriptionEl.attrs.subscription
+
+    matches: () ->
+        super &&
+        @iq.attrs.type is 'set' &&
+        @subscriptionsEl
+
+# <iq type='get'
+#     from='hamlet@denmark.lit/elsinore'
+#     to='pubsub.shakespeare.lit'
+#     id='ent1'>
+#   <pubsub xmlns='http://jabber.org/protocol/pubsub#owner'>
+#     <affiliations node='princely_musings'/>
+#   </pubsub>
+# </iq>
+class PubsubOwnerGetAffiliationsHandler extends PubsubHandler
+    constructor: (stanza) ->
+        super
+
+        @affiliationsEl = @pubsubEl.getChild("affiliations")
+        @node = @affiliationsEl && @affiliationsEl.attrs.node
+
+    matches: () ->
+        super &&
+        @iq.attrs.type is 'get' &&
+        @affiliationsEl
+
+    reply: (affiliations) ->
+        affiliationsEl = new xmpp.Element("pubsub", xmlns: NS.PUBSUB_OWNER).
+            c("affiliations")
+        for affiliation in affiliations
+            affiliationsEl.c 'affiliation',
+                jid: affiliation.jid
+                affiliation: affiliation.affiliation
+
+        super affiliationsEl.up()
+
+# <iq type='set'
+#     from='hamlet@denmark.lit/elsinore'
+#     to='pubsub.shakespeare.lit'
+#     id='ent2'>
+#   <pubsub xmlns='http://jabber.org/protocol/pubsub#owner'>
+#     <affiliations node='princely_musings'>
+#       <affiliation jid='bard@shakespeare.lit' affiliation='publisher'/>
+#     </affiliations>
+#   </pubsub>
+# </iq>
+class PubsubOwnerSetAffiliationsHandler extends PubsubHandler
+    constructor: (stanza) ->
+        super
+
+        @affiliationsEl = @pubsubEl.getChild("affiliations")
+        @affiliations = []
+        if @affiliationsEl
+            @node = @affiliationsEl.attrs.node
+            for affiliationEl in @affiliationsEl.getChildren("affiliation")
+                @affiliations.push
+                    jid: affiliationEl.attrs.jid
+                    affiliation: affiliationEl.attrs.affiliation
+
+    matches: () ->
+        super &&
+        @iq.attrs.type is 'set' &&
+        @affiliationsEl
+
+# TODO: PubsubOwner{Get,Set}Configuration w/ forms
 
 exports.handler =
     IqHandler.GroupHandler(
