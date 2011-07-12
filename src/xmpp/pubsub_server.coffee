@@ -63,6 +63,8 @@ class DiscoInfoHandler extends IqHandler.Handler
 
         super queryEl
 
+    operation: ->
+        'browse-node-info'
 
 # <iq type='get'
 #     from='romeo@montague.net/orchard'
@@ -114,6 +116,9 @@ class DiscoItemsHandler extends IqHandler.Handler
 
         super queryEl
 
+    operation: ->
+        'browse-nodes-items'
+
 ###
 # XEP-0060: Publish-Subscribe
 ###
@@ -137,6 +142,8 @@ class PubsubHandler extends IqHandler.Handler
 #     <create node='princely_musings'/>
 #   </pubsub>
 # </iq>
+#
+# Not used for buddycloud (see register instead)
 class PubsubCreateHandler extends PubsubHandler
     constructor: (stanza) ->
         super
@@ -179,6 +186,9 @@ class PubsubSubscribeHandler extends PubsubHandler
         else
             super
 
+    operation: ->
+        'subscribe-node'
+
 # <iq type='set'
 #     from='francisco@denmark.lit/barracks'
 #     to='pubsub.shakespeare.lit'
@@ -199,6 +209,9 @@ class PubsubUnsubscribeHandler extends PubsubHandler
         super &&
         @iq.attrs.type is 'set' &&
         @node
+
+    operation: ->
+        'unsubscribe-node'
 
 # <iq type='set'
 #     from='hamlet@denmark.lit/blogbot'
@@ -228,6 +241,9 @@ class PubsubPublishHandler extends PubsubHandler
         @iq.attrs.type is 'set' &&
         @node
 
+    operation: ->
+        'publish-node-items'
+
 # <iq type='set'
 #     from='hamlet@denmark.lit/elsinore'
 #     to='pubsub.shakespeare.lit'
@@ -254,6 +270,9 @@ class PubsubRetractHandler extends PubsubHandler
         super &&
         @iq.attrs.type is 'set' &&
         @node
+
+    operation: ->
+        'retract-node-items'
 
 # <iq type='get'
 #     from='francisco@denmark.lit/barracks'
@@ -284,6 +303,8 @@ class PubsubItemsHandler extends PubsubHandler
 
         super itemsEl.up()
 
+    operation: ->
+        'retrieve-node-items'
 
 
 # <iq type='get'
@@ -318,6 +339,9 @@ class PubsubSubscriptionsHandler extends PubsubHandler
 
         super subscriptionsEl.up()
 
+    operation: ->
+        'retrieve-user-suscriptions'
+
 # <iq type='get'
 #     from='francisco@denmark.lit/barracks'
 #     to='pubsub.shakespeare.lit'
@@ -349,6 +373,9 @@ class PubsubAffiliationsHandler extends PubsubHandler
             affiliationsEl.c "affiliation", attrs
 
         super affiliationsEl.up()
+
+    operation: ->
+        'retrieve-user-affiliations'
 
 
 class PubsubOwnerHandler extends IqHandler.Handler
@@ -392,6 +419,9 @@ class PubsubOwnerGetSubscriptionsHandler extends PubsubHandler
 
         super subscriptionsEl.up()
 
+    operation: ->
+        'retrieve-node-subscriptions'
+
 # <iq type='set'
 #     from='hamlet@denmark.lit/elsinore'
 #     to='pubsub.shakespeare.lit'
@@ -419,6 +449,9 @@ class PubsubOwnerSetSubscriptionsHandler extends PubsubHandler
         super &&
         @iq.attrs.type is 'set' &&
         @subscriptionsEl
+
+    operation: ->
+        'manage-node-subscriptions'
 
 # <iq type='get'
 #     from='hamlet@denmark.lit/elsinore'
@@ -450,6 +483,9 @@ class PubsubOwnerGetAffiliationsHandler extends PubsubHandler
 
         super affiliationsEl.up()
 
+    operation: ->
+        'retrieve-node-affiliations'
+
 # <iq type='set'
 #     from='hamlet@denmark.lit/elsinore'
 #     to='pubsub.shakespeare.lit'
@@ -477,6 +513,9 @@ class PubsubOwnerSetAffiliationsHandler extends PubsubHandler
         super &&
         @iq.attrs.type is 'set' &&
         @affiliationsEl
+
+    operation: ->
+        'manage-node-affiliations'
 
 # TODO: PubsubOwner{Get,Set}Configuration w/ forms
 
