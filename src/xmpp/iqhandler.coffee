@@ -1,5 +1,10 @@
 errors = require('../errors')
 
+##
+# A handler:
+# * Unpacks the request
+# * Specifies the operation to run
+# * Compiles the response
 class exports.Handler
     constructor: (stanza) ->
         @iq = stanza

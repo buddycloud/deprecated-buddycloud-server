@@ -9,9 +9,16 @@ process.chdir __dirname
 
 config = require(process.argv[2])
 
+# XMPP Connection, w/ presence tracking
 xmppConn = new (require('./xmpp/connection').Connection)(config.xmpp)
-xmppConn.iqHandler = require('./xmpp/pubsub_server').handler;
-console.log 'xmppConn', xmppConn
 
+# Handle XEP-0060 Publish-Subscribe and related requests:
+xmppConn.iqHandler = require('./xmpp/pubsub_server').handler;
+
+
+# Resolves user backends by domain
 router = (require('./router').Router)()
+# Database storage for local users & cache:
+
+# Other XMPP-federated systems:
 router.addFrontend new (require('./xmpp/pubsub_client').Client)(xmppConn)
