@@ -17,34 +17,15 @@ class exports.Handler
     matches: () ->
         false
 
-    run: () ->
+    reply: () ->
+        @replyError(new errors.FeatureNotImplemented("Feature is not implemented"))
 
-##
-# To match for a group of sub-handlers in a tree-like way
-exports.GroupHandler = (subhandlers...) ->
-    class groupHandler extends exports.Handler
-        matches: () ->
-            true
-
-        run: () ->
-            console.log 'run groupHandler'
-            subhandler = null
-            for h in subhandlers
-                subhandler = new h(@iq)
-                if subhandler.matches()
-                    console.log 'found subhandler', subhandler
-                    break
-                else
-                    subhandler = null
-            subhandler.run()
-
-    console.log 'groupHandler', groupHandler
-    groupHandler
+    operation: () ->
+        undefined
 
 class exports.NotImplemented extends exports.Handler
     matches: () ->
         true
 
-    run: () ->
-        @replyError(new errors.FeatureNotImplemented("Feature is not implemented"))
+    # The default exports.Handler::run is already FeatureNotImplemented
 

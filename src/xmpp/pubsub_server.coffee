@@ -64,7 +64,10 @@ class DiscoInfoHandler extends IqHandler.Handler
         super queryEl
 
     operation: ->
-        'browse-node-info'
+        if @node
+            'browse-node-info'
+        else
+            undefined
 
 # <iq type='get'
 #     from='romeo@montague.net/orchard'
@@ -519,12 +522,29 @@ class PubsubOwnerSetAffiliationsHandler extends PubsubHandler
 
 # TODO: PubsubOwner{Get,Set}Configuration w/ forms
 
-exports.handler =
-    IqHandler.GroupHandler(
-        DiscoInfoHandler,
-        IqHandler.NotImplemented
-    );
+HANDLERS = [
+    DiscoInfoHandler,
+    IQHandler.NotImplemented
+]
 
+##
+# Generates stanza-receiving function, invokes cb
+#
+# Matches the above HANDLERS for the received stanza
+exports.makeHandler = (cb) ->
+    (stanza) ->
+        subhandler = null
+        for h in HANDLERS
+            subhandler = new h(stanza)
+            if subhandler.matches()
+                console.log 'found subhandler', subhandler
+                break
+            else
+                subhandler = null
+        if subhandler
+            cb subhandler
+        else
+            console.warn "No handler found for #{stanza.toString()}"
 
 ###
 

@@ -152,53 +152,52 @@ class exports.Connection
     _handleIq: (stanza) ->
         console.log 'handleIq', @iqHandler, @
         if @iqHandler?
-            handler = new @iqHandler(stanza)
-            console.log 'handler', handler
-            console.log 'matches', handler.matches()
-            if handler.matches()
-                # Safety first:
-                replied = false
-                replying = () ->
-                    if replied
-                        throw 'Sending additional iq reply'
-                    replied = true
+            ##
+            # Prepare stanza reply hooks
 
-                # Interface for <iq type='result'/>
-                stanza.reply = (child) =>
-                    console.log 'reply!'
-                    replying()
+            # Safety first:
+            replied = false
+            replying = () ->
+                if replied
+                    throw 'Sending additional iq reply'
+                replied = true
 
-                    reply = new xmpp.Element("iq",
-                        from: stanza.attrs.to
-                        to: stanza.attrs.from
-                        id: stanza.attrs.id or ""
-                        type: "result"
-                    )
-                    reply.cnode(child.root()) if child
+            # Interface for <iq type='result'/>
+            stanza.reply = (child) =>
+                console.log 'reply!'
+                replying()
 
-                    @conn.send reply
-                # Interface for <iq type='error'/>
-                stanza.replyError = (err) =>
-                    replying()
+                reply = new xmpp.Element("iq",
+                    from: stanza.attrs.to
+                    to: stanza.attrs.from
+                    id: stanza.attrs.id or ""
+                    type: "result"
+                )
+                reply.cnode(child.root()) if child
 
-                    reply = new xmpp.Element("iq",
-                        from: stanza.attrs.to
-                        to: stanza.attrs.from
-                        id: stanza.attrs.id or ""
-                        type: "error"
-                    )
-                    if err.xmppElement
-                        reply.cnode err.xmppElement()
-                    else
-                        reply.c("error", type: "cancel").
-                            c("text").
-                            t('' + err.message)
+                @conn.send reply
+            # Interface for <iq type='error'/>
+            stanza.replyError = (err) =>
+                replying()
 
-                    @conn.send reply
+                reply = new xmpp.Element("iq",
+                    from: stanza.attrs.to
+                    to: stanza.attrs.from
+                    id: stanza.attrs.id or ""
+                    type: "error"
+                )
+                if err.xmppElement
+                    reply.cnode err.xmppElement()
+                else
+                    reply.c("error", type: "cancel").
+                        c("text").
+                        t('' + err.message)
 
-                # Fire handler, done.
-                console.log 'running handler', handler
-                handler.run()
+                @conn.send reply
+
+            ##
+            # Fire handler, done.
+            @iqHandler stanza
 
 
 ###

@@ -1,3 +1,5 @@
+errors = require('./errors')
+
 class UserContent
     constructor: (id) ->
         @id = Id
@@ -11,8 +13,8 @@ class UserContent
 #
 # Implementations set result
 class Operation
-    constructor: (opts) ->
-        @opts = opts
+    constructor: (handler) ->
+        @handler = handler
 
     run: (cb) ->
         model.transaction (err, t) ->
@@ -27,14 +29,36 @@ class Operation
                     t.commit ->
                         cb
 
+    # Must be implemented by subclass
     transaction: (t, cb) ->
-        # Must be implemented by subclass
         cb null
 
 class PrivilegedOperation extends Operation
 
     transaction: (t, cb) ->
         # Check privileges
+
+
+OPERATIONS =
+    'browse-node-info': undefined
+
+exports.run = (handler) ->
+    opName = handler.operation()
+    opClass = OPERATIONS[opName]
+
+    unless opClass
+        console.error "Unimplemented operation #{opName}"
+        handler.replyError(new errors.NotImplemented("Unimplemented operation #{opName}"))
+        return
+
+    op = new opClass(handler)
+    op.run (error, result) ->
+        if error
+            handler.replyError error
+        else
+            handler.reply result
+
+
 
 defaultConfig = (req) ->
   owner = req.from
