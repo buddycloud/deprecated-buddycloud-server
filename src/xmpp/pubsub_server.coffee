@@ -524,7 +524,7 @@ class PubsubOwnerSetAffiliationsRequest extends PubsubRequest
 
 REQUESTS = [
     DiscoInfoRequest,
-    IQRequest.NotImplemented
+    Request.NotImplemented
 ]
 
 ##
@@ -532,16 +532,14 @@ REQUESTS = [
 #
 # Matches the above REQUESTS for the received stanza
 exports.makeRequest = (stanza) ->
-    subrequest = null
+    result = null
     for r in REQUESTS
-        subrequest = new r(stanza)
-        if subrequest.matches()
+        result = new r(stanza)
+        if result.matches()
             console.log 'found subrequest', subrequest
             break
         else
-            subrequest = null
-    if subrequest
-        cb subrequest
-    else
-        console.warn "No request found for #{stanza.toString()}"
+            result = null
+    # Synchronous result:
+    result
 

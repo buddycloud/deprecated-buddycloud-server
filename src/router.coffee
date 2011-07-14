@@ -3,9 +3,9 @@ errors = require('./errors')
 CACHE_TIMEOUT = 60 * 1000
 
 class RemoteRouter
-    constructor:
+    constructor: () ->
         @frontends = []
-        # userId: { queue: [Function], result: ... }
+        # cache :: { userId: { queue: [Function], result: ... } }
         @cache = {}
 
     addFrontend: (frontend) ->

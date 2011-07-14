@@ -22,8 +22,8 @@ xmppConn.iqHandler = (stanza) ->
     controller.run request
 
 # Resolves user backends by domain
-router = (require('./router').Router)()
+#router = (require('./router').Router)()
 # Database storage for local users & cache:
 
 # Other XMPP-federated systems:
-router.addFrontend new (require('./xmpp/pubsub_client').Client)(xmppConn)
+#router.addFrontend new (require('./xmpp/pubsub_client').Client)(xmppConn)
