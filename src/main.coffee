@@ -1,4 +1,4 @@
-controller = require('./controller')
+operations = require('./operations')
 {makeRequest} = require('./xmpp/pubsub_server')
 
 process.on 'uncaughtException', (err) ->
@@ -19,7 +19,7 @@ xmppConn = new (require('./xmpp/connection').Connection)(config.xmpp)
 xmppConn.iqHandler = (stanza) ->
     request = makeRequest stanza
     # TODO: move to router for inbox functionality
-    controller.run request
+    operations.run request
 
 # Resolves user backends by domain
 #router = (require('./router').Router)()

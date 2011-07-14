@@ -1,13 +1,5 @@
 errors = require('./errors')
 
-class UserContent
-    constructor: (id) ->
-        @id = Id
-        @operationsQueue = []
-        @frontend = null
-
-    findFrontend: () ->
-
 ##
 # Is created with options from the request
 #
