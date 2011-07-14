@@ -67,7 +67,7 @@ class DiscoInfoRequest extends Request.Request
         if @node
             'browse-node-info'
         else
-            undefined
+            'browse-info'
 
 # <iq type='get'
 #     from='romeo@montague.net/orchard'
@@ -536,7 +536,7 @@ exports.makeRequest = (stanza) ->
     for r in REQUESTS
         result = new r(stanza)
         if result.matches()
-            console.log 'found subrequest', subrequest
+            console.log 'found subrequest', result
             break
         else
             result = null

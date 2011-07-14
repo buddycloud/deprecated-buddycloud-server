@@ -9,6 +9,10 @@ class Operation
         @handler = handler
 
     run: (cb) ->
+        cb new errors.NotImplemented("Operation defined but not yet implemented")
+
+class ModelOperation extends Operation
+    run: (cb) ->
         model.transaction (err, t) ->
             if err
                 return req.callback err
@@ -21,9 +25,11 @@ class Operation
                     t.commit ->
                         cb
 
+
     # Must be implemented by subclass
     transaction: (t, cb) ->
         cb null
+
 
 class PrivilegedOperation extends Operation
 
@@ -31,22 +37,29 @@ class PrivilegedOperation extends Operation
         # Check privileges
 
 
+class BrowseInfo extends Operation
+
+    run: (cb) ->
+        cb()
+
+
 OPERATIONS =
     'browse-node-info': undefined
+    'browse-info': BrowseInfo
 
-exports.run = (handler) ->
-    opName = handler.operation()
+exports.run = (request) ->
+    opName = request.operation()
     opClass = OPERATIONS[opName]
 
     unless opClass
         console.error "Unimplemented operation #{opName}"
-        handler.replyError(new errors.NotImplemented("Unimplemented operation #{opName}"))
+        request.replyError(new errors.NotImplemented("Unimplemented operation #{opName}"))
         return
 
-    op = new opClass(handler)
+    op = new opClass(request)
     op.run (error, result) ->
         if error
-            handler.replyError error
+            request.replyError error
         else
-            handler.reply result
+            request.reply result
 
