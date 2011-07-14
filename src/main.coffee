@@ -1,4 +1,11 @@
+config = require(process.argv[2])
+
+backend = require('./local/backend_postgres')
+backend.start config.modelConfig
+
 operations = require('./operations')
+operations.setBackend backend
+
 {makeRequest} = require('./xmpp/pubsub_server')
 
 process.on 'uncaughtException', (err) ->
@@ -9,8 +16,6 @@ if process.argv.length < 3
     process.exit 1
 
 process.chdir __dirname
-
-config = require(process.argv[2])
 
 # XMPP Connection, w/ presence tracking
 xmppConn = new (require('./xmpp/connection').Connection)(config.xmpp)

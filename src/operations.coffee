@@ -1,5 +1,9 @@
 errors = require('./errors')
 
+transaction = null
+exports.setBackend = (backend) ->
+    transaction = backend.transaction
+
 ##
 # Is created with options from the request
 #

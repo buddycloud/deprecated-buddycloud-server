@@ -1,11 +1,10 @@
 pg = require("pg")
-step = require("step")
+async = require("async")
 ltx = require("ltx")
 errors = require("../errors")
 
 # ready DB connections
 pool = []
-var pool = [];
 # waiting transaction requests
 queue = []
 
@@ -14,7 +13,7 @@ connectDB = (config) ->
     db = new pg.Client(config)
     db.connect()
     # Reconnect in up to 5s
-    db.on_ "error", (err) ->
+    db.on "error", (err) ->
         console.error "Postgres: " + err.message
         setTimeout ->
             connectDB config
@@ -80,7 +79,7 @@ class Transaction
         nodeExists: (node) ->
             db = @db
             ->
-                step ->
+                async.series [ ->
                     db.query "SELECT node FROM nodes WHERE node=$1", [ node ], this
                 , (err, res) ->
                     if err
@@ -88,11 +87,11 @@ class Transaction
                     if res.rowCount < 1
                         throw new errors.NotFound("Node does not exist")
                     this()
-                , this
+                , this]
 
         createNode: (node, cb) ->
             db = @db
-            step ->
+            async.series [ ->
                 db.query "SELECT node FROM nodes WHERE node=$1", [ node ], this
             , (err, res) ->
                 if err
@@ -100,13 +99,13 @@ class Transaction
                 if res.rowCount > 0
                     throw new errors.Conflict("Node already exists")
                 db.query "INSERT INTO nodes (node) VALUES ($1)", [ node ], this
-            , cb
+            , cb]
 
         ##
         # cb(err, [{ node: String, title: String }])
         listNodes: (cb) ->
             db = @db
-            step ->
+            async.series [ ->
                 db.query "SELECT node FROM nodes WHERE node IN (SELECT node FROM node_config WHERE \"key\"='accessModel' AND \"value\"='open') " + "ORDER BY node ASC", this
             , (err, res) ->
                 if err
@@ -115,11 +114,11 @@ class Transaction
                     node: row.node
                     title: row.title
                 this null, nodes
-            , cb
+            , cb]
 
         listNodesByUser: (user, cb) ->
             db = @db
-            step ->
+            async.series [ ->
                 db.query "SELECT node FROM nodes WHERE position('/user/' || $1 IN node) = 1 AND node IN (SELECT node FROM node_config WHERE \"key\"='accessModel' AND \"value\"='open') " + "ORDER BY node ASC", [ user ], this
             , (err, res) ->
                 if err
@@ -128,7 +127,7 @@ class Transaction
                     node: row.node
                     title: row.title
                 this null, nodes
-            , cb
+            , cb]
 
         ##
         # Subscription management
@@ -136,17 +135,17 @@ class Transaction
 
         getSubscription: (node, user, cb) ->
             db = @db
-            step ->
+            async.series [ ->
                 db.query "SELECT subscription FROM subscriptions WHERE node=$1 AND user=$2", [ node, user ], this
             , (err, res) ->
                 if err
                     throw err
                 this null, (res.rows[0] and res.rows[0].subscription) or "none"
-            , cb
+            , cb]
 
         setSubscription: (node, user, subscription, cb) ->
             db = @db
-            step @nodeExists(node), (err) ->
+            async.series [ @nodeExists(node), (err) ->
                 if err
                     throw err
                 db.query "SELECT subscription FROM subscriptions WHERE node=$1 AND user=$2", [ node, user ], this
@@ -165,11 +164,11 @@ class Transaction
                     cb null
                 else
                     cb new Error('Invalid subscription transition')
-            , cb
+            , cb]
 
         getSubscribers: (node, cb) ->
             db = @db
-            step ->
+            async.series [ ->
                 db.query "SELECT \"user\", subscription FROM subscriptions WHERE node=$1", [ node ], this
             , (err, res) ->
                 if err
@@ -181,11 +180,11 @@ class Transaction
                         subscription: row.subscription
 
                 this null, subscribers
-            , cb
+            , cb]
 
         getSubscriptions: (user, cb) ->
             db = @db
-            step ->
+            async.series [ ->
                 db.query "SELECT node, subscription FROM subscriptions WHERE \"user\"=$1", [ user ], this
             , (err, res) ->
                 if err
@@ -197,11 +196,11 @@ class Transaction
                         subscription: row.subscription
 
                 this null, subscriptions
-            , cb
+            , cb]
 
         getAllSubscribers: (cb) ->
             db = @db
-            step ->
+            async.series [ ->
                 db.query "SELECT DISTINCT \"user\" FROM subscriptions", this
             , (err, res) ->
                 if err
@@ -211,11 +210,11 @@ class Transaction
                     subscribers.push row.user
 
                 this null, subscribers
-            , cb
+            , cb]
 
         getPendingNodes: (user, cb) ->
             db = @db
-            step ->
+            async.series [ ->
                 db.query "SELECT node FROM affiliations WHERE affiliation = 'owner' AND user = $1 AND EXISTS (SELECT user FROM subscriptions WHERE subscription = 'pending' AND node = affiliations.node)", [ user ], this
             , (err, res) ->
                 if err
@@ -223,11 +222,11 @@ class Transaction
                 this null, res.rows.map((row) ->
                     row.node
                 )
-            , cb
+            , cb]
 
         getPending: (node, cb) ->
             db = @db
-            step ->
+            async.series [ ->
                 db.query "SELECT user FROM subscriptions WHERE subscription = 'pending' AND node = $1", [ node ], this
             , (err, res) ->
                 if err
@@ -235,7 +234,7 @@ class Transaction
                 this null, res.rows.map((row) ->
                     row.user
                 )
-            , cb
+            , cb]
 
         ##
         # Affiliation management
@@ -243,17 +242,17 @@ class Transaction
 
         getAffiliation = (node, user, cb) ->
             db = @db
-            step ->
+            async.series [ ->
                 db.query "SELECT affiliation FROM affiliations WHERE node=$1 AND user=$2", [ node, user ], this
             , (err, res) ->
                 if err
                     throw err
                 this null, (res.rows[0] and res.rows[0].affiliation) or "none"
-            , cb
+            , cb]
 
         setAffiliation = (node, user, affiliation, cb) ->
             db = @db
-            step ->
+            async.series [ ->
                 db.query "SELECT affiliation FROM affiliations WHERE node=$1 AND user=$2", [ node, user ], this
             , (err, res) ->
                 if err
@@ -268,11 +267,11 @@ class Transaction
                     db.query "DELETE FROM affiliations WHERE node=$1 AND \"user\"=$2", [ node, user ], this
                 else if not isSet and toDelete
                     cb null
-            , cb
+            , cb]
 
         getAffiliations: (user, cb) ->
             db = @db
-            step ->
+            async.series [ ->
                 db.query "SELECT node, affiliation FROM affiliations WHERE \"user\"=$1", [ user ], this
             , (err, res) ->
                 if err
@@ -284,11 +283,11 @@ class Transaction
                         affiliation: row.affiliation
 
                 this null, affiliations
-            , cb
+            , cb]
 
         getAffiliated: (node, cb) ->
             db = @db
-            step ->
+            async.series [ ->
                 db.query "SELECT \"user\", affiliation FROM affiliations WHERE node=$1", [ node ], this
             , (err, res) ->
                 if err
@@ -300,11 +299,11 @@ class Transaction
                         affiliation: row.affiliation
 
                 this null, affiliations
-            , cb
+            , cb]
 
         getOwners: (node, cb) ->
             db = @db
-            step ->
+            async.series [ ->
                 db.query "SELECT \"user\" FROM affiliations WHERE node=$1 AND affiliation='owner'", [ node ], this
             , (err, res) ->
                 if err
@@ -312,12 +311,12 @@ class Transaction
                 this null, res.rows.map((row) ->
                     row.user
                 )
-            , cb
+            , cb]
 
         writeItem: (publisher, node, id, item, cb) ->
             db = @db
             xml = item.toString()
-            step @nodeExists(node), (err) ->
+            async.series [ @nodeExists(node), (err) ->
                 if err
                     throw err
                 db.query "SELECT id FROM items WHERE node=$1 AND id=$2", [ node, id ], this
@@ -329,11 +328,11 @@ class Transaction
                     db.query "UPDATE items SET xml=$1, published=CURRENT_TIMESTAMP WHERE node=$2 AND id=$3", [ xml, node, id ], this
                 else unless isSet
                     db.query "INSERT INTO items (node, id, xml, published) VALUES ($1, $2, $3, CURRENT_TIMESTAMP)", [ node, id, xml ], this
-            , cb
+            , cb]
 
         deleteItem: (node, itemId, cb) ->
             db = @db
-            step ->
+            async.series [ ->
                 db.query "DELETE FROM items WHERE node=$1 AND id=$2", [ node, itemId ], this
             , (err, res) ->
                 if err
@@ -341,13 +340,13 @@ class Transaction
                 if res.rowCount < 1
                     throw new errors.NotFound("No such item")
                 this null
-            , cb
+            , cb]
 
         ##
         # sorted by time
         getItemIds: (node, cb) ->
             db = @db
-            step ->
+            async.series [ ->
                 db.query "SELECT id FROM items WHERE node=$1 ORDER BY published DESC", [ node ], this
             , (err, res) ->
                 if err
@@ -356,11 +355,11 @@ class Transaction
                     row.id
                 )
                 this null, ids
-            , cb
+            , cb]
 
         getItem: (node, id, cb) ->
             db = @db
-            step ->
+            async.series [ ->
                 db.query "SELECT xml FROM items WHERE node=$1 AND id=$2", [ node, id ], this
             , (err, res) ->
                 if err
@@ -370,7 +369,7 @@ class Transaction
                     this null, item
                 else
                     throw new errors.NotFound("No such item")
-            , cb
+            , cb]
 
         ##
         # @param itemCb {Function} itemCb({ node: String, id: String, item: Element })
@@ -385,7 +384,7 @@ class Transaction
                 conditions.push "published <= $" + (++i) + "::timestamp"
                 params.push timeEnd
             q = @db.query("SELECT id, node, xml FROM items WHERE " + conditions.join(" AND ") + " ORDER BY published ASC", params)
-            q.on_ "row", (row) ->
+            q.on "row", (row) ->
                 item = parseItem(row.xml)
                 if item
                     itemCb
@@ -394,10 +393,10 @@ class Transaction
                         item: item
 
 
-            q.on_ "error", (err_) ->
+            q.on "error", (err_) ->
                 err = err_
 
-            q.on_ "end", ->
+            q.on "end", ->
                 cb err
 
         ##
@@ -406,7 +405,7 @@ class Transaction
 
         getConfig: (node, cb) ->
             db = @db
-            step @nodeExists(node), (err) ->
+            async.series [ @nodeExists(node), (err) ->
                 if err
                     throw err
                 db.query "SELECT \"key\", \"value\" FROM node_config WHERE node=$1", [ node ], this
@@ -421,12 +420,12 @@ class Transaction
                     this null, config
                 else
                     throw new errors.NotFound("No such node")
-            , cb
+            , cb]
 
         setConfig: (node, config, cb) ->
             db = @db
             console.log "setConfig " + node + ": " + require("util").inspect(config)
-            step @nodeExists(node), (err) ->
+            async.series [ @nodeExists(node), (err) ->
                 if err
                     throw err
 
@@ -449,7 +448,7 @@ class Transaction
                 if err
                     throw err
                 this null
-            , cb
+            , cb]
 
 parseItem = (xml) ->
     try
