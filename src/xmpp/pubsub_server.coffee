@@ -1,6 +1,6 @@
 xmpp = require('node-xmpp')
 NS = require('./ns')
-IqHandler = require('./iqhandler')
+Request = require('./request')
 
 ###
 # XEP-0030: Service Discovery
@@ -12,7 +12,7 @@ IqHandler = require('./iqhandler')
 #     id='info1'>
 #   <query xmlns='http://jabber.org/protocol/disco#info'/>
 # </iq>
-class DiscoInfoHandler extends IqHandler.Handler
+class DiscoInfoRequest extends Request.Request
     constructor: (stanza) ->
         super
 
@@ -24,7 +24,7 @@ class DiscoInfoHandler extends IqHandler.Handler
         @discoInfoEl?
 
     run: () ->
-        console.log 'run DiscoInfoHandler'
+        console.log 'run DiscoInfoRequest'
         features = []
         unless @node
             features.push NS.DISCO_ITEMS, NS.REGISTER
@@ -75,7 +75,7 @@ class DiscoInfoHandler extends IqHandler.Handler
 #     id='info1'>
 #   <query xmlns='http://jabber.org/protocol/disco#items'/>
 # </iq>
-class DiscoItemsHandler extends IqHandler.Handler
+class DiscoItemsRequest extends Request.Request
     constructor: (stanza) ->
         super
 
@@ -87,7 +87,7 @@ class DiscoItemsHandler extends IqHandler.Handler
         @discoItemsEl?
 
     run: () ->
-        console.log 'run DiscoItemsHandler'
+        console.log 'run DiscoItemsRequest'
         features = []
         unless @node
             features.push NS.DISCO_ITEMS, NS.REGISTER
@@ -126,7 +126,7 @@ class DiscoItemsHandler extends IqHandler.Handler
 # XEP-0060: Publish-Subscribe
 ###
 
-class PubsubHandler extends IqHandler.Handler
+class PubsubRequest extends Request.Request
     constructor: (stanza) ->
         super
 
@@ -147,7 +147,7 @@ class PubsubHandler extends IqHandler.Handler
 # </iq>
 #
 # Not used for buddycloud (see register instead)
-class PubsubCreateHandler extends PubsubHandler
+class PubsubCreateRequest extends PubsubRequest
     constructor: (stanza) ->
         super
 
@@ -167,7 +167,7 @@ class PubsubCreateHandler extends PubsubHandler
 #     <subscribe node='princely_musings'/>
 #   </pubsub>
 # </iq>
-class PubsubSubscribeHandler extends PubsubHandler
+class PubsubSubscribeRequest extends PubsubRequest
     constructor: (stanza) ->
         super
 
@@ -201,7 +201,7 @@ class PubsubSubscribeHandler extends PubsubHandler
 #          node='princely_musings'/>
 #   </pubsub>
 # </iq>
-class PubsubUnsubscribeHandler extends PubsubHandler
+class PubsubUnsubscribeRequest extends PubsubRequest
     constructor: (stanza) ->
         super
 
@@ -224,7 +224,7 @@ class PubsubUnsubscribeHandler extends PubsubHandler
 #     <publish node='princely_musings'>
 #       <item id='bnd81g37d61f49fgn581'>
 # ...
-class PubsubPublishHandler extends PubsubHandler
+class PubsubPublishRequest extends PubsubRequest
     constructor: (stanza) ->
         super
 
@@ -257,7 +257,7 @@ class PubsubPublishHandler extends PubsubHandler
 #     </retract>
 #   </pubsub>
 # </iq>
-class PubsubRetractHandler extends PubsubHandler
+class PubsubRetractRequest extends PubsubRequest
     constructor: (stanza) ->
         super
 
@@ -285,7 +285,7 @@ class PubsubRetractHandler extends PubsubHandler
 #     <items node='princely_musings'/>
 #   </pubsub>
 # </iq>
-class PubsubItemsHandler extends PubsubHandler
+class PubsubItemsRequest extends PubsubRequest
     constructor: (stanza) ->
         super
 
@@ -318,7 +318,7 @@ class PubsubItemsHandler extends PubsubHandler
 #     <subscriptions/>
 #   </pubsub>
 # </iq>
-class PubsubSubscriptionsHandler extends PubsubHandler
+class PubsubSubscriptionsRequest extends PubsubRequest
     constructor: (stanza) ->
         super
 
@@ -353,7 +353,7 @@ class PubsubSubscriptionsHandler extends PubsubHandler
 #     <affiliations/>
 #   </pubsub>
 # </iq>
-class PubsubAffiliationsHandler extends PubsubHandler
+class PubsubAffiliationsRequest extends PubsubRequest
     constructor: (stanza) ->
         super
 
@@ -381,7 +381,7 @@ class PubsubAffiliationsHandler extends PubsubHandler
         'retrieve-user-affiliations'
 
 
-class PubsubOwnerHandler extends IqHandler.Handler
+class PubsubOwnerRequest extends Request.Request
     constructor: (stanza) ->
         super
 
@@ -400,7 +400,7 @@ class PubsubOwnerHandler extends IqHandler.Handler
 #     <subscriptions node='princely_musings'/>
 #   </pubsub>
 # </iq>
-class PubsubOwnerGetSubscriptionsHandler extends PubsubHandler
+class PubsubOwnerGetSubscriptionsRequest extends PubsubRequest
     constructor: (stanza) ->
         super
 
@@ -435,7 +435,7 @@ class PubsubOwnerGetSubscriptionsHandler extends PubsubHandler
 #     </subscriptions>
 #   </pubsub>
 # </iq>
-class PubsubOwnerSetSubscriptionsHandler extends PubsubHandler
+class PubsubOwnerSetSubscriptionsRequest extends PubsubRequest
     constructor: (stanza) ->
         super
 
@@ -464,7 +464,7 @@ class PubsubOwnerSetSubscriptionsHandler extends PubsubHandler
 #     <affiliations node='princely_musings'/>
 #   </pubsub>
 # </iq>
-class PubsubOwnerGetAffiliationsHandler extends PubsubHandler
+class PubsubOwnerGetAffiliationsRequest extends PubsubRequest
     constructor: (stanza) ->
         super
 
@@ -499,7 +499,7 @@ class PubsubOwnerGetAffiliationsHandler extends PubsubHandler
 #     </affiliations>
 #   </pubsub>
 # </iq>
-class PubsubOwnerSetAffiliationsHandler extends PubsubHandler
+class PubsubOwnerSetAffiliationsRequest extends PubsubRequest
     constructor: (stanza) ->
         super
 
@@ -522,28 +522,28 @@ class PubsubOwnerSetAffiliationsHandler extends PubsubHandler
 
 # TODO: PubsubOwner{Get,Set}Configuration w/ forms
 
-HANDLERS = [
-    DiscoInfoHandler,
-    IQHandler.NotImplemented
+REQUESTS = [
+    DiscoInfoRequest,
+    IQRequest.NotImplemented
 ]
 
 ##
 # Generates stanza-receiving function, invokes cb
 #
-# Matches the above HANDLERS for the received stanza
-exports.makeHandler = (stanza) ->
-    subhandler = null
-    for h in HANDLERS
-        subhandler = new h(stanza)
-        if subhandler.matches()
-            console.log 'found subhandler', subhandler
+# Matches the above REQUESTS for the received stanza
+exports.makeRequest = (stanza) ->
+    subrequest = null
+    for r in REQUESTS
+        subrequest = new r(stanza)
+        if subrequest.matches()
+            console.log 'found subrequest', subrequest
             break
         else
-            subhandler = null
-    if subhandler
-        cb subhandler
+            subrequest = null
+    if subrequest
+        cb subrequest
     else
-        console.warn "No handler found for #{stanza.toString()}"
+        console.warn "No request found for #{stanza.toString()}"
 
 ###
 

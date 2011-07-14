@@ -1,5 +1,5 @@
 controller = require('./controller')
-{makeHandler} = require('./xmpp/pubsub_server')
+{makeRequest} = require('./xmpp/pubsub_server')
 
 process.on 'uncaughtException', (err) ->
     console.error "uncaughtException: #{err.stack || err.message || err.toString()}"
@@ -17,9 +17,9 @@ xmppConn = new (require('./xmpp/connection').Connection)(config.xmpp)
 
 # Handle XEP-0060 Publish-Subscribe and related requests:
 xmppConn.iqHandler = (stanza) ->
-    handler = makeHandler stanza
+    request = makeRequest stanza
     # TODO: move to router for inbox functionality
-    controller.run handler
+    controller.run request
 
 # Resolves user backends by domain
 router = (require('./router').Router)()

@@ -1,11 +1,11 @@
 errors = require('../errors')
 
 ##
-# A handler:
+# A request:
 # * Unpacks the request
 # * Specifies the operation to run
 # * Compiles the response
-class exports.Handler
+class exports.Request
     constructor: (stanza) ->
         @iq = stanza
         @reply = stanza.reply
@@ -23,7 +23,7 @@ class exports.Handler
     operation: () ->
         undefined
 
-class exports.NotImplemented extends exports.Handler
+class exports.NotImplemented extends exports.Request
     matches: () ->
         true
 
