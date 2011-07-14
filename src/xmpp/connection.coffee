@@ -201,6 +201,8 @@ class exports.Connection
 
 
 ###
+# TODO: bring back to life
+#
 startPresenceTracking = ->
     onlineResources = {}
     controller.getAllSubscribers (err, subscribers) ->
