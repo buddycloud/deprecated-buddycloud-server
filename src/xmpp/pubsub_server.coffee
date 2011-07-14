@@ -531,20 +531,19 @@ HANDLERS = [
 # Generates stanza-receiving function, invokes cb
 #
 # Matches the above HANDLERS for the received stanza
-exports.makeHandler = (cb) ->
-    (stanza) ->
-        subhandler = null
-        for h in HANDLERS
-            subhandler = new h(stanza)
-            if subhandler.matches()
-                console.log 'found subhandler', subhandler
-                break
-            else
-                subhandler = null
-        if subhandler
-            cb subhandler
+exports.makeHandler = (stanza) ->
+    subhandler = null
+    for h in HANDLERS
+        subhandler = new h(stanza)
+        if subhandler.matches()
+            console.log 'found subhandler', subhandler
+            break
         else
-            console.warn "No handler found for #{stanza.toString()}"
+            subhandler = null
+    if subhandler
+        cb subhandler
+    else
+        console.warn "No handler found for #{stanza.toString()}"
 
 ###
 
