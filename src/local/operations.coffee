@@ -1,83 +1,69 @@
-class exports.LocalOperations
-    constructor: (backendConfig) ->
-        @backend = require('./backend_postgres')
-        @backend.start backendConfig
+errors = require('./errors')
 
-    resolve: (userId, cb) ->
-        node = new LocalNode(@backend, userId)
-        cb null, node
+transaction = null
+exports.setBackend = (backend) ->
+    transaction = backend.transaction
 
-class LocalContext
-    constructor: (backend, userId) ->
-        @backend = backend
+##
+# Is created with options from the request
+#
+# Implementations set result
+class Operation
+    constructor: (handler) ->
+        @handler = handler
 
-    register: operation () ->
-        async.parallel [
-            "channel", "mood", "subscriptions",
-            "geo/current", "geo/future", "geo/previous" ].map((name) ->
-                node = "/user/" + user + "/" + name
-                return (cb) ->
-                    async.series [(cb) ->
-                        @t.createNode node, cb
-                    , (cb) ->
-                        @t.setConfig node, defaultConfig(@actor), cb
-                    , (cb) ->
-                        @t.setAffiliation node, @actor, "owner", cb
-                    , (cb) ->
-                        @t.setSubscription node, @actor, "subscribed", cb
-                    , cb
-            )
-        ], @cb
+    run: (cb) ->
+        cb new errors.NotImplemented("Operation defined but not yet implemented")
 
+class ModelOperation extends Operation
+    run: (cb) ->
+        model.transaction (err, t) ->
+            if err
+                return req.callback err
 
-defaultConfig = (actor) ->
-    owner = actor
-    title: owner + "'s node"
-    description: "Where " + owner + " publishes things"
-    type: "http://www.w3.org/2005/Atom"
-    accessModel: "open"
-    publishModel: "subscribers"
-    creationDate: new Date().toISOString()
-
-AFFILIATION_SUBSETS =
-  owner: [ "moderator", "publisher", "member", "none" ]
-  moderator: [ "publisher", "member", "none" ]
-  publisher: [ "member", "none" ]
-  member: [ "none" ]
-
-isAffiliationSubset = (subset, affiliation) ->
-  subset == affiliation or
-            (AFFILIATION_SUBSETS.hasOwnProperty(affiliation) and
-             AFFILIATION_SUBSETS[affiliation].indexOf(subset) >= 0)
+            @transaction t, (err) ->
+                if err
+                    t.rollback ->
+                        cb err
+                else
+                    t.commit ->
+                        cb
 
 
-class OperationContext
-    constructor: (opts) ->
-        @actor = opts.actor
+    # Must be implemented by subclass
+    transaction: (t, cb) ->
+        cb null
 
-    checkAffiliation: (cb) ->
-        async.parallel [(cb) ->
-            t.getConfig req.node, cb
-        , (cb) ->
-            t.getAffiliation req.node, req.from, cb
-        , (cb) ->
-            t.getSubscription req.node, req.from, cb
-        ], (error, results) ->
-            if results
-                [config, affiliation, subscription] = results
-                if affiliation is "none" and (!config.accessModel? or config.accessModel is "open")
-                    affiliation = "member"
-                if affiliation is "member" and config.publishModel is "publishers" and subscription is "subscribed"
-                    affiliation = "publisher"
-        if isAffiliationSubset(@requiredAffiliation, affiliation)
-            cb()
+
+class PrivilegedOperation extends Operation
+
+    transaction: (t, cb) ->
+        # Check privileges
+
+
+class BrowseInfo extends Operation
+
+    run: (cb) ->
+        cb()
+
+
+OPERATIONS =
+    'browse-node-info': undefined
+    'browse-info': BrowseInfo
+
+exports.run = (request) ->
+    opName = request.operation()
+    opClass = OPERATIONS[opName]
+
+    unless opClass
+        console.error "Unimplemented operation #{opName}"
+        request.replyError(new errors.NotImplemented("Unimplemented operation #{opName}"))
+        return
+
+    op = new opClass(request)
+    op.run (error, result) ->
+        if error
+            request.replyError error
         else
-            cb new errors.Forbidden(requiredAffiliation + " affiliation required")
+            request.reply result
 
-    run: (steps, cb) ->
-        async.series steps, cb
-
-operation = (steps...) ->
-    return (opts, cb) ->
-        ctx = new OperationContext(opts)
-        ctx.run steps, cb
