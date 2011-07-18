@@ -122,6 +122,37 @@ class DiscoItemsRequest extends Request.Request
     operation: ->
         'browse-nodes-items'
 
+##
+# XEP-0077: In-Band Registration
+##
+
+class RegisterRequest extends Request.Request
+    constructor: (stanza) ->
+        super
+
+        @registerEl = @iq.getChild("query", NS.REGISTER)
+
+    matches: () ->
+        @registerEl
+
+class RegisterGetRequest extends Request.Request
+    matches: () ->
+        @iq.attrs.type is 'get' &&
+        @registerEl?
+
+    reply: () ->
+        super new xmpp.Element("query", xmlns: NS.REGISTER).
+            c("instructions").
+            t("Simply register here")
+
+class RegisterSetRequest extends Request.Request
+    matches: () ->
+        @iq.attrs.type is 'set' &&
+        @registerEl?
+
+    operation: () ->
+        'register-user'
+
 ###
 # XEP-0060: Publish-Subscribe
 ###
@@ -524,6 +555,23 @@ class PubsubOwnerSetAffiliationsRequest extends PubsubRequest
 
 REQUESTS = [
     DiscoInfoRequest,
+    DiscoItemsRequest,
+    RegisterGetRequest,
+    RegisterSetRequest,
+    PubsubRequest,
+    PubsubCreateRequest,
+    PubsubSubscribeRequest,
+    PubsubUnsubscribeRequest,
+    PubsubPublishRequest,
+    PubsubRetractRequest,
+    PubsubItemsRequest,
+    PubsubSubscriptionsRequest,
+    PubsubAffiliationsRequest,
+    PubsubOwnerRequest,
+    PubsubOwnerGetSubscriptionsRequest,
+    PubsubOwnerSetSubscriptionsRequest,
+    PubsubOwnerGetAffiliationsRequest,
+    PubsubOwnerSetAffiliationsRequest,
     Request.NotImplemented
 ]
 

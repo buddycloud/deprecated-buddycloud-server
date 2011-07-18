@@ -1,3 +1,4 @@
+async = require('async')
 errors = require('./errors')
 
 transaction = null
@@ -9,8 +10,8 @@ exports.setBackend = (backend) ->
 #
 # Implementations set result
 class Operation
-    constructor: (handler) ->
-        @handler = handler
+    constructor: (request) ->
+        @req = request
 
     run: (cb) ->
         cb new errors.NotImplemented("Operation defined but not yet implemented")
@@ -38,7 +39,9 @@ class ModelOperation extends Operation
 class PrivilegedOperation extends Operation
 
     transaction: (t, cb) ->
-        # Check privileges
+        # TODO: Check privileges
+
+        @privilegedTransaction t, cb
 
 
 class BrowseInfo extends Operation
@@ -46,10 +49,28 @@ class BrowseInfo extends Operation
     run: (cb) ->
         cb()
 
+class Register extends ModelOperation
+    # TODO: overwrite @run() and check if this component is
+    # authoritative for the requesting user's domain
+    transaction: (t, cb) ->
+
+class Publish extends PrivilegedOperation
+    requiredAffiliation: 'publisher'
+
+    privilegedTransaction: (t, cb) ->
+        steps = @req.items.map (item) =>
+            (cb2) =>
+                t.writeItem @req.actor, @req.node, item.id, item.els[0].toString(), cb2
+        steps.push cb
+        async.series steps
+
+
 
 OPERATIONS =
     'browse-node-info': undefined
     'browse-info': BrowseInfo
+    'register-user': Register
+    'publish-node-items': Publish
 
 exports.run = (request) ->
     opName = request.operation()

@@ -1,3 +1,4 @@
+xmpp = require('node-xmpp')
 errors = require('../errors')
 
 ##
@@ -8,6 +9,7 @@ errors = require('../errors')
 class exports.Request
     constructor: (stanza) ->
         @iq = stanza
+        @actor = new xmpp.JID(stanza.attrs.from).bare().toString()
         @reply = stanza.reply
         @replyError = stanza.replyError
 
