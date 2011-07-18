@@ -27,7 +27,7 @@ class exports.Connection
         #@conn.on "online", startPresenceTracking
         @conn.on "stanza", (stanza) =>
             # Just debug output:
-            console.log stanza.toString()
+            console.log "<< #{stanza.toString()}"
 
             switch stanza.name
                 when "iq"
@@ -66,6 +66,7 @@ class exports.Connection
             cancelTimeout timeout
             cb(error, result)
         # Finally, send out:
+        console.log ">> #{iq.toString()}"
         @conn.send iq
 
     _handleMessage: (message) ->
@@ -150,7 +151,6 @@ class exports.Connection
                     @onlineResources[userId].push resource
 
     _handleIq: (stanza) ->
-        console.log 'handleIq', @iqHandler, @
         if @iqHandler?
             ##
             # Prepare stanza reply hooks
@@ -164,7 +164,6 @@ class exports.Connection
 
             # Interface for <iq type='result'/>
             stanza.reply = (child) =>
-                console.log 'reply!'
                 replying()
 
                 reply = new xmpp.Element("iq",
@@ -175,6 +174,7 @@ class exports.Connection
                 )
                 reply.cnode(child.root()) if child
 
+                console.log ">> #{reply.toString()}"
                 @conn.send reply
             # Interface for <iq type='error'/>
             stanza.replyError = (err) =>
@@ -193,6 +193,7 @@ class exports.Connection
                         c("text").
                         t('' + err.message)
 
+                console.log ">> #{reply.toString()}"
                 @conn.send reply
 
             ##

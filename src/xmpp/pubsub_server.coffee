@@ -17,7 +17,7 @@ class DiscoInfoRequest extends Request.Request
         super
 
         @discoInfoEl = @iq.getChild("query", NS.DISCO_INFO)
-        @node = @discoInfoEl && @discoInfoEl.attrs.node
+        @node = @discoInfoEl?.attrs.node
 
     matches: () ->
         @iq.attrs.type is 'get' &&
@@ -44,17 +44,17 @@ class DiscoInfoRequest extends Request.Request
 
     reply: (result) ->
         queryEl = new xmpp.Element("query", xmlns: NS.DISCO_INFO)
-        if result.node?
+        if result?.node?
             queryEl.attrs.node = result.node
 
-        if result.identities?
+        if result?.identities?
             for identity in result.identities
                 queryEl.c "identity",
                     category: identity.category
                     type: identity.type
                     name: identity.name
 
-        if result.features?
+        if result?.features?
             for feature in result.features
                 queryEl.c "feature",
                     var: feature
@@ -80,7 +80,7 @@ class DiscoItemsRequest extends Request.Request
         super
 
         @discoItemsEl = @iq.getChild("query", NS.DISCO_ITEMS)
-        @node = @discoItemsEl && @discoItemsEl.attrs.node
+        @node = @discoItemsEl?.attrs.node
 
     matches: () ->
         @iq.attrs.type is 'get' &&
@@ -107,7 +107,7 @@ class DiscoItemsRequest extends Request.Request
 
     reply: (results) ->
         queryEl = new xmpp.Element("query", xmlns: NS.DISCO_ITEMS)
-        if results.node?
+        if results?.node
             queryEl.attrs.node = results.node
 
         for item in results
@@ -129,26 +129,25 @@ class DiscoItemsRequest extends Request.Request
 class RegisterRequest extends Request.Request
     constructor: (stanza) ->
         super
-
         @registerEl = @iq.getChild("query", NS.REGISTER)
 
     matches: () ->
         @registerEl
 
-class RegisterGetRequest extends Request.Request
+class RegisterGetRequest extends RegisterRequest
     matches: () ->
-        @iq.attrs.type is 'get' &&
-        @registerEl?
+        super &&
+        @iq.attrs.type is 'get'
 
     reply: () ->
         super new xmpp.Element("query", xmlns: NS.REGISTER).
             c("instructions").
             t("Simply register here")
 
-class RegisterSetRequest extends Request.Request
+class RegisterSetRequest extends RegisterRequest
     matches: () ->
-        @iq.attrs.type is 'set' &&
-        @registerEl?
+        super &&
+        @iq.attrs.type is 'set'
 
     operation: () ->
         'register-user'
@@ -182,8 +181,8 @@ class PubsubCreateRequest extends PubsubRequest
     constructor: (stanza) ->
         super
 
-        @createEl = @pubsubEl.getChild("create")
-        @node = @createEl && @createEl.attrs.node
+        @createEl = @pubsubEl?.getChild("create")
+        @node = @createEl?.attrs.node
 
     matches: () ->
         super &&
@@ -202,8 +201,8 @@ class PubsubSubscribeRequest extends PubsubRequest
     constructor: (stanza) ->
         super
 
-        @subscribeEl = @pubsubEl.getChild("subscribe")
-        @node = @subscribeEl && @subscribeEl.attrs.node
+        @subscribeEl = @pubsubEl?.getChild("subscribe")
+        @node = @subscribeEl?.attrs.node
 
     matches: () ->
         super &&
@@ -236,8 +235,8 @@ class PubsubUnsubscribeRequest extends PubsubRequest
     constructor: (stanza) ->
         super
 
-        @unsubscribeEl = @pubsubEl.getChild("unsubscribe")
-        @node = @unsubscribeEl && @unsubscribeEl.attrs.node
+        @unsubscribeEl = @pubsubEl?.getChild("unsubscribe")
+        @node = @unsubscribeEl?.attrs.node
 
     matches: () ->
         super &&
@@ -259,7 +258,7 @@ class PubsubPublishRequest extends PubsubRequest
     constructor: (stanza) ->
         super
 
-        @publishEl = @pubsubEl.getChild("publish")
+        @publishEl = @pubsubEl?.getChild("publish")
         @items = []
         if @publishEl
             @node = @publishEl.attrs.node
@@ -292,7 +291,7 @@ class PubsubRetractRequest extends PubsubRequest
     constructor: (stanza) ->
         super
 
-        @retractEl = @pubsubEl.getChild("retract")
+        @retractEl = @pubsubEl?.getChild("retract")
         @items = []
         if @retractEl
             @node = @retractEl.attrs.node
@@ -320,8 +319,8 @@ class PubsubItemsRequest extends PubsubRequest
     constructor: (stanza) ->
         super
 
-        @itemsEl = @pubsubEl.getChild("items")
-        @node = @itemEl && @itemsEl.attrs.node
+        @itemsEl = @pubsubEl?.getChild("items")
+        @node = @itemsEl?.attrs.node
 
     matches: () ->
         super &&
@@ -353,7 +352,7 @@ class PubsubSubscriptionsRequest extends PubsubRequest
     constructor: (stanza) ->
         super
 
-        @subscriptionsEl = @pubsubEl.getChild("subscriptions")
+        @subscriptionsEl = @pubsubEl?.getChild("subscriptions")
 
     matches: () ->
         super &&
@@ -388,7 +387,7 @@ class PubsubAffiliationsRequest extends PubsubRequest
     constructor: (stanza) ->
         super
 
-        @affiliationsEl = @pubsubEl.getChild("affiliations")
+        @affiliationsEl = @pubsubEl?.getChild("affiliations")
 
     matches: () ->
         super &&
@@ -435,8 +434,8 @@ class PubsubOwnerGetSubscriptionsRequest extends PubsubRequest
     constructor: (stanza) ->
         super
 
-        @subscriptionsEl = @pubsubEl.getChild("subscriptions")
-        @node = @subscriptionsEl && @subscriptionsEl.attrs.node
+        @subscriptionsEl = @pubsubEl?.getChild("subscriptions")
+        @node = @subscriptionsEl?.attrs.node
 
     matches: () ->
         super &&
@@ -470,7 +469,7 @@ class PubsubOwnerSetSubscriptionsRequest extends PubsubRequest
     constructor: (stanza) ->
         super
 
-        @subscriptionsEl = @pubsubEl.getChild("subscriptions")
+        @subscriptionsEl = @pubsubEl?.getChild("subscriptions")
         @subscriptions = []
         if @subscriptionsEl
             @node = @subscriptionsEl.attrs.node
@@ -499,8 +498,8 @@ class PubsubOwnerGetAffiliationsRequest extends PubsubRequest
     constructor: (stanza) ->
         super
 
-        @affiliationsEl = @pubsubEl.getChild("affiliations")
-        @node = @affiliationsEl && @affiliationsEl.attrs.node
+        @affiliationsEl = @pubsubEl?.getChild("affiliations")
+        @node = @affiliationsEl?.attrs.node
 
     matches: () ->
         super &&
@@ -534,7 +533,7 @@ class PubsubOwnerSetAffiliationsRequest extends PubsubRequest
     constructor: (stanza) ->
         super
 
-        @affiliationsEl = @pubsubEl.getChild("affiliations")
+        @affiliationsEl = @pubsubEl?.getChild("affiliations")
         @affiliations = []
         if @affiliationsEl
             @node = @affiliationsEl.attrs.node
@@ -584,7 +583,7 @@ exports.makeRequest = (stanza) ->
     for r in REQUESTS
         result = new r(stanza)
         if result.matches()
-            console.log 'found subrequest', result
+            console.log 'found subrequest', r.name
             break
         else
             result = null

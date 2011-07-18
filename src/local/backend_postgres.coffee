@@ -97,8 +97,10 @@ class Transaction
                 if err
                     throw err
                 if res.rowCount > 0
-                    throw new errors.Conflict("Node already exists")
-                db.query "INSERT INTO nodes (node) VALUES ($1)", [ node ], this
+                    # Node already exists: ignore
+                    this(null)
+                else
+                    db.query "INSERT INTO nodes (node) VALUES ($1)", [ node ], this
             , cb]
 
         ##

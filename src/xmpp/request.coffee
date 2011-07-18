@@ -10,8 +10,6 @@ class exports.Request
     constructor: (stanza) ->
         @iq = stanza
         @actor = new xmpp.JID(stanza.attrs.from).bare().toString()
-        @reply = stanza.reply
-        @replyError = stanza.replyError
 
     ##
     # Is this handler eligible for the request, or proceed to next
@@ -19,8 +17,13 @@ class exports.Request
     matches: () ->
         false
 
-    reply: () ->
-        @replyError(new errors.FeatureNotImplemented("Feature is not implemented"))
+    ##
+    # Empty <iq type='result'/> by default
+    reply: (child) ->
+        @iq.reply child
+
+    replyError: (error) ->
+        @iq.replyError error
 
     operation: () ->
         undefined
@@ -29,5 +32,7 @@ class exports.NotImplemented extends exports.Request
     matches: () ->
         true
 
-    # The default exports.Handler::run is already FeatureNotImplemented
+    reply: () ->
+        @replyError new errors.FeatureNotImplemented("Feature not implemented")
+
 

@@ -1,5 +1,5 @@
 async = require('async')
-errors = require('./errors')
+errors = require('../errors')
 
 transaction = null
 exports.setBackend = (backend) ->
@@ -47,12 +47,23 @@ class PrivilegedOperation extends Operation
 class BrowseInfo extends Operation
 
     run: (cb) ->
-        cb()
+        cb({})
 
 class Register extends ModelOperation
     # TODO: overwrite @run() and check if this component is
     # authoritative for the requesting user's domain
     transaction: (t, cb) ->
+        user = @req.actor
+        nodeTypes = [
+                'channels', 'status',
+                'geoloc/previous', 'geoloc/current',
+                'geoloc/next', 'subscriptions']
+        steps = nodeTypes.map (nodeType) =>
+            (cb2) =>
+                node = "/user/#{user}/#{nodeType}"
+                t.createNode node, cb2
+        steps.push cb
+        async.series steps
 
 class Publish extends PrivilegedOperation
     requiredAffiliation: 'publisher'
@@ -73,14 +84,21 @@ OPERATIONS =
     'publish-node-items': Publish
 
 exports.run = (request) ->
+    unless opName
+        # No operation specified, reply immediately
+        request.reply()
+        return
+
     opName = request.operation()
     opClass = OPERATIONS[opName]
 
     unless opClass
         console.error "Unimplemented operation #{opName}"
-        request.replyError(new errors.NotImplemented("Unimplemented operation #{opName}"))
+        console.log request: request
+        request.replyError(new errors.FeatureNotImplemented("Unimplemented operation #{opName}"))
         return
 
+    console.log "Creating operation #{opName}"
     op = new opClass(request)
     op.run (error, result) ->
         if error

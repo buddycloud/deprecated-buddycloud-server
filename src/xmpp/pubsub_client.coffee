@@ -45,22 +45,23 @@ class PubsubClient
         queryAttrs =
             xmlns: NS.DISCO_ITEMS
         if node?
-        	queryAttrs.node = node
-        @sendIq new xmpp.Element('iq',
-                    to: jid
-                    type: 'get').
-                c('query', queryAttrs), (error, reply) ->
+                queryAttrs.node = node
+        @sendIq(
+            new xmpp.Element('iq', to: jid, type: 'get').
+            c('query', queryAttrs)
+        , (error, reply) ->
+
             if error
                 return cb error
 
             results = []
-        	queryEl = reply && reply.getChild('query')
-        	if queryEl
-                for itemEl in queryEl.getChildren('item')
-            		results.push
-                        jid: itemEl.attr.jid
-                        node: itemEl.attr.node
-        	cb null, results
+            queryEl = reply?.getChild('query')
+            if queryEl
+                results = for itemEl in queryEl.getChildren('item')
+                    { jid: itemEl.attr.jid
+                      node: itemEl.attr.node }
+            cb(null, results)
+        )
 
     ##
     # XEP-0030 disco with #info for <identity/>
@@ -72,45 +73,48 @@ class PubsubClient
         queryAttrs =
             xmlns: Strophe.NS.DISCO_INFO
         if node?
-        	queryAttrs.node = node
-        @sendIq new xmpp.Element('iq',
-                    to: jid
-                    type: 'get').
-                c('query', queryAttrs), (error, reply) ->
+                queryAttrs.node = node
+        @sendIq(
+            new xmpp.Element('iq', to: jid, type: 'get').
+            c('query', queryAttrs)
+        , (error, reply) ->
             if error
                 return cb error
 
-        	result =
+            result =
                 identities: []
                 features: []
                 forms: []
-        	queryEl = reply && reply.getChild('query')
-        	if queryEl
-        	    # Extract identities
-                for identityEl in queryEl.getChildren('identity')
-            		result.identities.push
-                        category: identityEl.attr.category
-    					type: identityEl.attr.type
-        	    # Extract features
-                for featureEl in queryEl.getChildren('feature')
-            		result.features.push featureEl.attr.var
-        	    # Extract forms
-                for xEl in queryEl.getChildren('x', NS.DATA)
-            		form =
-                        type: xEl.attrs.type
-        			    fields: {}
-                    for fieldEl in xEl.getChildren('field')
-            		    key = fieldEl.attrs.var
-            		    values = []
-            		    type = fieldEl.attrs.type || 'text-single'
-                        for valueEl in fieldEl.getChildren('value')
-            		        values.push valueEl.getText()
-            		    if /-multi$/.test(type)
-                			form.fields[key] = values
-            		    else
-                			form.fields[key] = values[0]
-            		result.forms.push(form);
-        	cb null, result
+            queryEl = reply?.getChild('query')
+            if queryEl
+                # Extract identities
+                result.identities =
+                    for identityEl in queryEl.getChildren('identity')
+                        { category: identityEl.attr.category
+                          type: identityEl.attr.type }
+                # Extract features
+                result.features =
+                    for featureEl in queryEl.getChildren('feature')
+                        featureEl.attr.var
+                # Extract forms
+                result.forms =
+                    for xEl in queryEl.getChildren('x', NS.DATA)
+                        form =
+                            type: xEl.attrs.type
+                            fields: {}
+                        for fieldEl in xEl.getChildren('field')
+                            key = fieldEl.attrs.var
+                            values = []
+                            type = fieldEl.attrs.type || 'text-single'
+                            for valueEl in fieldEl.getChildren('value')
+                                values.push valueEl.getText()
+                                form.fields[key] = if /-multi$/.test(type)
+                                    values
+                                else
+                                    values[0]
+                        form
+            cb null, result
+        )
 
 class PubsubNode
     constructor: (client, userId) ->

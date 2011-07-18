@@ -1,21 +1,19 @@
-config = require(process.argv[2])
-
-backend = require('./local/backend_postgres')
-backend.start config.modelConfig
-
-operations = require('./operations')
-operations.setBackend backend
-
-{makeRequest} = require('./xmpp/pubsub_server')
-
 process.on 'uncaughtException', (err) ->
     console.error "uncaughtException: #{err.stack || err.message || err.toString()}"
 
 if process.argv.length < 3
     console.error "Usage: #{process.argv[0]} #{process.argv[1]} <config.js>"
     process.exit 1
+config = require("#{process.cwd()}/#{process.argv[2]}")
 
-process.chdir __dirname
+backend = require('./local/backend_postgres')
+backend.start config.modelConfig
+
+operations = require('./local/operations')
+operations.setBackend backend
+
+{makeRequest} = require('./xmpp/pubsub_server')
+
 
 # XMPP Connection, w/ presence tracking
 xmppConn = new (require('./xmpp/connection').Connection)(config.xmpp)
