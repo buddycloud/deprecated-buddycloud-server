@@ -23,25 +23,6 @@ class DiscoInfoRequest extends Request.Request
         @iq.attrs.type is 'get' &&
         @discoInfoEl?
 
-    run: () ->
-        console.log 'run DiscoInfoRequest'
-        features = []
-        unless @node
-            features.push NS.DISCO_ITEMS, NS.REGISTER
-
-        console.log 'replying'
-        @reply
-            node: @node
-            features: features
-            identities: [
-                category: "pubsub"
-                type: "service"
-                name: "Channels service",
-                category: "pubsub"
-                type: "channels"
-                name: "Channels service"
-            ]
-
     reply: (result) ->
         queryEl = new xmpp.Element("query", xmlns: NS.DISCO_INFO)
         if result?.node?
@@ -85,25 +66,6 @@ class DiscoItemsRequest extends Request.Request
     matches: () ->
         @iq.attrs.type is 'get' &&
         @discoItemsEl?
-
-    run: () ->
-        console.log 'run DiscoItemsRequest'
-        features = []
-        unless @node
-            features.push NS.DISCO_ITEMS, NS.REGISTER
-
-        console.log 'replying'
-        @reply
-            node: @node
-            features: features
-            identities: [
-                category: "pubsub"
-                type: "service"
-                name: "Channels service",
-                category: "pubsub"
-                type: "channels"
-                name: "Channels service"
-            ]
 
     reply: (results) ->
         queryEl = new xmpp.Element("query", xmlns: NS.DISCO_ITEMS)

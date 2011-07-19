@@ -47,7 +47,22 @@ class PrivilegedOperation extends Operation
 class BrowseInfo extends Operation
 
     run: (cb) ->
-        cb({})
+        console.log "BrowseInfo run"
+        features = [
+            NS.DISCO_ITEMS, NS.REGISTER,
+            NS.PUBSUB, NS.PUBSUB_OWNER
+        ]
+        cb null,
+            features: features
+            identities: [
+                category: "pubsub"
+                type: "service"
+                name: "Channels service",
+                category: "pubsub"
+                type: "channels"
+                name: "Channels service"
+            ]
+        cb()
 
 class Register extends ModelOperation
     # TODO: overwrite @run() and check if this component is
