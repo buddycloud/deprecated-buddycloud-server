@@ -23,7 +23,21 @@ class DiscoInfoRequest extends Request.Request
         @iq.attrs.type is 'get' &&
         @discoInfoEl?
 
-    reply: (result) ->
+    reply: () ->
+        result =
+            features: [
+                NS.DISCO_ITEMS, NS.REGISTER,
+                NS.PUBSUB, NS.PUBSUB_OWNER
+            ]
+            identities: [
+                category: "pubsub"
+                type: "service"
+                name: "Channels service",
+                category: "pubsub"
+                type: "channels"
+                name: "Channels service"
+            ]
+
         queryEl = new xmpp.Element("query", xmlns: NS.DISCO_INFO)
         if result?.node?
             queryEl.attrs.node = result.node
@@ -542,6 +556,7 @@ REQUESTS = [
 # Matches the above REQUESTS for the received stanza
 exports.makeRequest = (stanza) ->
     result = null
+    console.log "searching request for #{stanza.toString()}"
     for r in REQUESTS
         result = new r(stanza)
         if result.matches()

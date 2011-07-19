@@ -32,10 +32,10 @@ class exports.Connection
             switch stanza.name
                 when "iq"
                     switch stanza.attrs.type
-                        when "get" or "set"
+                        when "get", "set"
                             # IQ requests
                             @_handleIq stanza
-                        when "result" or "error" and stanza.attrs.id?
+                        when "result" , "error"
                             # IQ replies
                             @iqCallbacks.hasOwnProperty(stanza.attrs.id)
                             cb = @iqCallbacks[stanza.attrs.id]

@@ -21,6 +21,7 @@ xmppConn = new (require('./xmpp/connection').Connection)(config.xmpp)
 # Handle XEP-0060 Publish-Subscribe and related requests:
 xmppConn.iqHandler = (stanza) ->
     request = makeRequest stanza
+    console.log request: request, operation: request.operation()
     # TODO: move to router for inbox functionality
     operations.run request
 

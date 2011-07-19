@@ -1,9 +1,9 @@
 async = require('async')
 errors = require('../errors')
 
-transaction = null
+runTransaction = null
 exports.setBackend = (backend) ->
-    transaction = backend.transaction
+    runTransaction = backend.transaction
 
 ##
 # Is created with options from the request
@@ -18,17 +18,19 @@ class Operation
 
 class ModelOperation extends Operation
     run: (cb) ->
-        model.transaction (err, t) ->
+        runTransaction (err, t) =>
             if err
-                return req.callback err
+                return cb err
 
             @transaction t, (err) ->
                 if err
+                    console.error "Transaction rollback: #{err}"
                     t.rollback ->
                         cb err
                 else
                     t.commit ->
-                        cb
+                        console.log "committed"
+                        cb null
 
 
     # Must be implemented by subclass
@@ -48,20 +50,6 @@ class BrowseInfo extends Operation
 
     run: (cb) ->
         console.log "BrowseInfo run"
-        features = [
-            NS.DISCO_ITEMS, NS.REGISTER,
-            NS.PUBSUB, NS.PUBSUB_OWNER
-        ]
-        cb null,
-            features: features
-            identities: [
-                category: "pubsub"
-                type: "service"
-                name: "Channels service",
-                category: "pubsub"
-                type: "channels"
-                name: "Channels service"
-            ]
         cb()
 
 class Register extends ModelOperation
@@ -73,23 +61,21 @@ class Register extends ModelOperation
                 'channels', 'status',
                 'geoloc/previous', 'geoloc/current',
                 'geoloc/next', 'subscriptions']
-        steps = nodeTypes.map (nodeType) =>
-            (cb2) =>
+        async.series(for nodeType in nodeTypes
+            (cb2) ->
                 node = "/user/#{user}/#{nodeType}"
+                console.log "creating #{node}"
                 t.createNode node, cb2
-        steps.push cb
-        async.series steps
+        , cb)
 
 class Publish extends PrivilegedOperation
     requiredAffiliation: 'publisher'
 
     privilegedTransaction: (t, cb) ->
-        steps = @req.items.map (item) =>
+        async.series(for item in @req.items
             (cb2) =>
                 t.writeItem @req.actor, @req.node, item.id, item.els[0].toString(), cb2
-        steps.push cb
-        async.series steps
-
+        , cb)
 
 
 OPERATIONS =
@@ -99,14 +85,13 @@ OPERATIONS =
     'publish-node-items': Publish
 
 exports.run = (request) ->
+    opName = request.operation()
     unless opName
         # No operation specified, reply immediately
         request.reply()
         return
 
-    opName = request.operation()
     opClass = OPERATIONS[opName]
-
     unless opClass
         console.error "Unimplemented operation #{opName}"
         console.log request: request
@@ -116,6 +101,7 @@ exports.run = (request) ->
     console.log "Creating operation #{opName}"
     op = new opClass(request)
     op.run (error, result) ->
+        console.log "operation ran: #{error}, #{result}"
         if error
             request.replyError error
         else
