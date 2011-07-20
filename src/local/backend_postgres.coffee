@@ -1,6 +1,5 @@
 pg = require("pg")
 async = require("async")
-ltx = require("ltx")
 errors = require("../errors")
 
 # ready DB connections
@@ -285,15 +284,14 @@ class Transaction
 
     writeItem: (publisher, node, id, item, cb) ->
         db = @db
-        xml = item.toString()
         async.waterfall [ @nodeExists(node), (cb2) ->
             db.query "SELECT id FROM items WHERE node=$1 AND id=$2", [ node, id ], cb2
         , (res, cb2) ->
             isSet = res and res.rows and res.rows[0]
             if isSet
-                db.query "UPDATE items SET xml=$1, published=CURRENT_TIMESTAMP WHERE node=$2 AND id=$3", [ xml, node, id ], cb2
+                db.query "UPDATE items SET xml=$1, published=CURRENT_TIMESTAMP WHERE node=$2 AND id=$3", [ item, node, id ], cb2
             else unless isSet
-                db.query "INSERT INTO items (node, id, xml, published) VALUES ($1, $2, $3, CURRENT_TIMESTAMP)", [ node, id, xml ], cb2
+                db.query "INSERT INTO items (node, id, xml, published) VALUES ($1, $2, $3, CURRENT_TIMESTAMP)", [ node, id, item ], cb2
         ], cb
 
     deleteItem: (node, itemId, cb) ->
@@ -326,8 +324,7 @@ class Transaction
             db.query "SELECT xml FROM items WHERE node=$1 AND id=$2", [ node, id ], cb2
         , (res, cb2) ->
             if res and res.rows and res.rows[0]
-                item = parseItem(res.rows[0].xml)
-                cb2 null, item
+                cb2 null, res.rows[0].xml
             else
                 cb2 new errors.NotFound("No such item")
         ], cb
@@ -346,12 +343,11 @@ class Transaction
             params.push timeEnd
         q = @db.query("SELECT id, node, xml FROM items WHERE " + conditions.join(" AND ") + " ORDER BY published ASC", params)
         q.on "row", (row) ->
-            item = parseItem(row.xml)
             if item
                 itemCb
                     node: row.node
                     id: row.id
-                    item: item
+                    item: row.xml
 
 
         q.on "error", (err_) ->
@@ -401,10 +397,4 @@ class Transaction
             , cb2)
         ], cb
 
-parseItem = (xml) ->
-    try
-        return ltx.parse(xml)
-    catch e
-        console.error "Parsing " + xml + ": " + e.stack
-        return undefined
 

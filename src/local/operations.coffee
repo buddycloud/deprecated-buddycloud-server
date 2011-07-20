@@ -1,9 +1,18 @@
 async = require('async')
 errors = require('../errors')
+ltx = require("ltx")
 
 runTransaction = null
 exports.setBackend = (backend) ->
     runTransaction = backend.transaction
+
+
+parseItem = (xml) ->
+    try
+        return ltx.parse(xml)
+    catch e
+        console.error "Parsing " + xml + ": " + e.stack
+        return undefined
 
 ##
 # Is created with options from the request
@@ -90,6 +99,33 @@ class Unsubscribe extends ModelOperation
         t.setSubscription @req.node, @req.actor, 'none', cb
 
 
+class RetrieveItems extends PrivilegedOperation
+    requiredAffiliation: 'member'
+
+    privilegedTransaction: (t, cb) ->
+        t.getItemIds @req.node, (err, ids) =>
+            # TODO: apply RSM to ids
+            results = []
+            async.series ids.map((id) =>
+                (cb2) =>
+                    t.getItem @req.node, id, (err, xml) =>
+                        if err
+                            return cb2 err
+
+                        try
+                            item = parseItem(xml)
+                            @req.results.push
+                                id: id
+                                els: [item]
+                        catch e
+                            cb2 e
+            ), (err) ->
+                if err
+                    cb err
+                else
+                    cb null, results
+
+
 OPERATIONS =
     'browse-node-info': undefined
     'browse-info': BrowseInfo
@@ -97,6 +133,7 @@ OPERATIONS =
     'publish-node-items': Publish
     'subscribe-node': Subscribe
     'unsubscribe-node': Unsubscribe
+    'retrieve-node-items': RetrieveItems
 
 exports.run = (request) ->
     opName = request.operation()
