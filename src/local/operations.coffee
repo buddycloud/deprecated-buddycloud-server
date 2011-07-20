@@ -124,6 +124,21 @@ class RetrieveItems extends PrivilegedOperation
                     results.node = node
                     cb null, results
 
+class RetractItems extends PrivilegedOperation
+    # TODO: let users remove their own posts
+    requiredAffiliation: 'moderator'
+
+    privilegedTransaction: (t, cb) ->
+        node = @req.node
+        async.series @req.items.map((id) ->
+            (cb2) ->
+                t.deleteItem node, id, cb2
+        ), (err) ->
+            if err?
+                cb err
+            else
+                cb null
+
 
 OPERATIONS =
     'browse-node-info': undefined
@@ -133,6 +148,7 @@ OPERATIONS =
     'subscribe-node': Subscribe
     'unsubscribe-node': Unsubscribe
     'retrieve-node-items': RetrieveItems
+    'retract-node-items': RetractItems
 
 exports.run = (request) ->
     opName = request.operation()
