@@ -14,7 +14,7 @@ class Operation
         @req = request
 
     run: (cb) ->
-        cb new errors.NotImplemented("Operation defined but not yet implemented")
+        cb new errorsFeature.NotImplemented("Operation defined but not yet implemented")
 
 class ModelOperation extends Operation
     run: (cb) ->
@@ -38,7 +38,7 @@ class ModelOperation extends Operation
         cb null
 
 
-class PrivilegedOperation extends Operation
+class PrivilegedOperation extends ModelOperation
 
     transaction: (t, cb) ->
         # TODO: Check privileges
@@ -58,24 +58,24 @@ class Register extends ModelOperation
     transaction: (t, cb) ->
         user = @req.actor
         nodeTypes = [
-                'channels', 'status',
+                'channel', 'status',
                 'geoloc/previous', 'geoloc/current',
                 'geoloc/next', 'subscriptions']
-        async.series(for nodeType in nodeTypes
+        async.series(nodeTypes.map((nodeType) ->
             (cb2) ->
                 node = "/user/#{user}/#{nodeType}"
                 console.log "creating #{node}"
                 t.createNode node, cb2
-        , cb)
+        ), cb)
 
 class Publish extends PrivilegedOperation
     requiredAffiliation: 'publisher'
 
     privilegedTransaction: (t, cb) ->
-        async.series(for item in @req.items
+        async.series(@req.items.map((item) =>
             (cb2) =>
                 t.writeItem @req.actor, @req.node, item.id, item.els[0].toString(), cb2
-        , cb)
+        ), cb)
 
 
 OPERATIONS =
