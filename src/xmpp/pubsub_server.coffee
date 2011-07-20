@@ -239,8 +239,11 @@ class PubsubPublishRequest extends PubsubRequest
         if @publishEl
             @node = @publishEl.attrs.node
             for itemEl in @publishEl.getChildren("item")
+                # el is 1st XML child
                 item =
-                    els: itemEl.children
+                    el: itemEl.children.filter((itemEl) ->
+                        itemEl.hasOwnProperty('children')
+                    )[0]
                 if itemEl.attrs.id
                     item.id = itemEl.attrs.id
                 @items.push item
@@ -304,11 +307,12 @@ class PubsubItemsRequest extends PubsubRequest
         @node
 
     reply: (items) ->
+        console.log "PubsubItemsRequest.reply": items
         itemsEl = new xmpp.Element("pubsub", xmlns: NS.PUBSUB).
-            c("items", node: itemsNode)
+            c("items", node: items.node)
         for item in items
             itemEl = itemsEl.c("item", id: item.id)
-            itemEl.children = item.els
+            itemEl.cnode(item.el)
 
         super itemsEl.up()
 

@@ -5,7 +5,6 @@
 # * Track presence
 ###
 xmpp = require("node-xmpp")
-#uuid = require("node-uuid")
 #errors = require("./errors")
 
 IQ_TIMEOUT = 10000

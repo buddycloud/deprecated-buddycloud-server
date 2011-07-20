@@ -1,4 +1,5 @@
 pg = require("pg")
+ltx = require("ltx")  # for item XML parsing & serialization
 async = require("async")
 errors = require("../errors")
 
@@ -282,16 +283,17 @@ class Transaction
             )
         ], cb
 
-    writeItem: (publisher, node, id, item, cb) ->
+    writeItem: (publisher, node, id, el, cb) ->
         db = @db
         async.waterfall [ @nodeExists(node), (cb2) ->
             db.query "SELECT id FROM items WHERE node=$1 AND id=$2", [ node, id ], cb2
         , (res, cb2) ->
             isSet = res and res.rows and res.rows[0]
+            xml = el.toString()
             if isSet
-                db.query "UPDATE items SET xml=$1, published=CURRENT_TIMESTAMP WHERE node=$2 AND id=$3", [ item, node, id ], cb2
+                db.query "UPDATE items SET xml=$1, published=CURRENT_TIMESTAMP WHERE node=$2 AND id=$3", [ xml, node, id ], cb2
             else unless isSet
-                db.query "INSERT INTO items (node, id, xml, published) VALUES ($1, $2, $3, CURRENT_TIMESTAMP)", [ node, id, item ], cb2
+                db.query "INSERT INTO items (node, id, xml, published) VALUES ($1, $2, $3, CURRENT_TIMESTAMP)", [ node, id, xml ], cb2
         ], cb
 
     deleteItem: (node, itemId, cb) ->
@@ -323,8 +325,12 @@ class Transaction
         async.waterfall [(cb2) ->
             db.query "SELECT xml FROM items WHERE node=$1 AND id=$2", [ node, id ], cb2
         , (res, cb2) ->
-            if res and res.rows and res.rows[0]
-                cb2 null, res.rows[0].xml
+            if res?.rows?[0]?.xml
+                el = parseEl(res.rows[0].xml)
+                if el?
+                    cb2 null, el
+                else
+                    cb2 new errors.InternalServerError("Item XML parse error")
             else
                 cb2 new errors.NotFound("No such item")
         ], cb
@@ -397,4 +403,10 @@ class Transaction
             , cb2)
         ], cb
 
+parseEl = (xml) ->
+    try
+        return ltx.parse(xml)
+    catch e
+        console.error "Parsing " + xml + ": " + e.stack
+        return undefined
 

@@ -1,18 +1,11 @@
 async = require('async')
+uuid = require('node-uuid')
 errors = require('../errors')
-ltx = require("ltx")
 
 runTransaction = null
 exports.setBackend = (backend) ->
     runTransaction = backend.transaction
 
-
-parseItem = (xml) ->
-    try
-        return ltx.parse(xml)
-    catch e
-        console.error "Parsing " + xml + ": " + e.stack
-        return undefined
 
 ##
 # Is created with options from the request
@@ -31,7 +24,7 @@ class ModelOperation extends Operation
             if err
                 return cb err
 
-            @transaction t, (err) ->
+            @transaction t, (err, results) ->
                 if err
                     console.error "Transaction rollback: #{err}"
                     t.rollback ->
@@ -39,7 +32,7 @@ class ModelOperation extends Operation
                 else
                     t.commit ->
                         console.log "committed"
-                        cb null
+                        cb null, results
 
 
     # Must be implemented by subclass
@@ -83,8 +76,15 @@ class Publish extends PrivilegedOperation
     privilegedTransaction: (t, cb) ->
         async.series(@req.items.map((item) =>
             (cb2) =>
-                t.writeItem @req.actor, @req.node, item.id, item.els[0].toString(), cb2
-        ), cb)
+                unless item.id?
+                    item.id = uuid()
+                t.writeItem @req.actor, @req.node, item.id, item.el, cb2
+        ), (err) ->
+            if err
+                cb err
+            else
+                cb null
+        )
 
 class Subscribe extends PrivilegedOperation
     requiredAffiliation: 'member'
@@ -103,26 +103,25 @@ class RetrieveItems extends PrivilegedOperation
     requiredAffiliation: 'member'
 
     privilegedTransaction: (t, cb) ->
-        t.getItemIds @req.node, (err, ids) =>
-            # TODO: apply RSM to ids
-            results = []
-            async.series ids.map((id) =>
-                (cb2) =>
-                    t.getItem @req.node, id, (err, xml) =>
+        node = @req.node
+        t.getItemIds node, (err, ids) ->
+            async.series ids.map((id) ->
+                (cb2) ->
+                    t.getItem node, id, (err, el) ->
                         if err
                             return cb2 err
 
-                        try
-                            item = parseItem(xml)
-                            @req.results.push
-                                id: id
-                                els: [item]
-                        catch e
-                            cb2 e
-            ), (err) ->
+                        cb2 null,
+                            id: id
+                            el: el
+            ), (err, results) ->
                 if err
                     cb err
                 else
+                    # TODO: apply RSM to ids
+
+                    # Annotate results array
+                    results.node = node
                     cb null, results
 
 
