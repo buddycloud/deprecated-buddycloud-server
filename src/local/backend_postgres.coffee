@@ -161,11 +161,8 @@ class Transaction
         async.waterfall [(cb2) ->
             db.query "SELECT \"user\", subscription FROM subscriptions WHERE node=$1", [ node ], cb2
         , (res, cb2) ->
-            subscribers = []
-            res.rows.forEach (row) ->
-                subscribers.push
-                    user: row.user
-                    subscription: row.subscription
+            subscribers = for row in res.rows
+                { user: row.user, subscription: row.subscription }
 
             cb2 null, subscribers
         ], cb

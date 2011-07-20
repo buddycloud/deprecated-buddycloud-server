@@ -153,6 +153,10 @@ class UserAffiliations extends ModelOperation
     transaction: (t, cb) ->
         t.getAffiliations @req.actor, cb
 
+class NodeSubscriptions extends PrivilegedOperation
+    privilegedTransaction: (t, cb) ->
+        t.getSubscribers @req.node, cb
+
 OPERATIONS =
     'browse-node-info': undefined
     'browse-info': BrowseInfo
@@ -164,6 +168,7 @@ OPERATIONS =
     'retract-node-items': RetractItems
     'retrieve-user-subscriptions': UserSubscriptions
     'retrieve-user-affiliations': UserAffiliations
+    'retrieve-node-subscriptions': NodeSubscriptions
 
 exports.run = (request) ->
     opName = request.operation()

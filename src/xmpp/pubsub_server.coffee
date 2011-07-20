@@ -143,6 +143,14 @@ class PubsubRequest extends Request.Request
          @iq.attrs.type is 'set') &&
         @pubsubEl?
 
+    reply: (child) ->
+        if child?
+            pubsubEl = new xmpp.Element("pubsub", { xmlns: NS.PUBSUB })
+            pubsubEl.cnode child
+            super pubsubEl
+        else
+            super()
+
 # <iq type='set'
 #     from='hamlet@denmark.lit/elsinore'
 #     to='pubsub.shakespeare.lit'
@@ -190,8 +198,7 @@ class PubsubSubscribeRequest extends PubsubRequest
         attrs.jid = result.jid if result && result.jid
         attrs.subscription = result.subscription if result && result.subscription
         if attrs.jid || attrs.subscription
-            super new xmpp.Element("pubsub", xmlns: NS.PUBSUB).
-                c("subscription", attrs)
+            super new xmpp.Element("subscription", attrs)
         else
             super
 
@@ -308,13 +315,12 @@ class PubsubItemsRequest extends PubsubRequest
 
     reply: (items) ->
         console.log "PubsubItemsRequest.reply": items
-        itemsEl = new xmpp.Element("pubsub", xmlns: NS.PUBSUB).
-            c("items", node: items.node)
+        itemsEl = new xmpp.Element("items", node: items.node)
         for item in items
             itemEl = itemsEl.c("item", id: item.id)
             itemEl.cnode(item.el)
 
-        super itemsEl.up()
+        super itemsEl
 
     operation: ->
         'retrieve-node-items'
@@ -340,8 +346,7 @@ class PubsubSubscriptionsRequest extends PubsubRequest
         @subscriptionsEl
 
     reply: (nodes) ->
-        subscriptionsEl = new xmpp.Element("pubsub", xmlns: NS.PUBSUB).
-            c("subscriptions")
+        subscriptionsEl = new xmpp.Element("subscriptions")
         for node in nodes
             attrs =
                 node: node.node
@@ -350,7 +355,7 @@ class PubsubSubscriptionsRequest extends PubsubRequest
                 attrs.jid = node.jid
             subscriptionsEl.c "subscription", attrs
 
-        super subscriptionsEl.up()
+        super subscriptionsEl
 
     operation: ->
         'retrieve-user-subscriptions'
@@ -375,8 +380,7 @@ class PubsubAffiliationsRequest extends PubsubRequest
         @affiliationsEl
 
     reply: (nodes) ->
-        affiliationsEl = new xmpp.Element("pubsub", xmlns: NS.PUBSUB).
-            c("affiliations")
+        affiliationsEl = new xmpp.Element("affiliations")
         for node in nodes
             attrs =
                 node: node.node
@@ -385,22 +389,34 @@ class PubsubAffiliationsRequest extends PubsubRequest
                 attrs.jid = node.jid
             affiliationsEl.c "affiliation", attrs
 
-        super affiliationsEl.up()
+        super affiliationsEl
 
     operation: ->
         'retrieve-user-affiliations'
 
 
+##
+# *Owner* is not related to a required affiliation. The derived
+# *operations are all requested with the pubsub#owner xmlns.
 class PubsubOwnerRequest extends Request.Request
     constructor: (stanza) ->
         super
 
         @pubsubEl = @iq.getChild("pubsub", NS.PUBSUB_OWNER)
+        console.log pubsubEl: @pubsubEl
 
     matches: () ->
         (@iq.attrs.type is 'get' ||
          @iq.attrs.type is 'set') &&
         @pubsubEl?
+
+    reply: (child) ->
+        if child?
+            pubsubEl = new xmpp.Element("pubsub", xmlns: NS.PUBSUB_OWNER)
+            pubsubEl.cnode child
+            super pubsubEl
+        else
+            super()
 
 # <iq type='get'
 #     from='hamlet@denmark.lit/elsinore'
@@ -410,7 +426,7 @@ class PubsubOwnerRequest extends Request.Request
 #     <subscriptions node='princely_musings'/>
 #   </pubsub>
 # </iq>
-class PubsubOwnerGetSubscriptionsRequest extends PubsubRequest
+class PubsubOwnerGetSubscriptionsRequest extends PubsubOwnerRequest
     constructor: (stanza) ->
         super
 
@@ -418,19 +434,23 @@ class PubsubOwnerGetSubscriptionsRequest extends PubsubRequest
         @node = @subscriptionsEl?.attrs.node
 
     matches: () ->
+        console.log "PubsubOwnerGetSubscriptionsRequest.matches":
+            node: @node
+            subscriptionsEl: @subscriptionsEl
+            type: @iq.attrs.type
+            pubsubEl: @pubsubEl
         super &&
         @iq.attrs.type is 'get' &&
-        @subscriptionsEl
+        @node
 
     reply: (subscriptions) ->
-        subscriptionsEl = new xmpp.Element("pubsub", xmlns: NS.PUBSUB_OWNER).
-            c("subscriptions")
+        subscriptionsEl = new xmpp.Element("subscriptions")
         for subscription in subscriptions
             subscriptionsEl.c 'subscription',
-                jid: subscription.jid
+                jid: subscription.user
                 subscription: subscription.subscription
 
-        super subscriptionsEl.up()
+        super subscriptionsEl
 
     operation: ->
         'retrieve-node-subscriptions'
@@ -445,7 +465,7 @@ class PubsubOwnerGetSubscriptionsRequest extends PubsubRequest
 #     </subscriptions>
 #   </pubsub>
 # </iq>
-class PubsubOwnerSetSubscriptionsRequest extends PubsubRequest
+class PubsubOwnerSetSubscriptionsRequest extends PubsubOwnerRequest
     constructor: (stanza) ->
         super
 
@@ -474,7 +494,7 @@ class PubsubOwnerSetSubscriptionsRequest extends PubsubRequest
 #     <affiliations node='princely_musings'/>
 #   </pubsub>
 # </iq>
-class PubsubOwnerGetAffiliationsRequest extends PubsubRequest
+class PubsubOwnerGetAffiliationsRequest extends PubsubOwnerRequest
     constructor: (stanza) ->
         super
 
@@ -509,7 +529,7 @@ class PubsubOwnerGetAffiliationsRequest extends PubsubRequest
 #     </affiliations>
 #   </pubsub>
 # </iq>
-class PubsubOwnerSetAffiliationsRequest extends PubsubRequest
+class PubsubOwnerSetAffiliationsRequest extends PubsubOwnerRequest
     constructor: (stanza) ->
         super
 
