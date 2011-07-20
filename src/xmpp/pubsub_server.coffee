@@ -507,14 +507,13 @@ class PubsubOwnerGetAffiliationsRequest extends PubsubOwnerRequest
         @affiliationsEl
 
     reply: (affiliations) ->
-        affiliationsEl = new xmpp.Element("pubsub", xmlns: NS.PUBSUB_OWNER).
-            c("affiliations")
+        affiliationsEl = new xmpp.Element("affiliations")
         for affiliation in affiliations
             affiliationsEl.c 'affiliation',
-                jid: affiliation.jid
+                jid: affiliation.user
                 affiliation: affiliation.affiliation
 
-        super affiliationsEl.up()
+        super affiliationsEl
 
     operation: ->
         'retrieve-node-affiliations'

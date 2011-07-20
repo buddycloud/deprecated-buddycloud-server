@@ -157,6 +157,10 @@ class NodeSubscriptions extends PrivilegedOperation
     privilegedTransaction: (t, cb) ->
         t.getSubscribers @req.node, cb
 
+class NodeAffiliations extends PrivilegedOperation
+    privilegedTransaction: (t, cb) ->
+        t.getAffiliated @req.node, cb
+
 OPERATIONS =
     'browse-node-info': undefined
     'browse-info': BrowseInfo
@@ -169,6 +173,7 @@ OPERATIONS =
     'retrieve-user-subscriptions': UserSubscriptions
     'retrieve-user-affiliations': UserAffiliations
     'retrieve-node-subscriptions': NodeSubscriptions
+    'retrieve-node-affiliations': NodeAffiliations
 
 exports.run = (request) ->
     opName = request.operation()
