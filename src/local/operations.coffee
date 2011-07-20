@@ -63,12 +63,20 @@ class Register extends ModelOperation
                 'channel', 'status',
                 'geoloc/previous', 'geoloc/current',
                 'geoloc/next', 'subscriptions']
-        async.series(nodeTypes.map((nodeType) ->
+        async.series nodeTypes.map((nodeType) ->
             (cb2) ->
                 node = "/user/#{user}/#{nodeType}"
                 console.log "creating #{node}"
-                t.createNode node, cb2
-        ), cb)
+                async.series [(cb3) ->
+                    t.createNode node, cb3
+                , (cb3) ->
+                    t.setAffiliation node, user, 'owner', cb3
+                , (cb3) ->
+                    t.setSubscription node, user, 'subscribed', cb3
+                ], cb2
+        ), (err) ->
+            cb err
+
 
 class Publish extends PrivilegedOperation
     requiredAffiliation: 'publisher'
