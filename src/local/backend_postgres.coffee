@@ -173,14 +173,10 @@ class Transaction
     getSubscriptions: (user, cb) ->
         db = @db
         async.waterfall [(cb2) ->
-            db.query "SELECT node, subscription FROM subscriptions WHERE \"user\"=$1", [ user ], cb
+            db.query "SELECT node, subscription FROM subscriptions WHERE \"user\"=$1", [ user ], cb2
         , (res, cb2) ->
-            subscriptions = []
-            res.rows.forEach (row) ->
-                subscriptions.push
-                    node: row.node
-                    subscription: row.subscription
-
+            subscriptions = for row in res.rows
+                { node: row.node, subscription: row.subscription }
             cb2 null, subscriptions
         ], cb
 
@@ -250,12 +246,8 @@ class Transaction
         async.waterfall [(cb2) ->
             db.query "SELECT node, affiliation FROM affiliations WHERE \"user\"=$1", [ user ], cb2
         , (res, cb2) ->
-            affiliations = []
-            res.rows.forEach (row) ->
-                affiliations.push
-                    node: row.node
-                    affiliation: row.affiliation
-
+            affiliations = for row in res.rows
+                { node: row.node, affiliation: row.affiliation }
             cb2 null, affiliations
         ], cb
 
@@ -264,11 +256,8 @@ class Transaction
         async.waterfall [(cb2) ->
             db.query "SELECT \"user\", affiliation FROM affiliations WHERE node=$1", [ node ], cb2
         , (res, cb2) ->
-            affiliations = []
-            res.rows.forEach (row) ->
-                affiliations.push
-                    user: row.user
-                    affiliation: row.affiliation
+            affiliations = for row in res.rows
+                { user: row.user, affiliation: row.affiliation }
 
             cb2 null, affiliations
         ], cb

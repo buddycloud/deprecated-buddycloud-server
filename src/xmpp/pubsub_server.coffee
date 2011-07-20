@@ -353,7 +353,7 @@ class PubsubSubscriptionsRequest extends PubsubRequest
         super subscriptionsEl.up()
 
     operation: ->
-        'retrieve-user-suscriptions'
+        'retrieve-user-subscriptions'
 
 # <iq type='get'
 #     from='francisco@denmark.lit/barracks'

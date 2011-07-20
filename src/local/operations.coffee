@@ -90,7 +90,8 @@ class Subscribe extends PrivilegedOperation
     requiredAffiliation: 'member'
 
     privilegedTransaction: (t, cb) ->
-        t.setSubscription @req.node, @req.actor, 'subscribed', cb
+        t.setSubscription @req.node, @req.actor, 'subscribed', (err) ->
+            cb err
 
 ##
 # Not privileged as anybody should be able to unsubscribe him/herself
@@ -134,11 +135,15 @@ class RetractItems extends PrivilegedOperation
             (cb2) ->
                 t.deleteItem node, id, cb2
         ), (err) ->
-            if err?
-                cb err
-            else
-                cb null
+            cb err
 
+class UserSubscriptions extends ModelOperation
+    transaction: (t, cb) ->
+        t.getSubscriptions @req.actor, cb
+
+class UserAffiliations extends ModelOperation
+    transaction: (t, cb) ->
+        t.getAffiliations @req.actor, cb
 
 OPERATIONS =
     'browse-node-info': undefined
@@ -149,6 +154,8 @@ OPERATIONS =
     'unsubscribe-node': Unsubscribe
     'retrieve-node-items': RetrieveItems
     'retract-node-items': RetractItems
+    'retrieve-user-subscriptions': UserSubscriptions
+    'retrieve-user-affiliations': UserAffiliations
 
 exports.run = (request) ->
     opName = request.operation()
