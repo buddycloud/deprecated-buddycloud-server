@@ -138,17 +138,18 @@ class Transaction
 
     setSubscription: (node, user, subscription, cb) ->
         db = @db
+        toDelete = not subscription or subscription == "none"
         async.waterfall [ @nodeExists(node), (cb2) ->
-            db.query "SELECT subscription FROM subscriptions WHERE node=$1 AND user=$2", [ node, user ], cb2
+            db.query "SELECT subscription FROM subscriptions WHERE node=$1 AND \"user\"=$2", [ node, user ], cb2
         , (res, cb2) ->
-            isSet = res and res.rows and res.rows[0]
-            toDelete = not subscription or subscription == "none"
+            isSet = res?.rows?[0]
+            console.log "setSubscription #{node} #{user} isSet=#{isSet} toDelete=#{toDelete}"
             if isSet and not toDelete
-                db.query "UPDATE subscriptions SET subscription=$1 WHERE node=$2 AND \"user\"=$3", [ subscription, node, user ], this
+                db.query "UPDATE subscriptions SET subscription=$1 WHERE node=$2 AND \"user\"=$3", [ subscription, node, user ], cb2
             else if not isSet and not toDelete
-                db.query "INSERT INTO subscriptions (node, \"user\", subscription) VALUES ($1, $2, $3)", [ node, user, subscription ], this
+                db.query "INSERT INTO subscriptions (node, \"user\", subscription) VALUES ($1, $2, $3)", [ node, user, subscription ], cb2
             else if isSet and toDelete
-                db.query "DELETE FROM subscriptions WHERE node=$1 AND \"user\"=$2", [ node, user ], this
+                db.query "DELETE FROM subscriptions WHERE node=$1 AND \"user\"=$2", [ node, user ], cb2
             else if not isSet and toDelete
                 cb2 null
             else
@@ -198,7 +199,7 @@ class Transaction
     getPingNodes: (user, cb) ->
         db = @db
         async.waterfall [(cb2) ->
-            db.query "SELECT node FROM affiliations WHERE affiliation = 'owner' AND user = $1 AND EXISTS (SELECT user FROM subscriptions WHERE subscription = 'pending' AND node = affiliations.node)", [ user ], cb2
+            db.query "SELECT node FROM affiliations WHERE affiliation = 'owner' AND \"user\" = $1 AND EXISTS (SELECT \"user\" FROM subscriptions WHERE subscription = 'pending' AND node = affiliations.node)", [ user ], cb2
         , (res, cb2) ->
             cb2 null, res.rows.map((row) ->
                 row.node
@@ -222,7 +223,7 @@ class Transaction
     getAffiliation = (node, user, cb) ->
         db = @db
         async.waterfall [(cb2) ->
-            db.query "SELECT affiliation FROM affiliations WHERE node=$1 AND user=$2", [ node, user ], cb2
+            db.query "SELECT affiliation FROM affiliations WHERE node=$1 AND \"user\"=$2", [ node, user ], cb2
         , (res, cb2) ->
             cb2 null, (res.rows[0] and res.rows[0].affiliation) or "none"
         ], cb
@@ -230,7 +231,7 @@ class Transaction
     setAffiliation = (node, user, affiliation, cb) ->
         db = @db
         async.waterfall [(cb2) ->
-            db.query "SELECT affiliation FROM affiliations WHERE node=$1 AND user=$2", [ node, user ], cb2
+            db.query "SELECT affiliation FROM affiliations WHERE node=$1 AND \"user\"=$2", [ node, user ], cb2
         , (res, cb2) ->
             isSet = res and res.rows and res.rows[0]
             toDelete = not affiliation or affiliation == "none"
