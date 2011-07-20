@@ -77,12 +77,26 @@ class Publish extends PrivilegedOperation
                 t.writeItem @req.actor, @req.node, item.id, item.els[0].toString(), cb2
         ), cb)
 
+class Subscribe extends PrivilegedOperation
+    requiredAffiliation: 'member'
+
+    privilegedTransaction: (t, cb) ->
+        t.setSubscription @req.node, @req.actor, 'subscribed', cb
+
+##
+# Not privileged as anybody should be able to unsubscribe him/herself
+class Unsubscribe extends ModelOperation
+    transaction: (t, cb) ->
+        t.setSubscription @req.node, @req.actor, 'none', cb
+
 
 OPERATIONS =
     'browse-node-info': undefined
     'browse-info': BrowseInfo
     'register-user': Register
     'publish-node-items': Publish
+    'subscribe-node': Subscribe
+    'unsubscribe-node': Unsubscribe
 
 exports.run = (request) ->
     opName = request.operation()
