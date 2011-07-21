@@ -6,6 +6,7 @@ CREATE TABLE node_config (node TEXT NOT NULL REFERENCES nodes (node),
 			  PRIMARY KEY (node, "key"));
 CREATE TABLE items (node TEXT REFERENCES nodes (node),
        	     	    id TEXT NOT NULL,
+		    author TEXT,
 		    updated TIMESTAMP,
 		    xml TEXT,
 		    PRIMARY KEY (node, id));

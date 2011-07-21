@@ -82,11 +82,12 @@ class Publish extends PrivilegedOperation
     requiredAffiliation: 'publisher'
 
     privilegedTransaction: (t, cb) ->
+        # TODO: normalize
         async.series(@req.items.map((item) =>
             (cb2) =>
                 unless item.id?
                     item.id = uuid()
-                t.writeItem @req.actor, @req.node, item.id, item.el, cb2
+                t.writeItem @req.node, item.id, @req.actor, item.el, cb2
         ), (err) ->
             if err
                 cb err

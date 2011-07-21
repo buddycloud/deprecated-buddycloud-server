@@ -145,9 +145,9 @@ class Transaction
             isSet = res?.rows?[0]
             console.log "setSubscription #{node} #{user} isSet=#{isSet} toDelete=#{toDelete}"
             if isSet and not toDelete
-                db.query "UPDATE subscriptions SET subscription=$1 WHERE node=$2 AND \"user\"=$3", [ subscription, node, user ], cb2
+                db.query "UPDATE subscriptions SET subscription=$1, updated=CURRENT_TIMESTAMP WHERE node=$2 AND \"user\"=$3", [ subscription, node, user ], cb2
             else if not isSet and not toDelete
-                db.query "INSERT INTO subscriptions (node, \"user\", subscription) VALUES ($1, $2, $3)", [ node, user, subscription ], cb2
+                db.query "INSERT INTO subscriptions (node, \"user\", subscription, updated) VALUES ($1, $2, $3, CURRENT_TIMESTAMP)", [ node, user, subscription ], cb2
             else if isSet and toDelete
                 db.query "DELETE FROM subscriptions WHERE node=$1 AND \"user\"=$2", [ node, user ], cb2
             else if not isSet and toDelete
@@ -269,7 +269,7 @@ class Transaction
             )
         ], cb
 
-    writeItem: (publisher, node, id, el, cb) ->
+    writeItem: (node, id, author, el, cb) ->
         db = @db
         async.waterfall [ @nodeExists(node), (cb2) ->
             db.query "SELECT id FROM items WHERE node=$1 AND id=$2", [ node, id ], cb2
@@ -277,12 +277,17 @@ class Transaction
             isSet = res and res.rows and res.rows[0]
             xml = el.toString()
             if isSet
-                db.query "UPDATE items SET xml=$1, published=CURRENT_TIMESTAMP WHERE node=$2 AND id=$3", [ xml, node, id ], cb2
+                db.query "UPDATE items SET xml=$1, author=$2, updated=CURRENT_TIMESTAMP WHERE node=$3 AND id=$4"
+                , [ xml, author, node, id ]
+                , cb2
             else unless isSet
-                db.query "INSERT INTO items (node, id, xml, published) VALUES ($1, $2, $3, CURRENT_TIMESTAMP)", [ node, id, xml ], cb2
+                db.query "INSERT INTO items (node, id, author, xml, updated) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)"
+                , [ node, id, author, xml ]
+                , cb2
         ], cb
 
     deleteItem: (node, itemId, cb) ->
+        # TODO: tombstone
         db = @db
         async.waterfall [(cb2) ->
             db.query "DELETE FROM items WHERE node=$1 AND id=$2", [ node, itemId ], cb2
@@ -298,7 +303,7 @@ class Transaction
     getItemIds: (node, cb) ->
         db = @db
         async.waterfall [(cb2) ->
-            db.query "SELECT id FROM items WHERE node=$1 ORDER BY published DESC", [ node ], cb2
+            db.query "SELECT id FROM items WHERE node=$1 ORDER BY updated DESC", [ node ], cb2
         , (res, cb2) ->
             ids = res.rows.map((row) ->
                 row.id
@@ -328,12 +333,12 @@ class Transaction
         params = [ subscriber ]
         i = 1
         if timeStart
-            conditions.push "published >= $" + (++i) + "::timestamp"
+            conditions.push "updated >= $" + (++i) + "::timestamp"
             params.push timeStart
         if timeEnd
-            conditions.push "published <= $" + (++i) + "::timestamp"
+            conditions.push "updated <= $" + (++i) + "::timestamp"
             params.push timeEnd
-        q = @db.query("SELECT id, node, xml FROM items WHERE " + conditions.join(" AND ") + " ORDER BY published ASC", params)
+        q = @db.query("SELECT id, node, xml FROM items WHERE " + conditions.join(" AND ") + " ORDER BY updated ASC", params)
         q.on "row", (row) ->
             if item
                 itemCb
@@ -383,7 +388,7 @@ class Transaction
                 		# * not been specified
                         # * no default config
                         if value == "" or value
-                            db.query "INSERT INTO node_config (key, value, node) " + "VALUES ($1, $2, $3)"
+                            db.query "INSERT INTO node_config (key, value, node, updated) VALUES ($1, $2, $3, CURRENT_TIMESTAMP)"
                             , [ key, value, node ]
                             , cb3
             , cb2)
