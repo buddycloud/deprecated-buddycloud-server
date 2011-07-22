@@ -6,6 +6,8 @@ if process.argv.length < 3
     process.exit 1
 config = require("#{process.cwd()}/#{process.argv[2]}")
 
+errors = require('./errors')
+
 backend = require('./local/backend_postgres')
 backend.start config.modelConfig
 
@@ -22,8 +24,19 @@ xmppConn = new (require('./xmpp/connection').Connection)(config.xmpp)
 xmppConn.iqHandler = (stanza) ->
     request = makeRequest stanza
     console.log request: request, operation: request.operation()
-    # TODO: move to router for inbox functionality
-    operations.run request
+    if request.sender isnt request.actor
+        # Validate if sender is authorized to act on behalf of the
+        # actor (TODO!)
+        authorizeFor request.sender, request.actor, (err, valid) ->
+            if err
+                stanza.replyError err
+            else unless valid
+                stanza.reply new errors.BadRequest('Requesting service not authorized for actor')
+            else
+                operations.run request
+    else
+        # TODO: move to router for inbox functionality
+        operations.run request
 
 # Resolves user backends by domain
 #router = (require('./router').Router)()

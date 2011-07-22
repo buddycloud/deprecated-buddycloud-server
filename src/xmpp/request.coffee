@@ -9,7 +9,9 @@ errors = require('../errors')
 class exports.Request
     constructor: (stanza) ->
         @iq = stanza
-        @actor = new xmpp.JID(stanza.attrs.from).bare().toString()
+        @sender = new xmpp.JID(stanza.attrs.from).bare().toString()
+        # can be overwritten by <actor xmlns="#{NS.BUDDYCLOUD_V1}"/>:
+        @actor = @sender
 
     ##
     # Is this handler eligible for the request, or proceed to next
@@ -27,6 +29,13 @@ class exports.Request
 
     operation: () ->
         undefined
+
+    setActor: (childEl) ->
+        actorEl = childEl?.getChild("actor", NS.BUDDYCLOUD_V1)
+        if actorEl?
+            @actor = actorEl.getText()
+        # Else @actor stays @sender (see @constructor)
+
 
 class exports.NotImplemented extends exports.Request
     matches: () ->

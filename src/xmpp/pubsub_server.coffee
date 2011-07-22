@@ -137,6 +137,7 @@ class PubsubRequest extends Request.Request
         super
 
         @pubsubEl = @iq.getChild("pubsub", NS.PUBSUB)
+        setActor @pubsubEl
 
     matches: () ->
         (@iq.attrs.type is 'get' ||
@@ -403,7 +404,7 @@ class PubsubOwnerRequest extends Request.Request
         super
 
         @pubsubEl = @iq.getChild("pubsub", NS.PUBSUB_OWNER)
-        console.log pubsubEl: @pubsubEl
+        setActor @pubsubEl
 
     matches: () ->
         (@iq.attrs.type is 'get' ||
