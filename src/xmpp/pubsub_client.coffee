@@ -2,120 +2,73 @@ xmpp = require('node-xmpp')
 async = require('async')
 NS = require('./ns')
 
-class PubsubClient
-    constructor: (conn) ->
-        @conn = conn
-        @myJID = conn.jid
-        @sendIq = (iq, cb) ->
-            conn.sendIq iq, cb
+class Request
+    constructor: (conn, opts, cb) ->
+        @opts = opts
+        conn.sendIq @iq, (errorStanza, replyStanza) =>
+            if errorStanza
+                # TODO: wrap errorStanza
+                cb new Error("Error from remote server")
+            else
+                result = @decodeReply replyStanza
+                cb null, result
 
-    ##
-    # @param {Function} cb(Error, PubsubUser)
-    discover: (userId, cb) ->
-        jid = new xmpp.JID userId
-        @discoItems jid.server, undefined, (error, items) =>
-            # TODO: restrict to local database access
-            containsOurselves = items.some (item) =>
-                item.jid is @myJID
+    iq: ->
+        throw new TypeError("Unimplemented request")
 
-            # check info for all listed JIDs
-            firstJID = null
-            async.some items, (item, someCb) =>
-                # TODO: add short timeout when introducing other
-                # protocols for responsiveness
-                @discoInfo item.jid, undefined, (error, info) ->
-                    return unless info && info.identities
+    decodeReply: (stanza) ->
+        throw new TypeError("Unimplemented reply")
 
-                    # looking for pubsub/channels identity
-                    for identity in info.identities
-                        if identity.category is 'pubsub' &&
-                           identity.type is 'channels'
-                            firstJID = item.jid
-                            someCb(true)
-            , (someChannel) =>
-                if someChannel and firstJID?
-                    cb null, new PubsubUser(@, userId)
-                else
-                    cb new errors.NotFound()
 
-    ##
-    # XEP-0030 browse for #items
-    # @param {Function} cb(error, [{ jid: String, node: String }])
-    discoItems: (jid, node, cb) ->
+class DiscoverRequest
+    xmlns: undefined
+
+    iq: ->
         queryAttrs =
-            xmlns: NS.DISCO_ITEMS
+            xmlns: @xmlns
         if node?
                 queryAttrs.node = node
-        @sendIq(
-            new xmpp.Element('iq', to: jid, type: 'get').
+        new xmpp.Element('iq', to: jid, type: 'get').
             c('query', queryAttrs)
-        , (error, reply) ->
 
-            if error
-                return cb error
+    decodeReply: (stanza) ->
+        @results = []
+        queryEl = reply?.getChild('query', @xmlns)
+        if queryEl
+            for child in queryEl.children
+                unless typeof child is 'string'
+                    @decodeReplyEl child
+        cb null, @results
 
-            results = []
-            queryEl = reply?.getChild('query')
-            if queryEl
-                results = for itemEl in queryEl.getChildren('item')
-                    { jid: itemEl.attr.jid
-                      node: itemEl.attr.node }
-            cb(null, results)
-        )
+    # Can add to @results
+    decodeReplyEl: (el) ->
 
-    ##
-    # XEP-0030 disco with #info for <identity/>
-    # cb(error, { identities: [{ category: String, type: String }],
-    #             features: [String],
-    #             forms: [ { type: 'result', fields: { ... } } ]
-    #           })
-    discoInfo: (jid, node, cb) ->
-        queryAttrs =
-            xmlns: Strophe.NS.DISCO_INFO
-        if node?
-                queryAttrs.node = node
-        @sendIq(
-            new xmpp.Element('iq', to: jid, type: 'get').
-            c('query', queryAttrs)
-        , (error, reply) ->
-            if error
-                return cb error
 
-            result =
-                identities: []
-                features: []
-                forms: []
-            queryEl = reply?.getChild('query')
-            if queryEl
-                # Extract identities
-                result.identities =
-                    for identityEl in queryEl.getChildren('identity')
-                        { category: identityEl.attr.category
-                          type: identityEl.attr.type }
-                # Extract features
-                result.features =
-                    for featureEl in queryEl.getChildren('feature')
-                        featureEl.attr.var
-                # Extract forms
-                result.forms =
-                    for xEl in queryEl.getChildren('x', NS.DATA)
-                        form =
-                            type: xEl.attrs.type
-                            fields: {}
-                        for fieldEl in xEl.getChildren('field')
-                            key = fieldEl.attrs.var
-                            values = []
-                            type = fieldEl.attrs.type || 'text-single'
-                            for valueEl in fieldEl.getChildren('value')
-                                values.push valueEl.getText()
-                                form.fields[key] = if /-multi$/.test(type)
-                                    values
-                                else
-                                    values[0]
-                        form
-            cb null, result
-        )
+class DiscoverItems
+    xmlns: NS.DISCO_ITEMS
 
-class PubsubNode
-    constructor: (client, userId) ->
+    decodeReplyEl: (el) ->
+        if el.is 'item', @xmlns and el.attrs.jid?
+            result = { jid: el.attrs.jid }
+            if el.attrs.node
+                result.node = el.attrs.node
+            @results.push result
 
+class DiscoverInfo
+    xmlns: NS.DISCO_INFO
+
+    decodeReplyEl: (el) ->
+        @results.identities ?= []
+        @results.features ?= []
+        @results.forms ?= []
+        switch el.getName()
+            when "identity"
+                @results.identities.push
+                    name: el.attrs.name
+                    category: el.attrs.category
+                    info: el.attrs.info
+            when "feature"
+                @results.features.push el.attrs.variable
+            when "form"
+                # TODO: .getForm(formType)
+                @results.forms.push

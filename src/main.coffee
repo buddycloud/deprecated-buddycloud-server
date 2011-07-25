@@ -19,6 +19,7 @@ operations.setBackend backend
 
 # XMPP Connection, w/ presence tracking
 xmppConn = new (require('./xmpp/connection').Connection)(config.xmpp)
+pubsubBackend = new (require('./xmpp/backend_pubsub').PubsubBackend)(xmppConn)
 
 # Handle XEP-0060 Publish-Subscribe and related requests:
 xmppConn.iqHandler = (stanza) ->
@@ -27,7 +28,7 @@ xmppConn.iqHandler = (stanza) ->
     if request.sender isnt request.actor
         # Validate if sender is authorized to act on behalf of the
         # actor (TODO!)
-        authorizeFor request.sender, request.actor, (err, valid) ->
+        pubsubBackend.authorizeFor request.sender, request.actor, (err, valid) ->
             if err
                 stanza.replyError err
             else unless valid

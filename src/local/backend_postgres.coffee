@@ -8,9 +8,16 @@ pool = []
 # waiting transaction requests
 queue = []
 
+debugDB = (db) ->
+    oldQuery = db.query
+    db.query = (sql, params) ->
+        console.log "query #{sql} #{JSON.stringify(params)}"
+        oldQuery.apply(@, arguments)
+
 # at start and when connection died
 connectDB = (config) ->
     db = new pg.Client(config)
+    debugDB db
     db.connect()
     # Reconnect in up to 5s
     db.on "error", (err) ->
