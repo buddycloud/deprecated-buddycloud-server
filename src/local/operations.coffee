@@ -59,6 +59,7 @@ class Register extends ModelOperation
     # authoritative for the requesting user's domain
     transaction: (t, cb) ->
         user = @req.actor
+        listener = @req.sender
         nodeTypes = [
                 'channel', 'status',
                 'geoloc/previous', 'geoloc/current',
@@ -72,7 +73,7 @@ class Register extends ModelOperation
                 , (cb3) ->
                     t.setAffiliation node, user, 'owner', cb3
                 , (cb3) ->
-                    t.setSubscription node, user, 'subscribed', cb3
+                    t.setSubscription node, user, listener, 'subscribed', cb3
                 ], cb2
         ), (err) ->
             cb err
@@ -99,14 +100,14 @@ class Subscribe extends PrivilegedOperation
     requiredAffiliation: 'member'
 
     privilegedTransaction: (t, cb) ->
-        t.setSubscription @req.node, @req.actor, 'subscribed', (err) ->
+        t.setSubscription @req.node, @req.actor, @req.sender, 'subscribed', (err) ->
             cb err
 
 ##
 # Not privileged as anybody should be able to unsubscribe him/herself
 class Unsubscribe extends ModelOperation
     transaction: (t, cb) ->
-        t.setSubscription @req.node, @req.actor, 'none', cb
+        t.setSubscription @req.node, @req.actor, @req.sender, 'none', cb
 
 
 class RetrieveItems extends PrivilegedOperation

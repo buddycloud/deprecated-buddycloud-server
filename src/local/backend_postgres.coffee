@@ -143,7 +143,7 @@ class Transaction
             cb2 null, (res.rows[0] and res.rows[0].subscription) or "none"
         ], cb
 
-    setSubscription: (node, user, subscription, cb) ->
+    setSubscription: (node, user, listener, subscription, cb) ->
         db = @db
         toDelete = not subscription or subscription == "none"
         async.waterfall [ @nodeExists(node), (cb2) ->
@@ -152,11 +152,17 @@ class Transaction
             isSet = res?.rows?[0]
             console.log "setSubscription #{node} #{user} isSet=#{isSet} toDelete=#{toDelete}"
             if isSet and not toDelete
-                db.query "UPDATE subscriptions SET subscription=$1, updated=CURRENT_TIMESTAMP WHERE node=$2 AND \"user\"=$3", [ subscription, node, user ], cb2
+                db.query "UPDATE subscriptions SET listener=$1, subscription=$2, updated=CURRENT_TIMESTAMP WHERE node=$2 AND \"user\"=$3"
+                , [ listener, subscription, node, user ]
+                , cb2
             else if not isSet and not toDelete
-                db.query "INSERT INTO subscriptions (node, \"user\", subscription, updated) VALUES ($1, $2, $3, CURRENT_TIMESTAMP)", [ node, user, subscription ], cb2
+                db.query "INSERT INTO subscriptions (node, \"user\", listener, subscription, updated) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)"
+                , [ node, user, listener, subscription ]
+                , cb2
             else if isSet and toDelete
-                db.query "DELETE FROM subscriptions WHERE node=$1 AND \"user\"=$2", [ node, user ], cb2
+                db.query "DELETE FROM subscriptions WHERE node=$1 AND \"user\"=$2"
+                , [ node, user ]
+                , cb2
             else if not isSet and toDelete
                 cb2 null
             else
