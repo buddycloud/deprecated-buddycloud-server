@@ -574,20 +574,30 @@ REQUESTS = [
     Request.NotImplemented
 ]
 
-##
-# Generates stanza-receiving function, invokes cb
-#
-# Matches the above REQUESTS for the received stanza
-exports.makeRequest = (stanza) ->
-    result = null
-    console.log "searching request for #{stanza.toString()}"
-    for r in REQUESTS
-        result = new r(stanza)
-        if result.matches()
-            console.log 'found subrequest', r.name
-            break
-        else
-            result = null
-    # Synchronous result:
-    result
+class PubsubServer
+    constructor: (@conn) ->
+        @conn.iqHandler = (stanza) =>
+            request = @makeRequest stanza
+            @onRequest request
 
+    onRequest: (request) ->
+        # hooked by main/router
+
+    ##
+    # Generates stanza-receiving function, invokes cb
+    #
+    # Matches the above REQUESTS for the received stanza
+    makeRequest: (stanza) ->
+        result = null
+        console.log "searching request for #{stanza.toString()}"
+        for r in REQUESTS
+            result = new r(stanza)
+            if result.matches()
+                console.log 'found subrequest', r.name
+                break
+            else
+                result = null
+        # Synchronous result:
+        result
+
+    sendNotification: (notification, user) ->

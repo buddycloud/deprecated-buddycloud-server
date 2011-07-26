@@ -14,20 +14,19 @@ backend.start config.modelConfig
 operations = require('./local/operations')
 operations.setBackend backend
 
-{makeRequest} = require('./xmpp/pubsub_server')
 
 
 # XMPP Connection, w/ presence tracking
 xmppConn = new (require('./xmpp/connection').Connection)(config.xmpp)
+pubsubServer = new (require('./xmpp/pubsub_server').PubsubServer)(xmppConn)
 pubsubBackend = new (require('./xmpp/backend_pubsub').PubsubBackend)(xmppConn)
 
 # Handle XEP-0060 Publish-Subscribe and related requests:
-xmppConn.iqHandler = (stanza) ->
-    request = makeRequest stanza
+pubsubServer.onRequest = (request) ->
     console.log request: request, operation: request.operation()
     if request.sender isnt request.actor
         # Validate if sender is authorized to act on behalf of the
-        # actor (TODO!)
+        # actor
         pubsubBackend.authorizeFor request.sender, request.actor, (err, valid) ->
             if err
                 stanza.replyError err
