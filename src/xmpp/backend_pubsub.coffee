@@ -60,7 +60,7 @@ class RequestCache
             # Go fetch
             @getter id, (err, results) =>
                 queued = @entries[id].queued
-                @entries[id] = err ? { err } : { results }
+                @entries[id] = if err then { err } else { results }
                 # flush after timeout
                 setTimeout =>
                     delete @entries[id]
