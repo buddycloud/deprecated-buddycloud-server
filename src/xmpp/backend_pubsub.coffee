@@ -47,6 +47,36 @@ class BuddycloudDiscovery
                     done()
             done()
 
+class RequestCache
+    cacheTimeout: 30 * 1000
+
+    constructor: (@getter) ->
+        @entries = {}
+
+    get: (id, cb) ->
+        unless @entries.hasOwnProperty(id)
+            @entries[id] =
+                queued: cb
+            # Go fetch
+            @getter id, (err, results) =>
+                queued = @entries[id].queued
+                @entries[id] = err ? { err } : { results }
+                # flush after timeout
+                setTimeout =>
+                    delete @entries[id]
+                , @cacheTimeout
+                # respond to requests
+                for cb in queued
+                    cb err, results
+        else if @entries[id].queued?
+            # Already fetching
+            @entries[id].queued.push cb
+        else
+            # Result already present
+            process.nextTick =>
+                cb @entries[id].err, @entries[id].results
+
+
 getUserDomain = (user) ->
     if user.indexOf('@') >= 0
         user.substr(user.indexOf('@') + 1)
