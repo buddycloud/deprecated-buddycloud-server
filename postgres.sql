@@ -12,6 +12,7 @@ CREATE TABLE items (node TEXT REFERENCES nodes (node),
 		    PRIMARY KEY (node, id));
 CREATE TABLE subscriptions (node TEXT REFERENCES nodes (node),
        	     		    "user" TEXT,
+			    listener TEXT,
 			    subscription TEXT,
  			    updated TIMESTAMP,
 			    PRIMARY KEY (node, "user"));

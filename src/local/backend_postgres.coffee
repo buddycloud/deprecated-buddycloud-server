@@ -184,18 +184,6 @@ class Transaction
             cb2 null, subscriptions
         ], cb
 
-    getAllSubscribers: (cb) ->
-        db = @db
-        async.waterfall [(cb2) ->
-            db.query "SELECT DISTINCT \"user\" FROM subscriptions", cb2
-        , (res, cb2) ->
-            subscribers = []
-            res.rows.forEach (row) ->
-                subscribers.push row.user
-
-            cb2 null, subscribers
-        ], cb
-
     getPingNodes: (user, cb) ->
         db = @db
         async.waterfall [(cb2) ->
