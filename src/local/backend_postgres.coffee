@@ -152,10 +152,17 @@ class Transaction
             isSet = res?.rows?[0]
             console.log "setSubscription #{node} #{user} isSet=#{isSet} toDelete=#{toDelete}"
             if isSet and not toDelete
-                db.query "UPDATE subscriptions SET listener=$1, subscription=$2, updated=CURRENT_TIMESTAMP WHERE node=$2 AND \"user\"=$3"
-                , [ listener, subscription, node, user ]
-                , cb2
+                if listener
+                    db.query "UPDATE subscriptions SET listener=$1, subscription=$2, updated=CURRENT_TIMESTAMP WHERE node=$3 AND \"user\"=$4"
+                    , [ listener, subscription, node, user ]
+                    , cb2
+                else
+                    db.query "UPDATE subscriptions SET subscription=$1, updated=CURRENT_TIMESTAMP WHERE node=$2 AND \"user\"=$3"
+                    , [ subscription, node, user ]
+                    , cb2
             else if not isSet and not toDelete
+                unless listener?
+                    return cb new Error("Cannot subscribe new user without notifications listener")
                 db.query "INSERT INTO subscriptions (node, \"user\", listener, subscription, updated) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)"
                 , [ node, user, listener, subscription ]
                 , cb2

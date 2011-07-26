@@ -147,21 +147,39 @@ class RetractItems extends PrivilegedOperation
         ), (err) ->
             cb err
 
-class UserSubscriptions extends ModelOperation
+class RetrieveUserSubscriptions extends ModelOperation
     transaction: (t, cb) ->
         t.getSubscriptions @req.actor, cb
 
-class UserAffiliations extends ModelOperation
+class RetrieveUserAffiliations extends ModelOperation
     transaction: (t, cb) ->
         t.getAffiliations @req.actor, cb
 
-class NodeSubscriptions extends PrivilegedOperation
+class RetrieveNodeSubscriptions extends PrivilegedOperation
     privilegedTransaction: (t, cb) ->
         t.getSubscribers @req.node, cb
 
-class NodeAffiliations extends PrivilegedOperation
+class RetrieveNodeAffiliations extends PrivilegedOperation
     privilegedTransaction: (t, cb) ->
         t.getAffiliated @req.node, cb
+
+class ManageNodeSubscriptions extends PrivilegedOperation
+    requiredAffiliation: 'owner'
+
+    privilegedTransaction: (t, cb) ->
+        async.series @req.subscriptions.map(({user, subscription}) =>
+            (cb2) =>
+                t.setSubscription @req.node, user, null, subscription, cb2
+        ), cb
+
+class ManageNodeAffiliations extends PrivilegedOperation
+    requiredAffiliation: 'owner'
+
+    privilegedTransaction: (t, cb) ->
+        async.series @req.subscriptions.map(({user, subscription}) =>
+            (cb2) =>
+                t.setSubscription @req.node, user, null, subscription, cb2
+        ), cb
 
 OPERATIONS =
     'browse-node-info': undefined
@@ -172,10 +190,12 @@ OPERATIONS =
     'unsubscribe-node': Unsubscribe
     'retrieve-node-items': RetrieveItems
     'retract-node-items': RetractItems
-    'retrieve-user-subscriptions': UserSubscriptions
-    'retrieve-user-affiliations': UserAffiliations
-    'retrieve-node-subscriptions': NodeSubscriptions
-    'retrieve-node-affiliations': NodeAffiliations
+    'retrieve-user-subscriptions': RetrieveUserSubscriptions
+    'retrieve-user-affiliations': RetrieveUserAffiliations
+    'retrieve-node-subscriptions': RetrieveNodeSubscriptions
+    'retrieve-node-affiliations': RetrieveNodeAffiliations
+    'manage-node-subscriptions': ManageNodeSubscriptions
+    'manage-node-affiliations': ManageNodeAffiliations
 
 exports.run = (request) ->
     opName = request.operation()

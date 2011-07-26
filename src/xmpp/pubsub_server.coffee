@@ -474,10 +474,11 @@ class PubsubOwnerSetSubscriptionsRequest extends PubsubOwnerRequest
         @subscriptions = []
         if @subscriptionsEl
             @node = @subscriptionsEl.attrs.node
-            for subscriptionEl in @subscriptionsEl.getChildren("subscription")
-                @subscriptions.push
-                    jid: subscriptionEl.attrs.jid
-                    subscription: subscriptionEl.attrs.subscription
+            @subscriptions = @subscriptionsEl.getChildren("subscription").map(
+                (subscriptionEl) ->
+                    { user: subscriptionEl.attrs.jid
+                      subscription: subscriptionEl.attrs.subscription }
+            )
 
     matches: () ->
         super &&
@@ -511,7 +512,7 @@ class PubsubOwnerGetAffiliationsRequest extends PubsubOwnerRequest
         affiliationsEl = new xmpp.Element("affiliations")
         for affiliation in affiliations
             affiliationsEl.c 'affiliation',
-                jid: affiliation.user
+                user: affiliation.user
                 affiliation: affiliation.affiliation
 
         super affiliationsEl
@@ -537,10 +538,11 @@ class PubsubOwnerSetAffiliationsRequest extends PubsubOwnerRequest
         @affiliations = []
         if @affiliationsEl
             @node = @affiliationsEl.attrs.node
-            for affiliationEl in @affiliationsEl.getChildren("affiliation")
-                @affiliations.push
-                    jid: affiliationEl.attrs.jid
-                    affiliation: affiliationEl.attrs.affiliation
+            @affiliations = @affiliationsEl?.getChildren("affiliation").map(
+                (affiliationEl) ->
+                    { user: affiliationEl.attrs.jid
+                      affiliation: affiliationEl.attrs.affiliation }
+            )
 
     matches: () ->
         super &&
