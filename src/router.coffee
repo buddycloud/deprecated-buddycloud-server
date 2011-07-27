@@ -4,22 +4,22 @@ CACHE_TIMEOUT = 60 * 1000
 
 class RemoteRouter
     constructor: () ->
-        @frontends = []
+        @backends = []
         # cache :: { userId: { queue: [Function], result: ... } }
         @cache = {}
 
-    addFrontend: (frontend) ->
-        @frontends.push frontend
+    addBackend: (backend) ->
+        @backends.push backend
 
     resolve: (userId, cb) ->
-        frontendIdx = 0
+        backendIdx = 0
         go = () =>
-            frontend = @frontends[frontendIdx]
-            unless frontend
+            backend = @backends[backendIdx]
+            unless backend
                 return cb new errors.NotFound("Cannot resolve user")
-            frontend.resolve userId, (error, result) ->
+            backend.resolve userId, (error, result) ->
                 if error
-                    frontendIdx++
+                    backendIdx++
                     go()
                 else
                     cb null, result
@@ -35,8 +35,8 @@ class Router
         @operations = require('./local/operations')
         @operations.setModel model
 
-    addFrontend: (frontend) ->
-        @remote.addFrontend frontend
+    addBackend: (backend) ->
+        @remote.addBackend backend
 
     resolve: (userId, cb) ->
         # First, look if already subscribed, therefore database is up to date:
@@ -46,7 +46,7 @@ class Router
             else if !error || error.constructor is errors.NotFound
                 # Otherwise, fan out to remote service
                 @remote.resolve userId, cb
-                # TODO: catch if remote frontend found ourselves
+                # TODO: catch if remote backend found ourselves
             else
                 cb error
 
