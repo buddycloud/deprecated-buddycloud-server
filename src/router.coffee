@@ -12,35 +12,6 @@ class RemoteRouter
         @frontends.push frontend
 
     resolve: (userId, cb) ->
-        if userId of @cache
-            if @cache[userId].result
-                cb null, @cache[userId].result
-            else if @cache[userId].error
-                cb @cache[userId].error
-            else
-                # Already resolving:
-                @cache[userId].queue.push cb
-        else
-            # New:
-            @cache[userId] =
-                queue: cb
-            do_resolve_ userId, (error, result) =>
-                if error
-                    for cb in @cache[userId].queue
-                        cb error
-                    @cache[userId] =
-                        error: error
-                else
-                    for cb in @cache[userId].queue
-                        cb null, result
-                    @cache[userId] =
-                        result: result
-                setTimeout () =>
-                    delete @cache[userId]
-                    # TODO: shorter for the error case
-                , CACHE_TIMEOUT
-
-    do_resolve_: (userId, cb) ->
         frontendIdx = 0
         go = () =>
             frontend = @frontends[frontendIdx]
@@ -54,9 +25,15 @@ class RemoteRouter
                     cb null, result
         go()
 
+##
+# Decides whether operations can be served from the local DB by an
+# Operation, or to go remote
 class Router
-    constructor: () ->
+    constructor: (@model) ->
         @remote = new RemoteRouter()
+
+        @operations = require('./local/operations')
+        @operations.setModel model
 
     addFrontend: (frontend) ->
         @remote.addFrontend frontend
@@ -72,3 +49,6 @@ class Router
                 # TODO: catch if remote frontend found ourselves
             else
                 cb error
+
+    run: (request) ->
+        @operations.run request

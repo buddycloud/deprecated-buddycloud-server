@@ -8,13 +8,10 @@ config = require("#{process.cwd()}/#{process.argv[2]}")
 
 errors = require('./errors')
 
-backend = require('./local/backend_postgres')
-backend.start config.modelConfig
+model = require('./local/model_postgres')
+model.start config.modelConfig
 
-operations = require('./local/operations')
-operations.setBackend backend
-
-
+router = new (require('./router').Router)(model)
 
 # XMPP Connection, w/ presence tracking
 xmppConn = new (require('./xmpp/connection').Connection)(config.xmpp)
@@ -33,14 +30,9 @@ pubsubServer.onRequest = (request) ->
             else unless valid
                 stanza.reply new errors.BadRequest('Requesting service not authorized for actor')
             else
-                operations.run request
+                router.run request
     else
-        # TODO: move to router for inbox functionality
-        operations.run request
-
-# Resolves user backends by domain
-#router = (require('./router').Router)()
-# Database storage for local users & cache:
+        router.run request
 
 # Other XMPP-federated systems:
 #router.addFrontend new (require('./xmpp/pubsub_client').Client)(xmppConn)

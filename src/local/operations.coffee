@@ -3,8 +3,8 @@ uuid = require('node-uuid')
 errors = require('../errors')
 
 runTransaction = null
-exports.setBackend = (backend) ->
-    runTransaction = backend.transaction
+exports.setModel = (model) ->
+    runTransaction = model.transaction
 
 
 ##
