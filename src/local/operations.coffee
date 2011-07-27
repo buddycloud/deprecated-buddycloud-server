@@ -100,14 +100,20 @@ class Subscribe extends PrivilegedOperation
     requiredAffiliation: 'member'
 
     privilegedTransaction: (t, cb) ->
-        t.setSubscription @req.node, @req.actor, @req.sender, 'subscribed', (err) ->
-            cb err
+        t.setSubscription @req.node, @req.actor, @req.sender, 'subscribed', (err) =>
+            t.setAffiliation @req.node, @req.actor, 'member', (err) ->
+                cb err
 
 ##
 # Not privileged as anybody should be able to unsubscribe him/herself
 class Unsubscribe extends ModelOperation
     transaction: (t, cb) ->
-        t.setSubscription @req.node, @req.actor, @req.sender, 'none', cb
+        t.setSubscription @req.node, @req.actor, @req.sender, 'none', (err) =>
+            t.getAffiliation @req.node, @req.actor, (err, affiliation) =>
+                if not err and affiliation is 'member'
+                    t.setAffiliation @req.node, @req.actor, 'none', cb
+                else
+                    cb err
 
 
 class RetrieveItems extends PrivilegedOperation
