@@ -12,8 +12,7 @@ exports.setModel = (model) ->
 #
 # Implementations set result
 class Operation
-    constructor: (request) ->
-        @req = request
+    constructor: (@router, @req) ->
 
     run: (cb) ->
         cb new errorsFeature.NotImplemented("Operation defined but not yet implemented")
@@ -95,6 +94,11 @@ class Publish extends PrivilegedOperation
             else
                 cb null
         )
+
+    notification: ->
+        operation: 'publish-node-items'
+        node: @req.node
+        items: @req.items
 
 class Subscribe extends PrivilegedOperation
     requiredAffiliation: 'member'
@@ -187,6 +191,18 @@ class ManageNodeAffiliations extends PrivilegedOperation
                 t.setSubscription @req.node, user, null, subscription, cb2
         ), cb
 
+class Notify extends ModelOperation
+    transaction: (t, cb) ->
+        # TODO: walk in batches
+        t.getNodeListeners @req.node, (err, listeners) =>
+            if err
+                return cb err
+            for listener in listeners
+                notification = Object.create(@req,
+                    listener: value: listener
+                )
+                @router.notify notification
+
 OPERATIONS =
     'browse-node-info': undefined
     'browse-info': BrowseInfo
@@ -203,7 +219,7 @@ OPERATIONS =
     'manage-node-subscriptions': ManageNodeSubscriptions
     'manage-node-affiliations': ManageNodeAffiliations
 
-exports.run = (request) ->
+exports.run = (router, request) ->
     opName = request.operation()
     unless opName
         # No operation specified, reply immediately
@@ -218,11 +234,16 @@ exports.run = (request) ->
         return
 
     console.log "Creating operation #{opName}"
-    op = new opClass(request)
+    op = new opClass(router, request)
     op.run (error, result) ->
         console.log "operation ran: #{error}, #{result}"
         if error
             request.replyError error
         else
             request.reply result
+
+            if op.notification
+                new Notification(router, op.notification).run (err) ->
+                    if err
+                        console.error("Error running notifications: #{err}")
 

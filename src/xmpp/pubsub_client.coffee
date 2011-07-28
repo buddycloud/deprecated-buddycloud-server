@@ -5,7 +5,7 @@ NS = require('./ns')
 class Request
     constructor: (conn, opts, cb) ->
         @opts = opts
-        conn.sendIq @iq, (errorStanza, replyStanza) =>
+        conn.sendIq @requestIq, (errorStanza, replyStanza) =>
             if errorStanza
                 # TODO: wrap errorStanza
                 cb new Error("Error from remote server")
@@ -13,7 +13,7 @@ class Request
                 result = @decodeReply replyStanza
                 cb null, result
 
-    iq: ->
+    requestIq: ->
         throw new TypeError("Unimplemented request")
 
     decodeReply: (stanza) ->
@@ -23,7 +23,7 @@ class Request
 class DiscoverRequest
     xmlns: undefined
 
-    iq: ->
+    requestIq: ->
         queryAttrs =
             xmlns: @xmlns
         if node?

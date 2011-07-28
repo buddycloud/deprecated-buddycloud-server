@@ -574,6 +574,11 @@ REQUESTS = [
     Request.NotImplemented
 ]
 
+
+
+NOTIFICATIONS =
+    'publish-item': PublishNotification
+
 class PubsubServer
     constructor: (@conn) ->
         @conn.iqHandler = (stanza) =>
@@ -599,5 +604,3 @@ class PubsubServer
                 result = null
         # Synchronous result:
         result
-
-    sendNotification: (notification, user) ->

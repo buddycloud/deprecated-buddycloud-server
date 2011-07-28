@@ -21,6 +21,11 @@ class RemoteRouter
                     # Was last backend
                     cb err, results
 
+    notify: (notification) ->
+        # TODO: iterate all backends
+        for backend in backends
+            backend.notify notification
+
 ##
 # Decides whether operations can be served from the local DB by an
 # Operation, or to go remote
@@ -48,3 +53,5 @@ class Router
                     @operations.run opts
                 else
                     @remote.run opts, ->
+    notify: (notification) ->
+        @remote.notify notification

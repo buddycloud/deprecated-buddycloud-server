@@ -1,3 +1,5 @@
+notifications = require('./pubsub_notifications')
+
 ##
 # Initialize with XMPP connection
 class exports.PubsubBackend
@@ -8,6 +10,15 @@ class exports.PubsubBackend
     run: (opts, cb) ->
         # TODO: what class to spawn? → operations.run
         new Request(conn, opts, cb)
+
+    notify: (notification) ->
+        nKlass = notifications.byOperation notification.operation
+        return false unless nKlass
+
+        n = new nKlass(notification)
+        # TODO: is local? send to all resources...
+        @conn.send n.toStanza(@conn.jid, notification.listener)
+
 
 class BuddycloudDiscovery
     constructor: (@conn) ->

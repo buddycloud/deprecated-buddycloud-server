@@ -227,6 +227,12 @@ class Transaction
         , (err, res) ->
             cb err, (res?.rows?[0]?)
 
+    getNodeListeners: (node, cb) ->
+        db.query "SELECT UNIQ listener FROM subscriptions WHERE node = $1"
+        , [node]
+        , (err, res) ->
+            cb err, res?.rows?.map((row) -> row.listener)
+
     ##
     # Affiliation management
     ##
