@@ -5,7 +5,8 @@ class exports.PubsubBackend
         # TODO: notifications?
         @disco = new BuddycloudDiscovery(@conn)
 
-    request: (opts, cb) ->
+    run: (opts, cb) ->
+        # TODO: what class to spawn? → operations.run
         new Request(conn, opts, cb)
 
 class BuddycloudDiscovery
