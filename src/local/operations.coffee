@@ -60,7 +60,7 @@ class Register extends ModelOperation
         user = @req.actor
         listener = @req.sender
         nodeTypes = [
-                'channel', 'status',
+                'posts', 'status',
                 'geoloc/previous', 'geoloc/current',
                 'geoloc/next', 'subscriptions']
         async.series nodeTypes.map((nodeType) ->
