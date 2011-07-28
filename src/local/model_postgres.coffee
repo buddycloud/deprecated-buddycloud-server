@@ -161,8 +161,7 @@ class Transaction
                     , [ subscription, node, user ]
                     , cb2
             else if not isSet and not toDelete
-                unless listener?
-                    return cb new Error("Cannot subscribe new user without notifications listener")
+                # listener=null is allowed for 3rd-party inboxes
                 db.query "INSERT INTO subscriptions (node, \"user\", listener, subscription, updated) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)"
                 , [ node, user, listener, subscription ]
                 , cb2
@@ -216,6 +215,17 @@ class Transaction
                 row.user
             )
         ], cb
+
+    isListeningToNode: (node, listenerJids, cb) ->
+        i = 1
+        conditions = listenerJids.map((listenerJid) ->
+            i++
+            "listener = $#{i}"
+        ).join(" OR ")
+        db.query "SELECT listener FROM subscriptions WHERE node = $1 AND (#{conditions}) LIMIT 1"
+        , [node, listenerJids...]
+        , (err, res) ->
+            cb err, (res?.rows?[0]?)
 
     ##
     # Affiliation management

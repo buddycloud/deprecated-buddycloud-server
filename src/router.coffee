@@ -34,12 +34,16 @@ class Router
     addBackend: (backend) ->
         @remote.addBackend backend
 
+    isLocallySubscribed: (node, cb) ->
+        # TODO: get Transaction
+        @model.isListeningToNode opts.node, localJids, (err, listening) =>
+
     run: (opts) ->
         # TODO: First, look if already subscribed, therefore database is up to date:
         if not opts.node?
             @operations.run opts
         else
-            @model.isLocallySubscribed opts.node, (err, locallySubscribed) =>
+            @isLocallySubscribed opts.node, (err, locallySubscribed) =>
                 if locallySubscribed
                     @operations.run opts
                 else
