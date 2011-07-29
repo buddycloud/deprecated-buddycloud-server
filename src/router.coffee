@@ -1,4 +1,5 @@
 errors = require('./errors')
+async = require('async')
 
 CACHE_TIMEOUT = 60 * 1000
 
@@ -8,6 +9,13 @@ class RemoteRouter
 
     addBackend: (backend) ->
         @backends.push backend
+
+    getMyJids: ->
+        jids = []
+        @backends.map (backend) ->
+            if backend.getMyJids?
+                jids.push(backend.getMyJids()...)
+        jids
 
     run: (opts, cb) ->
         backends = new Array(@backends...)
@@ -29,7 +37,7 @@ class RemoteRouter
 ##
 # Decides whether operations can be served from the local DB by an
 # Operation, or to go remote
-class Router
+class exports.Router
     constructor: (@model) ->
         @remote = new RemoteRouter()
 
@@ -40,18 +48,19 @@ class Router
         @remote.addBackend backend
 
     isLocallySubscribed: (node, cb) ->
-        # TODO: get Transaction
-        @model.isListeningToNode opts.node, localJids, (err, listening) =>
+        @model.isListeningToNode node, @remote.getMyJids(), cb
 
     run: (opts) ->
-        # TODO: First, look if already subscribed, therefore database is up to date:
+        # TODO: First, look if already subscribed, therefore database is up to date, or if hosted by ourselves
         if not opts.node?
-            @operations.run opts
+            @operations.run @, opts
         else
             @isLocallySubscribed opts.node, (err, locallySubscribed) =>
+                console.log isLocallySubscribed: { err, locallySubscribed }
                 if locallySubscribed
                     @operations.run opts
                 else
                     @remote.run opts, ->
+
     notify: (notification) ->
         @remote.notify notification

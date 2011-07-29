@@ -41,19 +41,39 @@ dbIsAvailable = (db) ->
         # no request, put into pool
         pool.push db
 
+withNextDb = (cb) ->
+    if (db = pool.shift())
+        # Got one from pool
+        cb(db)
+    else
+        # Pool was empty, waiting... TODO: limit length, shift first
+        queue.push (db) ->
+           cb(db)
+
 # config: { user, database, host, port, poolSize: 4 }
 exports.start = (config) ->
     for i in [0..(config.poolSize or 4)]
         connectDB config
 
 exports.transaction = (cb) ->
-    if (db = pool.shift())
-        # Got one from pool
+    withNextDb (db) ->
         new Transaction(db, cb)
-    else
-        # Pool was empty, waiting... TODO: limit length, shift first
-        queue.push (db) ->
-            new Transaction(db, cb)
+
+exports.isListeningToNode = (node, listenerJids, cb) ->
+    withNextDb (db) ->
+        i = 1
+        conditions = listenerJids.map((listenerJid) ->
+            i++
+            "listener = $#{i}"
+        ).join(" OR ")
+        if conditions
+            conditions = " AND (#{conditions})"
+        db.query "SELECT listener FROM subscriptions WHERE node = $1 #{conditions} LIMIT 1"
+        , [node, listenerJids...]
+        , (err, res) ->
+            process.nextTick =>
+                dbIsAvailable(db)
+            cb err, (res?.rows?[0]?)
 
 ##
 # Wraps the postgres-js transaction with our model operations.
@@ -215,17 +235,6 @@ class Transaction
                 row.user
             )
         ], cb
-
-    isListeningToNode: (node, listenerJids, cb) ->
-        i = 1
-        conditions = listenerJids.map((listenerJid) ->
-            i++
-            "listener = $#{i}"
-        ).join(" OR ")
-        db.query "SELECT listener FROM subscriptions WHERE node = $1 AND (#{conditions}) LIMIT 1"
-        , [node, listenerJids...]
-        , (err, res) ->
-            cb err, (res?.rows?[0]?)
 
     getNodeListeners: (node, cb) ->
         db.query "SELECT UNIQ listener FROM subscriptions WHERE node = $1"

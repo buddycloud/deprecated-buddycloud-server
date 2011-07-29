@@ -137,7 +137,7 @@ class PubsubRequest extends Request.Request
         super
 
         @pubsubEl = @iq.getChild("pubsub", NS.PUBSUB)
-        setActor @pubsubEl
+        @setActor @pubsubEl
 
     matches: () ->
         (@iq.attrs.type is 'get' ||
@@ -404,7 +404,7 @@ class PubsubOwnerRequest extends Request.Request
         super
 
         @pubsubEl = @iq.getChild("pubsub", NS.PUBSUB_OWNER)
-        setActor @pubsubEl
+        @setActor @pubsubEl
 
     matches: () ->
         (@iq.attrs.type is 'get' ||
@@ -576,10 +576,7 @@ REQUESTS = [
 
 
 
-NOTIFICATIONS =
-    'publish-item': PublishNotification
-
-class PubsubServer
+class exports.PubsubServer
     constructor: (@conn) ->
         @conn.iqHandler = (stanza) =>
             request = @makeRequest stanza

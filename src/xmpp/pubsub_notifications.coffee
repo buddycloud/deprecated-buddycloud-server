@@ -7,8 +7,8 @@ class Notification
         new xmpp.Element('message',
             type: 'headline'
             from: fromJid
-            to: toJid).
-        c('event', xmlns: NS.PUBSUB_EVENT)
+            to: toJid
+        ).c('event', xmlns: NS.PUBSUB_EVENT)
 
 
 class PublishNotification

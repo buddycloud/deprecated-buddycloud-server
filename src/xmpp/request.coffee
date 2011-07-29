@@ -1,5 +1,6 @@
 xmpp = require('node-xmpp')
 errors = require('../errors')
+NS = require('./ns')
 
 ##
 # A request:
