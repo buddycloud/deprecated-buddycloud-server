@@ -31,7 +31,7 @@ class RemoteRouter
 
     notify: (notification) ->
         # TODO: iterate all backends
-        for backend in backends
+        for backend in @backends
             backend.notify notification
 
 ##

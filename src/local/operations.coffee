@@ -194,10 +194,12 @@ class ManageNodeAffiliations extends PrivilegedOperation
 class Notify extends ModelOperation
     transaction: (t, cb) ->
         # TODO: walk in batches
+        console.log notifyNotification: @req
         t.getNodeListeners @req.node, (err, listeners) =>
             if err
                 return cb err
             for listener in listeners
+                console.log "listener: #{listener}"
                 notification = Object.create(@req,
                     listener: value: listener
                 )
@@ -242,9 +244,9 @@ exports.run = (router, request) ->
         else
             request.reply result
 
-            if op.notification
-                console.log notification: op.notification
-                new Notification(router, op.notification).run (err) ->
+            notification = op.notification?()
+            if notification
+                new Notify(router, notification).run (err) ->
                     if err
                         console.error("Error running notifications: #{err}")
 

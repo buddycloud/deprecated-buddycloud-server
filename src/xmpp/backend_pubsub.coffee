@@ -20,6 +20,7 @@ class exports.PubsubBackend
 
         n = new nKlass(notification)
         # TODO: is local? send to all resources...
+        console.log n.toStanza(@conn.jid, notification.listener).toString()
         @conn.send n.toStanza(@conn.jid, notification.listener)
 
 
