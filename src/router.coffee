@@ -58,7 +58,7 @@ class exports.Router
             @isLocallySubscribed opts.node, (err, locallySubscribed) =>
                 console.log isLocallySubscribed: { err, locallySubscribed }
                 if locallySubscribed
-                    @operations.run opts
+                    @operations.run @, opts
                 else
                     @remote.run opts, ->
 
