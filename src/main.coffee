@@ -30,8 +30,10 @@ pubsubServer.onRequest = (request) ->
             else unless valid
                 stanza.reply new errors.BadRequest('Requesting service not authorized for actor')
             else
+                # Pass to router
                 router.run request
     else
+        # Pass to router
         router.run request
 
 # Other XMPP-federated systems:

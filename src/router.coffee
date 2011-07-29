@@ -3,6 +3,8 @@ async = require('async')
 
 CACHE_TIMEOUT = 60 * 1000
 
+##
+# Routes to multiple backends
 class RemoteRouter
     constructor: () ->
         @backends = []
@@ -19,12 +21,12 @@ class RemoteRouter
 
     run: (opts, cb) ->
         backends = new Array(@backends...)
-        run = ->
+        tryBackend = ->
             backend = backends.shift()
             backend.run opts, (err, results) ->
                 if err && backends.length >= 1
                     # Retry with next backend
-                    run()
+                    tryBackend()
                 else
                     # Was last backend
                     cb err, results
@@ -53,14 +55,18 @@ class exports.Router
     run: (opts) ->
         # TODO: First, look if already subscribed, therefore database is up to date, or if hosted by ourselves
         if not opts.node?
-            @operations.run @, opts
+            @runLocally
         else
             @isLocallySubscribed opts.node, (err, locallySubscribed) =>
                 console.log isLocallySubscribed: { err, locallySubscribed }
                 if locallySubscribed
-                    @operations.run @, opts
+                    @runLocally
                 else
-                    @remote.run opts, ->
+                    # run remotely
+                    @remote.run @, opts
+
+    runLocally: (opts) ->
+        @operations.run @, opts
 
     notify: (notification) ->
         @remote.notify notification

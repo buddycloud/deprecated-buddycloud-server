@@ -10,11 +10,12 @@ class exports.PubsubBackend
     getMyJids: ->
         [@conn.jid]
 
-    run: (opts, cb) ->
+    run: (router, opts) ->
         user = getNodeUser opts.node
         @disco.findService user, (err, service) =>
             if @getMyJids().indexOf(service) >= 0
                 # TODO: is local
+                router.runLocally opts
             else
                 # TODO: what class to spawn? → operations.run
                 new Request(conn, opts, cb)

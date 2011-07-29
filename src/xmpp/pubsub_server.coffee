@@ -575,7 +575,10 @@ REQUESTS = [
 ]
 
 
-
+##
+# Reacts on all <iq/> *requests
+#
+# Emits recognized requests with @onRequest(request)
 class exports.PubsubServer
     constructor: (@conn) ->
         @conn.iqHandler = (stanza) =>
