@@ -242,10 +242,12 @@ exports.run = (router, request) ->
         if error
             request.replyError error
         else
+            console.log "replying for #{opName}"
             request.reply result
 
             notification = op.notification?()
             if notification
+                console.log "notifying for #{opName}"
                 new Notify(router, notification).run (err) ->
                     if err
                         console.error("Error running notifications: #{err}")

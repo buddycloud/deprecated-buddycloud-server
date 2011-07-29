@@ -11,8 +11,13 @@ class exports.PubsubBackend
         [@conn.jid]
 
     run: (opts, cb) ->
-        # TODO: what class to spawn? → operations.run
-        new Request(conn, opts, cb)
+        user = getNodeUser opts.node
+        @disco.findService user, (err, service) =>
+            if @getMyJids().indexOf(service) >= 0
+                # TODO: is local
+            else
+                # TODO: what class to spawn? → operations.run
+                new Request(conn, opts, cb)
 
     notify: (notification) ->
         nKlass = notifications.byOperation notification.operation
@@ -99,3 +104,14 @@ getUserDomain = (user) ->
     else
         user
 
+
+nodeRegexp = /^\/user\/([^\/]+)\/(.+)/
+getNodeUser = (node) ->
+    unless node
+        return null
+
+    m = nodeRegexp.exec(node)
+    unless m
+        return null
+
+    m[1]
