@@ -68,7 +68,7 @@ class BuddycloudDiscovery
                 if pending < 1 and not resultSent
                     resultSent = true
                     cb new errors.NotFound("No pubsub channels service discovered")
-            for item in items
+            items.forEach (item) =>
                 @infoCache.get item.jid, (err, result) ->
                     console.log infoCacheErr: err, infoCache: result
                     for identity in result?.identities or []
