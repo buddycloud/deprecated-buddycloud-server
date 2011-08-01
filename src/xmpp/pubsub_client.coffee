@@ -7,6 +7,8 @@ class Request
         @opts = opts
         iq = @requestIq().root()
         iq.attrs.to = opts.jid
+        iq.c('actor', xmlns: NS.BUDDYCLOUD_V1).
+            t(@opts.sender)
         conn.sendIq iq, (errorStanza, replyStanza) =>
             if errorStanza
                 # TODO: wrap errorStanza
@@ -26,6 +28,9 @@ class Request
     decodeReply: (stanza) ->
         throw new TypeError("Unimplemented reply")
 
+###
+# XEP-0030: Service Discovery
+###
 
 class DiscoverRequest extends Request
     xmlns: undefined
@@ -79,3 +84,151 @@ class exports.DiscoverInfo extends DiscoverRequest
             when "form"
                 # TODO: .getForm(formType)
                 @results.forms.push
+
+##
+# XEP-0060
+##
+
+class PubsubRequest extends Request
+    xmlns: NS.PUBSUB
+    requestIq: ->
+        new xmpp.Element('iq', type: @iqType()).
+            c('pubsub', xmlns: @xmlns).
+            cnode(@pubsubChild())
+
+    iqType: ->
+        throw new TypeError("Unimplemented request")
+
+    pubsubChild: ->
+        throw new TypeError("Unimplemented reply")
+
+    decodeReply: (stanza) ->
+        @results = []
+        pubsubEl = stanza?.getChild('pubsub', @xmlns)
+        if pubsubEl? and @decodeReplyEl?
+            for child in pubsubEl.children
+                unless typeof child is 'string'
+                    @decodeReplyEl child
+        @results
+
+class Publish extends PubsubRequest
+    iqType: ->
+        'set'
+
+    pubsubChild: ->
+        publishEl = new xmpp.Element('publish', node: @opts.node)
+        for item in @opts.items
+            itemAttrs = {}
+            itemAttrs.id ?= item.id
+            publishEl.c('item', itemAttrs).
+                cnode(item.el)
+        publishEl
+
+class RetractItems extends PubsubRequest
+    iqType: ->
+        'set'
+
+    pubsubChild: ->
+        publishEl = new xmpp.Element('retract', node: @opts.node)
+        for item in @opts.items
+            publishEl.c('item', { id: item.id })
+        publishEl
+
+class Subscribe extends PubsubRequest
+    iqType: ->
+        'set'
+
+    pubsubChild: ->
+        new xmpp.Element('subscribe', node: @opts.node, jid: @opts.sender)
+
+class Unsubscribe extends PubsubRequest
+    iqType: ->
+        'set'
+
+    pubsubChild: ->
+        new xmpp.Element('unsubscribe', node: @opts.node)
+
+class RetrieveItems extends PubsubRequest
+    iqType: ->
+        'get'
+
+    pubsubChild: ->
+        new xmpp.Element('items', node: @opts.node)
+
+    decodeReplyEl: (el) ->
+        if el.is('items', @xmlns)
+            for itemEl in el.getChildren('item')
+                @results.push
+                    id: itemEl.attrs.id
+                    el: itemEl.children.filter((child) ->
+                        child isnt 'string'
+                    )[0]
+
+class PubsubOwnerRequest extends PubsubRequest
+    xmlns: NS.PUBSUB_OWNER
+
+class RetrieveNodeSubscriptions extends PubsubOwnerRequest
+    iqType: ->
+        'get'
+
+    pubsubChild: ->
+        new xmpp.Element('subscriptions', node: @opts.node)
+
+    decodeReplyEl: (el) ->
+        if el.is('subscriptions', @xmlns)
+            for subscriptionEl in el.getChildren('subscription')
+                @results.push
+                    jid: subscriptionEl.attrs.jid
+                    subscription: subscriptionEl.attrs.subscription
+
+class RetrieveNodeAffiliations extends PubsubOwnerRequest
+    iqType: ->
+        'get'
+
+    pubsubChild: ->
+        new xmpp.Element('affiliations', node: @opts.node)
+
+    decodeReplyEl: (el) ->
+        if el.is('affiliations', @xmlns)
+            for affiliationEl in el.getChildren('affiliation')
+                @results.push
+                    jid: affiliationEl.attrs.jid
+                    affiliation: affiliationEl.attrs.affiliation
+
+class ManageNodeSubscriptions extends PubsubOwnerRequest
+    iqType: ->
+        'set'
+
+    pubsubChild: ->
+        subscriptionsEl = new xmpp.Element('subscriptions', node: @opts.node)
+        for subscription in @opts.subscriptions
+            subscriptionsEl.c 'subscription',
+                jid: subscription.user
+                subscription: subscription.subscription
+        subscriptionsEl
+
+class ManageNodeAffiliations extends PubsubOwnerRequest
+    iqType: ->
+        'set'
+
+    pubsubChild: ->
+        affiliationsEl = new xmpp.Element('affiliations', node: @opts.node)
+        for affiliation in @opts.affiliations
+            affiliationsEl.c 'affiliation',
+                jid: affiliation.user
+                affiliation: affiliation.affiliation
+        affiliationsEl
+
+
+byOperation =
+    'browse-node-info': exports.DiscoverInfo
+    'browse-info': exports.DiscoverInfo
+    'publish-node-items': Publish
+    'subscribe-node': Subscribe
+    'unsubscribe-node': Unsubscribe
+    'retrieve-node-items': RetrieveItems
+    'retract-node-items': RetractItems
+    'retrieve-node-subscriptions': RetrieveNodeSubscriptions
+    'retrieve-node-affiliations': RetrieveNodeAffiliations
+    'manage-node-subscriptions': ManageNodeSubscriptions
+    'manage-node-affiliations': ManageNodeAffiliations

@@ -161,7 +161,9 @@ class PubsubRequest extends Request.Request
 #   </pubsub>
 # </iq>
 #
-# Not used for buddycloud (see register instead)
+# Not used for buddycloud /users/ (see register instead)
+#
+# TODO: implement for topic channels
 class PubsubCreateRequest extends PubsubRequest
     constructor: (stanza) ->
         super

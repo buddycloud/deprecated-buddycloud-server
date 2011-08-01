@@ -19,10 +19,16 @@ class exports.PubsubBackend
                 # is local, return to router
                 router.runLocally opts
             else
-                # TODO: what class to spawn? → operations.run
-                #new Request(conn, opts)
-                err =  new errors.FeatureNotImplemented("Remote services not fully implemented")
-                opts.replyError err
+                reqClass = pubsubClient.byOperation opts.operation
+                unless reqClass
+                    opts.replyError new errors.FeatureNotImplemented("Operation not implemented for remote pubsub")
+                    return
+
+                req = new reqClass @conn, opts, (err, result) ->
+                    if err
+                        opts.replyError err
+                    else
+                        opts.reply result
 
     notify: (notification) ->
         nKlass = notifications.byOperation notification.operation
