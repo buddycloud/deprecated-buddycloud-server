@@ -24,3 +24,5 @@ class PublishNotification
 NOTIFICATIONS =
     'publish-node-items': PublishNotification
 
+exports.byOperation = (opName) ->
+    NOTIFICATIONS[opName]
