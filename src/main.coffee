@@ -17,6 +17,7 @@ router = new (require('./router').Router)(model)
 xmppConn = new (require('./xmpp/connection').Connection)(config.xmpp)
 pubsubServer = new (require('./xmpp/pubsub_server').PubsubServer)(xmppConn)
 pubsubBackend = new (require('./xmpp/backend_pubsub').PubsubBackend)(xmppConn)
+router.addBackend pubsubBackend
 
 # Handle XEP-0060 Publish-Subscribe and related requests:
 pubsubServer.onRequest = (request) ->
@@ -35,6 +36,3 @@ pubsubServer.onRequest = (request) ->
     else
         # Pass to router
         router.run request
-
-# Other XMPP-federated systems:
-#router.addFrontend new (require('./xmpp/pubsub_client').Client)(xmppConn)

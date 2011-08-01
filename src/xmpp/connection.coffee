@@ -22,6 +22,7 @@ class exports.Connection
         @onlineResources = {}
 
         # Setup connection:
+        @jid = config.jid
         @conn = new xmpp.Component(config)
         #@conn.on "online", startPresenceTracking
         @conn.on "stanza", (stanza) =>
@@ -49,12 +50,19 @@ class exports.Connection
                 when "message" and stanza.attrs.type isnt "error"
                     @_handleMessage stanza
 
+    send: (stanza) ->
+        stanza = stanza.root()
+        unless stanza.attrs.from
+            stanza.attrs.from = @jid
+        console.log "send #{stanza.toString()}"
+        @conn.send stanza
+
     ##
     # @param {Function} cb: Called with (errorStanza, resultStanza)
     sendIq: (iq, cb) ->
         # Generate a new unique request id
-        @lastId += Math.ceil(Math.random() * 999)
-        id = iq.attrs.id = "#{@lastId}"
+        @lastIqId += Math.ceil(Math.random() * 999)
+        id = iq.attrs.id = "#{@lastIqId}"
         # Set up timeout
         timeout = setTimeout () =>
             delete @iqCallbacks[id]
@@ -66,7 +74,7 @@ class exports.Connection
             cb(error, result)
         # Finally, send out:
         console.log ">> #{iq.toString()}"
-        @conn.send iq
+        @send iq
 
     _handleMessage: (message) ->
 
@@ -198,6 +206,11 @@ class exports.Connection
             ##
             # Fire handler, done.
             @iqHandler stanza
+
+            ##
+            # Always nag for presence subscription
+            userId = new xmpp.JID(stanza.from).bare().toString()
+            @subscribePresence userId
 
 
 ###

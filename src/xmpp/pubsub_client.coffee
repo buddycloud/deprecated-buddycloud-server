@@ -5,7 +5,9 @@ NS = require('./ns')
 class Request
     constructor: (conn, opts, cb) ->
         @opts = opts
-        conn.sendIq @requestIq, (errorStanza, replyStanza) =>
+        iq = @requestIq().root()
+        iq.attrs.to = opts.jid
+        conn.sendIq iq, (errorStanza, replyStanza) =>
             if errorStanza
                 # TODO: wrap errorStanza
                 cb new Error("Error from remote server")
@@ -20,15 +22,15 @@ class Request
         throw new TypeError("Unimplemented reply")
 
 
-class DiscoverRequest
+class DiscoverRequest extends Request
     xmlns: undefined
 
     requestIq: ->
         queryAttrs =
             xmlns: @xmlns
-        if node?
-                queryAttrs.node = node
-        new xmpp.Element('iq', to: jid, type: 'get').
+        if @opts.node?
+                queryAttrs.node = @opts.node
+        new xmpp.Element('iq', type: 'get').
             c('query', queryAttrs)
 
     decodeReply: (stanza) ->
@@ -44,7 +46,7 @@ class DiscoverRequest
     decodeReplyEl: (el) ->
 
 
-class DiscoverItems
+class exports.DiscoverItems extends DiscoverRequest
     xmlns: NS.DISCO_ITEMS
 
     decodeReplyEl: (el) ->
@@ -54,7 +56,7 @@ class DiscoverItems
                 result.node = el.attrs.node
             @results.push result
 
-class DiscoverInfo
+class exports.DiscoverInfo extends DiscoverRequest
     xmlns: NS.DISCO_INFO
 
     decodeReplyEl: (el) ->

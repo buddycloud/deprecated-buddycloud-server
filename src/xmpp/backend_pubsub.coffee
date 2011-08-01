@@ -1,10 +1,10 @@
 notifications = require('./pubsub_notifications')
+pubsubClient = require('./pubsub_client')
 
 ##
 # Initialize with XMPP connection
 class exports.PubsubBackend
     constructor: (@conn) ->
-        # TODO: notifications?
         @disco = new BuddycloudDiscovery(@conn)
 
     getMyJids: ->
@@ -12,9 +12,10 @@ class exports.PubsubBackend
 
     run: (router, opts) ->
         user = getNodeUser opts.node
+        console.log 'PubsubBackend.run': opts, user: user
         @disco.findService user, (err, service) =>
             if @getMyJids().indexOf(service) >= 0
-                # TODO: is local
+                # is local, return to router
                 router.runLocally opts
             else
                 # TODO: what class to spawn? → operations.run
@@ -25,15 +26,18 @@ class exports.PubsubBackend
         return false unless nKlass
 
         n = new nKlass(notification)
-        # TODO: is local? send to all resources...
-        console.log n.toStanza(@conn.jid, notification.listener).toString()
-        @conn.send n.toStanza(@conn.jid, notification.listener)
+        # is local? send to all resources...
+        for onlineJid in @conn.getOnlineResources notification.listener
+            @conn.send n.toStanza(@conn.jid, onlineJid)
 
 
 class BuddycloudDiscovery
     constructor: (@conn) ->
-        @infoCache = new RequestCache
-        @itemsCache = new RequestCache
+        @infoCache = new RequestCache (id, cb) =>
+            new pubsubClient.DiscoverInfo(@conn, { jid: id }, cb)
+        @itemsCache = new RequestCache (id, cb) =>
+            console.log "discover items of #{id}"
+            new pubsubClient.DiscoverItems(@conn, { jid: id }, cb)
 
     authorizeFor: (sender, actor, cb) ->
         @itemsCache.get getUserDomain(actor), (err, items) ->
@@ -41,11 +45,13 @@ class BuddycloudDiscovery
                 return cb err
             valid = items?.some (item) ->
                 item.jid is sender
+            console.log "authorizing #{sender} for #{actor}: #{valid}"
             cb null, valid
 
     findService: (user, cb) ->
-        domain = user
+        domain = getUserDomain(user)
         @itemsCache.get domain, (err, items) =>
+            console.log itemsCache: [err, items]
             if err
                 return cb err
 
@@ -59,12 +65,14 @@ class BuddycloudDiscovery
             resultSent = false
             for item in items
                 @infoCache.get item, (err, result) ->
+                    console.log infoCache: [err, result]
                     for identity in identities
                         if identity.category is "pubsub" and
                            identity.type is "channels" and
                            not resultSent
                             # Found one!
                             resultSent = true
+                            console.log "found service for #{user}: #{item.jid}"
                             cb null, item.jid
                     done()
             done()
@@ -76,11 +84,13 @@ class RequestCache
         @entries = {}
 
     get: (id, cb) ->
+        console.log 'RequestCache.get': [id,cb]
         unless @entries.hasOwnProperty(id)
             @entries[id] =
                 queued: cb
             # Go fetch
             @getter id, (err, results) =>
+                console.log "RequestCache fetched": [err,results]
                 queued = @entries[id].queued
                 @entries[id] = if err then { err } else { results }
                 # flush after timeout

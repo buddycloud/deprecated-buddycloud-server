@@ -60,18 +60,20 @@ exports.transaction = (cb) ->
         new Transaction(db, cb)
 
 exports.isListeningToNode = (node, listenerJids, cb) ->
+    i = 1
+    conditions = listenerJids.map((listenerJid) ->
+        i++
+        "listener = $#{i}"
+    ).join(" OR ")
+    unless conditions
+        # Short-cut
+        return cb null, false
+
     withNextDb (db) ->
-        i = 1
-        conditions = listenerJids.map((listenerJid) ->
-            i++
-            "listener = $#{i}"
-        ).join(" OR ")
-        if conditions
-            conditions = " AND (#{conditions})"
-        db.query "SELECT listener FROM subscriptions WHERE node = $1 #{conditions} LIMIT 1"
+        db.query "SELECT listener FROM subscriptions WHERE node = $1 AND (#{conditions}) LIMIT 1"
         , [node, listenerJids...]
         , (err, res) ->
-            process.nextTick =>
+            process.nextTick ->
                 dbIsAvailable(db)
             cb err, (res?.rows?[0]?)
 
@@ -79,10 +81,9 @@ exports.isListeningToNode = (node, listenerJids, cb) ->
 # Wraps the postgres-js transaction with our model operations.
 class Transaction
     constructor: (db, cb) ->
-        that = this
         @db = db
-        db.query "BEGIN", [], (err, res) ->
-            cb err, that
+        db.query "BEGIN", [], (err, res) =>
+            cb err, @
 
     commit: (cb) ->
         @db.query "COMMIT", [], (err, res) =>
