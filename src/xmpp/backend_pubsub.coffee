@@ -1,5 +1,6 @@
 notifications = require('./pubsub_notifications')
 pubsubClient = require('./pubsub_client')
+errors = require('../errors')
 
 ##
 # Initialize with XMPP connection
@@ -19,7 +20,9 @@ class exports.PubsubBackend
                 router.runLocally opts
             else
                 # TODO: what class to spawn? → operations.run
-                new Request(conn, opts, cb)
+                #new Request(conn, opts)
+                err =  new errors.FeatureNotImplemented("Remote services not fully implemented")
+                opts.replyError err
 
     notify: (notification) ->
         nKlass = notifications.byOperation notification.operation
@@ -41,6 +44,7 @@ class BuddycloudDiscovery
 
     authorizeFor: (sender, actor, cb) ->
         @itemsCache.get getUserDomain(actor), (err, items) ->
+            console.log itemsCache: [err, items]
             if err
                 return cb err
             valid = items?.some (item) ->
@@ -57,16 +61,17 @@ class BuddycloudDiscovery
 
             # Respond on earliest, or if nothing to do
             pending = 1
+            resultSent = false
             done = () ->
                 pending--
                 # No items left, but no result yet?
                 if pending < 1 and not resultSent
+                    resultSent = true
                     cb new errors.NotFound("No pubsub channels service discovered")
-            resultSent = false
             for item in items
-                @infoCache.get item, (err, result) ->
+                @infoCache.get item.jid, (err, result) ->
                     console.log infoCache: [err, result]
-                    for identity in identities
+                    for identity in result?.identities or []
                         if identity.category is "pubsub" and
                            identity.type is "channels" and
                            not resultSent
@@ -87,7 +92,7 @@ class RequestCache
         console.log 'RequestCache.get': [id,cb]
         unless @entries.hasOwnProperty(id)
             @entries[id] =
-                queued: cb
+                queued: [cb]
             # Go fetch
             @getter id, (err, results) =>
                 console.log "RequestCache fetched": [err,results]
@@ -98,6 +103,7 @@ class RequestCache
                     delete @entries[id]
                 , @cacheTimeout
                 # respond to requests
+                console.log "RequestCache queued": queued
                 for cb in queued
                     cb err, results
         else if @entries[id].queued?

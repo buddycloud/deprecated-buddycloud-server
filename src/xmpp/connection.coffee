@@ -100,18 +100,18 @@ class exports.Connection
 
     _handlePresence: (presence) ->
         jid = new xmpp.JID(presence.attrs.from)
-        userId = jid.bare().toString()
+        bareJid = jid.bare().toString()
         resource = jid.resource
 
         rmUserResource = () =>
-            if @onlineResources[user]?
+            if @onlineResources[bareJid]?
                 # Remove specific resource
-                @onlineResources[user] =
-                     @onlineResources[user].filter (r) ->
+                @onlineResources[bareJid] =
+                     @onlineResources[bareJid].filter (r) ->
                         r != resource
                 # No resources left?
-                if @onlineResources[user].length < 1
-                    delete @onlineResources[user]
+                if @onlineResources[bareJid].length < 1
+                    delete @onlineResources[bareJid]
 
         switch presence.attrs.type
             when "subscribe"
@@ -147,15 +147,15 @@ class exports.Connection
                 # Error from a bare JID?
                 unless resource
                     # Remove all resources
-                    delete @onlineResources[userId]
+                    delete @onlineResources[bareJid]
                 else
                      rmUserResource()
             when "unavailable"
                 rmUserResource()
             else # available
-                @onlineResources[userId] = [] unless user of @onlineResources
-                if @onlineResources[userId].indexOf(resource) < 0
-                    @onlineResources[userId].push resource
+                @onlineResources[bareJid] = [] unless bareJid of @onlineResources
+                if @onlineResources[bareJid].indexOf(resource) < 0
+                    @onlineResources[bareJid].push resource
 
     _handleIq: (stanza) ->
         if @iqHandler?
@@ -209,8 +209,8 @@ class exports.Connection
 
             ##
             # Always nag for presence subscription
-            userId = new xmpp.JID(stanza.attrs.from).bare().toString()
-            @subscribePresence userId
+            bareJid = new xmpp.JID(stanza.attrs.from).bare().toString()
+            @subscribePresence bareJid
 
 
 ###

@@ -42,17 +42,16 @@ class DiscoInfoRequest extends Request.Request
         if result?.node?
             queryEl.attrs.node = result.node
 
-        if result?.identities?
-            for identity in result.identities
-                queryEl.c "identity",
-                    category: identity.category
-                    type: identity.type
-                    name: identity.name
+        console.log result: result
+        for identity in result.identities
+            queryEl.c "identity",
+                category: identity.category
+                type: identity.type
+                name: identity.name
 
-        if result?.features?
-            for feature in result.features
-                queryEl.c "feature",
-                    var: feature
+        for feature in result.features
+            queryEl.c "feature",
+                var: feature
 
         # TODO: result.forms
 
