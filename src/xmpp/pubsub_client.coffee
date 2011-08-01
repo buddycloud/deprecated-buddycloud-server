@@ -12,8 +12,13 @@ class Request
                 # TODO: wrap errorStanza
                 cb new Error("Error from remote server")
             else
-                result = @decodeReply replyStanza
-                cb null, result
+                result = null
+                err = null
+                try
+                    result = @decodeReply replyStanza
+                catch e
+                    err = e
+                cb err, result
 
     requestIq: ->
         throw new TypeError("Unimplemented request")
@@ -35,12 +40,12 @@ class DiscoverRequest extends Request
 
     decodeReply: (stanza) ->
         @results = []
-        queryEl = reply?.getChild('query', @xmlns)
+        queryEl = stanza?.getChild('query', @xmlns)
         if queryEl
             for child in queryEl.children
                 unless typeof child is 'string'
                     @decodeReplyEl child
-        cb null, @results
+        @results
 
     # Can add to @results
     decodeReplyEl: (el) ->
@@ -50,7 +55,7 @@ class exports.DiscoverItems extends DiscoverRequest
     xmlns: NS.DISCO_ITEMS
 
     decodeReplyEl: (el) ->
-        if el.is 'item', @xmlns and el.attrs.jid?
+        if el.is('item', @xmlns) and el.attrs.jid?
             result = { jid: el.attrs.jid }
             if el.attrs.node
                 result.node = el.attrs.node

@@ -70,7 +70,7 @@ class exports.Connection
         , IQ_TIMEOUT
         # Wrap callback to cancel timeout in case of success
         @iqCallbacks[id] = (error, result) ->
-            cancelTimeout timeout
+            clearTimeout timeout
             cb(error, result)
         # Finally, send out:
         console.log ">> #{iq.toString()}"
@@ -209,7 +209,7 @@ class exports.Connection
 
             ##
             # Always nag for presence subscription
-            userId = new xmpp.JID(stanza.from).bare().toString()
+            userId = new xmpp.JID(stanza.attrs.from).bare().toString()
             @subscribePresence userId
 
 
