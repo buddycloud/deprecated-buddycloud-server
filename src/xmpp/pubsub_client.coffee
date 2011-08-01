@@ -73,7 +73,7 @@ class exports.DiscoverInfo extends DiscoverRequest
                 @results.identities.push
                     name: el.attrs.name
                     category: el.attrs.category
-                    info: el.attrs.info
+                    type: el.attrs.type
             when "feature"
                 @results.features.push el.attrs.variable
             when "form"

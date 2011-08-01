@@ -70,8 +70,9 @@ class BuddycloudDiscovery
                     cb new errors.NotFound("No pubsub channels service discovered")
             for item in items
                 @infoCache.get item.jid, (err, result) ->
-                    console.log infoCache: [err, result]
+                    console.log infoCacheErr: err, infoCache: result
                     for identity in result?.identities or []
+                        console.log { identity, resultSent }
                         if identity.category is "pubsub" and
                            identity.type is "channels" and
                            not resultSent
@@ -80,6 +81,7 @@ class BuddycloudDiscovery
                             console.log "found service for #{user}: #{item.jid}"
                             cb null, item.jid
                     done()
+                pending++
             done()
 
 class RequestCache
@@ -95,7 +97,6 @@ class RequestCache
                 queued: [cb]
             # Go fetch
             @getter id, (err, results) =>
-                console.log "RequestCache fetched": [err,results]
                 queued = @entries[id].queued
                 @entries[id] = if err then { err } else { results }
                 # flush after timeout
@@ -103,7 +104,6 @@ class RequestCache
                     delete @entries[id]
                 , @cacheTimeout
                 # respond to requests
-                console.log "RequestCache queued": queued
                 for cb in queued
                     cb err, results
         else if @entries[id].queued?

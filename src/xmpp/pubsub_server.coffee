@@ -29,20 +29,21 @@ class DiscoInfoRequest extends Request.Request
                 NS.DISCO_ITEMS, NS.REGISTER,
                 NS.PUBSUB, NS.PUBSUB_OWNER
             ]
-            identities: [
-                category: "pubsub"
+            identities: [{
+                 category: "pubsub"
                 type: "service"
-                name: "Channels service",
+                name: "Channels service"
+            }, {
                 category: "pubsub"
                 type: "channels"
                 name: "Channels service"
-            ]
+            }]
 
         queryEl = new xmpp.Element("query", xmlns: NS.DISCO_INFO)
         if result?.node?
             queryEl.attrs.node = result.node
 
-        console.log result: result
+        console.log "DiscoInfoRequest.reply result": result
         for identity in result.identities
             queryEl.c "identity",
                 category: identity.category

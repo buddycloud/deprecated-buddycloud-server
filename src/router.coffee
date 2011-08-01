@@ -60,7 +60,7 @@ class exports.Router
         console.log 'Router.run': opts
         # TODO: First, look if already subscribed, therefore database is up to date, or if hosted by ourselves
         unless opts.node?
-            @runLocally
+            @runLocally opts
         else
             @isLocallySubscribed opts.node, (err, locallySubscribed) =>
                 console.log isLocallySubscribed: { err, locallySubscribed }
