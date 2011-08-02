@@ -198,6 +198,14 @@ class Subscribe extends PrivilegedOperation
             t.setAffiliation @req.node, @req.actor, 'member', (err) ->
                 cb err
 
+    notification: ->
+        operation: 'subscriptions-updated'
+        subscriptions: [{
+            user: @req.actor
+            node: @req.node
+            subscription: 'subscribed'
+        }]
+
 ##
 # Not privileged as anybody should be able to unsubscribe him/herself
 class Unsubscribe extends ModelOperation
@@ -208,6 +216,14 @@ class Unsubscribe extends ModelOperation
                     t.setAffiliation @req.node, @req.actor, 'none', cb
                 else
                     cb err
+
+    notification: ->
+        operation: 'subscriptions-updated'
+        subscriptions: [{
+            user: @req.actor
+            node: @req.node
+            subscription: 'unsubscribed'
+        }]
 
 
 class RetrieveItems extends PrivilegedOperation
@@ -272,14 +288,25 @@ class ManageNodeSubscriptions extends PrivilegedOperation
                 t.setSubscription @req.node, user, null, subscription, cb2
         ), cb
 
+    notification: ->
+        operation: 'subscriptions-updated'
+        subscriptions: @req.subscriptions.map ({user, subscription}) =>
+            { user, subscription, node: @req.node }
+
 class ManageNodeAffiliations extends PrivilegedOperation
     requiredAffiliation: 'owner'
 
     privilegedTransaction: (t, cb) ->
-        async.series @req.subscriptions.map(({user, subscription}) =>
+        async.series @req.affiliations.map(({user, affiliation}) =>
             (cb2) =>
-                t.setSubscription @req.node, user, null, subscription, cb2
+                t.setAffiliation @req.node, user, affiliation, cb2
         ), cb
+
+
+    notification: ->
+        operation: 'affiliations-updated'
+        subscriptions: @req.affiliations.map ({user, affiliation}) =>
+            { user, affiliation, node: @req.node }
 
 ALLOWED_ACCESS_MODELS = ['open', 'whitelist', 'authorize']
 ALLOWED_PUBLISH_MODELS = ['open', 'subscribers', 'publishers']
@@ -302,6 +329,10 @@ class ManageNodeConfiguration extends PrivilegedOperation
     privilegedTransaction: (t, cb) ->
         t.setConfig @req.node, @req.config, cb
 
+    notification: ->
+        operation: 'node-config-updated'
+        node: @req.node
+        config: @req.config
 
 class Notify extends ModelOperation
     transaction: (t, cb) ->
