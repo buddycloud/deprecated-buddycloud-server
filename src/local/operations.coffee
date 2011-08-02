@@ -273,8 +273,23 @@ class ManageNodeAffiliations extends PrivilegedOperation
                 t.setSubscription @req.node, user, null, subscription, cb2
         ), cb
 
+ALLOWED_ACCESS_MODELS = ['open', 'whitelist', 'authorize']
+ALLOWED_PUBLISH_MODELS = ['open', 'subscribers', 'publishers']
+
 class ManageNodeConfiguration extends PrivilegedOperation
     requiredAffiliation: 'owner'
+
+    run: (cb) ->
+        # Validate some config
+        if @req.config.accessModel? and
+           ALLOWED_ACCESS_MODELS.indexOf(@req.config.accessModel) < 0
+            cb new errors.BadRequest("Invalid access model")
+        else if @req.config.publishModel? and
+           ALLOWED_PUBLISH_MODELS.indexOf(@req.config.publishModel) < 0
+            cb new errors.BadRequest("Invalid publish model")
+        else
+            # All is well, actually run
+            super(cb)
 
     privilegedTransaction: (t, cb) ->
         t.setConfig @req.node, @req.config, cb
