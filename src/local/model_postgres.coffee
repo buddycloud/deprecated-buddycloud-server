@@ -413,6 +413,7 @@ class Transaction
         	# If user supplied only partial information, old/default
             # values will be added by controller. That way we can just
             # INSERT later.
+            # TODO: FIXME
             db.query "DELETE FROM node_config WHERE node=$1", [ node ], cb2
         , (cb2) ->
             async.parallel(
