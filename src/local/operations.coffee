@@ -6,6 +6,43 @@ runTransaction = null
 exports.setModel = (model) ->
     runTransaction = model.transaction
 
+defaultConfiguration = (user) ->
+    posts:
+        title: "#{user} Channel Posts"
+        description: "A buddycloud channel"
+        accessModel: "open"
+        publishModel: "subscribers"
+        defaultAffiliation: "member"
+    status:
+        title: "#{user} Status Updates"
+        description: "M000D"
+        accessModel: "open"
+        publishModel: "publishers"
+        defaultAffiliation: "member"
+    'geoloc/previous':
+        title: "#{user} Previous Location"
+        description: "Where #{user} has been before"
+        accessModel: "open"
+        publishModel: "publishers"
+        defaultAffiliation: "member"
+    'geoloc/current':
+        title: "#{user} Current Location"
+        description: "Where #{user} is at now"
+        accessModel: "open"
+        publishModel: "publishers"
+        defaultAffiliation: "member"
+    'geoloc/next':
+        title: "#{user} Next Location"
+        description: "Where #{user} intends to go"
+        accessModel: "open"
+        publishModel: "publishers"
+        defaultAffiliation: "member"
+    subscriptions:
+        title: "#{user} Subscriptions"
+        description: ""
+        accessModel: "open"
+        publishModel: "publishers"
+        defaultAffiliation: "member"
 
 ##
 # Is created with options from the request
@@ -59,23 +96,23 @@ class Register extends ModelOperation
     transaction: (t, cb) ->
         user = @req.actor
         listener = @req.sender
-        nodeTypes = [
-                'posts', 'status',
-                'geoloc/previous', 'geoloc/current',
-                'geoloc/next', 'subscriptions']
-        async.series nodeTypes.map((nodeType) ->
-            (cb2) ->
-                node = "/user/#{user}/#{nodeType}"
-                console.log "creating #{node}"
-                async.series [(cb3) ->
-                    t.createNode node, cb3
-                , (cb3) ->
-                    t.setAffiliation node, user, 'owner', cb3
-                , (cb3) ->
-                    t.setSubscription node, user, listener, 'subscribed', cb3
-                ], cb2
-        ), (err) ->
+        async.series(for own nodeType, config in defaultConfiguration(user)
+            do (nodeType, config) ->
+                (cb2) ->
+                    node = "/user/#{user}/#{nodeType}"
+                    console.log "creating #{node}"
+                    async.series [(cb3) ->
+                        t.createNode node, cb3
+                    , (cb3) ->
+                        t.setAffiliation node, user, 'owner', cb3
+                    , (cb3) ->
+                        t.setSubscription node, user, listener, 'subscribed', cb3
+                    , (cb3) ->
+                        t.setConfig node, config, cb3
+                    ], cb2
+        , (err) ->
             cb err
+        )
 
 
 class Publish extends PrivilegedOperation
