@@ -122,9 +122,10 @@ class Transaction
         , (res, cb2) ->
             if res?.rows?[0]
                 # Node already exists: ignore
-                cb2(null)
+                cb2(null, false)
             else
-                db.query "INSERT INTO nodes (node) VALUES ($1)", [ node ], cb2
+                db.query "INSERT INTO nodes (node) VALUES ($1)", [ node ], (err) ->
+                    cb2 err, true
         ], cb
 
     ##

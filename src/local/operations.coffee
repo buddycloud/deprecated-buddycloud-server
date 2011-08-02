@@ -145,15 +145,23 @@ class Register extends ModelOperation
                     console.log 'Register cb2': cb2
                     node = "/user/#{user}/#{nodeType}"
                     console.log "creating #{node}"
+                    created = true
                     async.waterfall [(cb3) ->
                         t.createNode node, cb3
-                    , (cb3) ->
+                    , (created_, cb3) ->
+                        console.log createNode: arguments
+                        created = created_
                         t.setAffiliation node, user, 'owner', cb3
                     , (cb3) ->
+                        console.log setAffiliation: arguments
                         t.setSubscription node, user, listener, 'subscribed', cb3
                     , (cb3) ->
-                        # TODO: if already present, don't overwrite config
-                        t.setConfig node, config, cb3
+                        console.log setSubscription: arguments
+                        # if already present, don't overwrite config
+                        if created
+                            t.setConfig node, config, cb3
+                        else
+                            cb3 null
                     ], cb2
         , (err) ->
             cb err
