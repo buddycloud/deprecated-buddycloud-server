@@ -132,6 +132,8 @@ class RegisterSetRequest extends RegisterRequest
     operation: () ->
         'register-user'
 
+    subscriptionRequired: true
+
 ###
 # XEP-0060: Publish-Subscribe
 ###
@@ -590,6 +592,10 @@ class exports.PubsubServer
         @conn.iqHandler = (stanza) =>
             request = @makeRequest stanza
             @onRequest request
+
+            if request.subscriptionRequired
+                bareJid = new xmpp.JID(stanza.attrs.from).bare().toString()
+                @conn.subscribePresence bareJid
 
     onRequest: (request) ->
         # hooked by main/router

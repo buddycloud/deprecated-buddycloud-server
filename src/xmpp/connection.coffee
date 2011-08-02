@@ -207,11 +207,6 @@ class exports.Connection
             # Fire handler, done.
             @iqHandler stanza
 
-            ##
-            # Always nag for presence subscription
-            bareJid = new xmpp.JID(stanza.attrs.from).bare().toString()
-            @subscribePresence bareJid
-
 
 ###
 # TODO: bring back to life
