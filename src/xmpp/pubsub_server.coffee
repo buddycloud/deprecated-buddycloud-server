@@ -32,11 +32,15 @@ class DiscoInfoRequest extends Request.Request
             identities: [{
                  category: "pubsub"
                 type: "service"
-                name: "Channels service"
+                name: "XEP-0060 service"
             }, {
                 category: "pubsub"
                 type: "channels"
                 name: "Channels service"
+            }, {
+                category: "pubsub"
+                type: "inbox"
+                name: "Channels inbox service"
             }]
 
         queryEl = new xmpp.Element("query", xmlns: NS.DISCO_INFO)
