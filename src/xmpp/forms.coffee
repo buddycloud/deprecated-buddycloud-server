@@ -31,11 +31,42 @@ class exports.Form
             @fields.push new exports.Field('FORM_TYPE', 'hidden',
                 undefined, formType)
 
+    getFormType: ->
+        for field in @fields
+            if field.var is 'FORM_TYPE'
+                return field.values[0]
+        null
+
+    get: (fieldVar) ->
+        console.log "get #{fieldVar}"
+        for field in @fields
+            if field.var is fieldVar
+                console.log "get #{fieldVar} = #{field.values[0]}"
+                return field.values[0]
+        console.log "get #{fieldVar} = null"
+        null
+
     toXml: ->
-        formEl = new xmpp.Element('form',
+        formEl = new xmpp.Element('x',
             xmlns: NS.DATA
             type: @type
         )
         @fields.forEach (field) ->
             formEl.cnode field.toXml()
         formEl
+
+exports.fromXml = (xEl) ->
+    unless xEl.is('x', NS.DATA)
+        console.warn "Importing non-form: #{xEl.toString()}"
+
+    form = new exports.Form(xEl.attrs.type)
+    form.fields = xEl.getChildren("field").map (fieldEl) ->
+        field = new exports.Field(
+            fieldEl.attrs.var,
+            fieldEl.attrs.type,
+            fieldEl.attrs.label
+        )
+        field.values = fieldEl.getChildren("value").map (valueEl) ->
+            valueEl.getText()
+        field
+    form

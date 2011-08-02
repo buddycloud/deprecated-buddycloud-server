@@ -43,7 +43,6 @@ class DiscoInfoRequest extends Request.Request
         if result.config?
             form = new forms.Form('result', NS.PUBSUB_META_DATA)
             addField = (key, fvar, label) ->
-                console.log [key,fvar,label,result.config[key]]
                 form.fields.push new forms.Field(fvar, 'text-single',
                     label, result.config[key])
             addField 'title', 'pubsub#title',
@@ -441,11 +440,6 @@ class PubsubOwnerGetSubscriptionsRequest extends PubsubOwnerRequest
         @node = @subscriptionsEl?.attrs.node
 
     matches: () ->
-        console.log "PubsubOwnerGetSubscriptionsRequest.matches":
-            node: @node
-            subscriptionsEl: @subscriptionsEl
-            type: @iq.attrs.type
-            pubsubEl: @pubsubEl
         super &&
         @iq.attrs.type is 'get' &&
         @node
@@ -558,6 +552,70 @@ class PubsubOwnerSetAffiliationsRequest extends PubsubOwnerRequest
     operation: ->
         'manage-node-affiliations'
 
+
+class PubsubOwnerGetConfigurationRequest extends PubsubOwnerRequest
+    constructor: (stanza) ->
+        super
+
+        @configureEl = @pubsubEl?.getChild("configure")
+        @node = @configureEl?.attrs?.node
+
+    matches: () ->
+        super &&
+        @iq.attrs.type is 'get' &&
+        @node
+
+    operation: ->
+        'browse-node-info'
+
+    reply: (result) ->
+        configureEl = new xmpp.Element("configure", node: @node)
+
+        if result.config?
+            form = new forms.Form('result', NS.PUBSUB_NODE_CONFIG)
+            addField = (key, fvar, label) ->
+                form.fields.push new forms.Field(fvar, 'text-single',
+                    label, result.config[key])
+            addField 'title', 'pubsub#title',
+                'A short name for the node'
+            addField 'description', 'pubsub#description',
+                'A description of the node'
+            addField 'accessModel', 'pubsub#access_model',
+                'Who may subscribe and retrieve items'
+            addField 'publishModel', 'pubsub#publish_model',
+                'Who may publish items'
+            addField 'defaultAffiliation', 'pubsub#default_affiliation',
+                'What role do new subscribers have?'
+            configureEl.cnode form.toXml()
+
+        super configureEl
+
+class PubsubOwnerSetConfigurationRequest extends PubsubOwnerRequest
+    constructor: (stanza) ->
+        super
+
+        @configureEl = @pubsubEl?.getChild("configure")
+        @node = @configureEl?.attrs?.node
+        @config = {}
+        for formEl in @configureEl.getChildren("x", NS.DATA)
+            form = forms.fromXml formEl
+            if form.getFormType() is NS.PUBSUB_NODE_CONFIG and
+               form.type is 'submit'
+                @config.title ?= form.get('pubsub#title')
+                @config.description ?= form.get('pubsub#description')
+                @config.accessModel ?= form.get('pubsub#access_model')
+                @config.publishModel ?= form.get('pubsub#publish_model')
+                @config.defaultAffiliation ?= form.get('pubsub#default_affiliation')
+        console.log config: @config
+
+    matches: () ->
+        super &&
+        @iq.attrs.type is 'set' &&
+        @node
+
+    operation: ->
+        'manage-node-configuration'
+
 # TODO: PubsubOwner{Get,Set}Configuration w/ forms
 
 REQUESTS = [
@@ -577,6 +635,8 @@ REQUESTS = [
     PubsubOwnerSetSubscriptionsRequest,
     PubsubOwnerGetAffiliationsRequest,
     PubsubOwnerSetAffiliationsRequest,
+    PubsubOwnerGetConfigurationRequest,
+    PubsubOwnerSetConfigurationRequest,
     Request.NotImplemented
 ]
 

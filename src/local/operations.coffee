@@ -273,6 +273,13 @@ class ManageNodeAffiliations extends PrivilegedOperation
                 t.setSubscription @req.node, user, null, subscription, cb2
         ), cb
 
+class ManageNodeConfiguration extends PrivilegedOperation
+    requiredAffiliation: 'owner'
+
+    privilegedTransaction: (t, cb) ->
+        t.setConfig @req.node, @req.config, cb
+
+
 class Notify extends ModelOperation
     transaction: (t, cb) ->
         # TODO: walk in batches
@@ -302,6 +309,7 @@ OPERATIONS =
     'retrieve-node-affiliations': RetrieveNodeAffiliations
     'manage-node-subscriptions': ManageNodeSubscriptions
     'manage-node-affiliations': ManageNodeAffiliations
+    'manage-node-configuration': ManageNodeConfiguration
 
 exports.run = (router, request) ->
     opName = request.operation()

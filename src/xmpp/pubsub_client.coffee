@@ -221,6 +221,12 @@ class ManageNodeAffiliations extends PubsubOwnerRequest
                 affiliation: affiliation.affiliation
         affiliationsEl
 
+class RetrieveNodeConfiguration extends PubsubOwnerRequest
+    iqType: ->
+        'get'
+
+    #pubsubChild:
+    #    new xmpp.Element
 
 REQUESTS =
     'browse-node-info': exports.DiscoverInfo
@@ -234,6 +240,8 @@ REQUESTS =
     'retrieve-node-affiliations': RetrieveNodeAffiliations
     'manage-node-subscriptions': ManageNodeSubscriptions
     'manage-node-affiliations': ManageNodeAffiliations
+    #'retrieve-node-configuration': RetrieveNodeConfiguration
+    #'manage-node-configuration': ManageNodeConfiguration
 
 exports.byOperation = (opName) ->
     REQUESTS[opName]

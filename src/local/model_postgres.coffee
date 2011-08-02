@@ -411,23 +411,19 @@ class Transaction
         db = @db
         console.log "setConfig " + node + ": " + require("util").inspect(config)
         async.waterfall [ @nodeExists(node), (cb2) ->
-        	# If user supplied only partial information, old/default
-            # values will be added by controller. That way we can just
-            # INSERT later.
-            # TODO: FIXME
-            db.query "DELETE FROM node_config WHERE node=$1", [ node ], (err) ->
-                cb2 err
-        , (cb2) ->
             async.parallel(for own key, value of config
                 do (key, value) ->
                     (cb3) ->
-                		# Do not set configuration fields that have:
-                		# * not been specified
-                        # * no default config
                         if value?
-                            db.query "INSERT INTO node_config (key, value, node, updated) VALUES ($1, $2, $3, CURRENT_TIMESTAMP)"
-                            , [ key, value, node ]
-                            , cb3
+                            db.query "DELETE FROM node_config WHERE node=$1 AND key=$2"
+                            , [ node, key ]
+                            , (err) ->
+                                if err
+                                    return cb err
+
+                                db.query "INSERT INTO node_config (key, value, node, updated) VALUES ($1, $2, $3, CURRENT_TIMESTAMP)"
+                                , [ key, value, node ]
+                                , cb3
                         else
                             cb3 null
             , (err) ->
