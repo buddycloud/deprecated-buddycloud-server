@@ -51,3 +51,11 @@ module.exports =
     InternalServerError: makePrototype("internal-server-error", "wait")
     NotFound: makePrototype("item-not-found", "cancel")
     NotAllowed: makePrototype("not-allowed", "cancel")
+
+class module.exports.StanzaError extends Error
+    constructor: (stanza) ->
+        @el = stanza.getChild('error')
+        @message = @el?.children[0]?.name
+
+    xmppElement: ->
+        @el

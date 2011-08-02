@@ -1,18 +1,19 @@
 xmpp = require('node-xmpp')
 async = require('async')
 NS = require('./ns')
+errors = require('../errors')
 
 class Request
-    constructor: (conn, opts, cb) ->
-        @opts = opts
+    constructor: (conn, @opts, cb) ->
         iq = @requestIq().root()
-        iq.attrs.to = opts.jid
-        iq.c('actor', xmlns: NS.BUDDYCLOUD_V1).
-            t(@opts.sender)
-        conn.sendIq iq, (errorStanza, replyStanza) =>
-            if errorStanza
-                # TODO: wrap errorStanza
-                cb new Error("Error from remote server")
+        iq.attrs.to = @opts.jid
+        if @opts.sender
+            iq.c('actor', xmlns: NS.BUDDYCLOUD_V1).
+                t(@opts.sender)
+        conn.sendIq iq, (err, replyStanza) =>
+            if err
+                # wrap <error/> child
+                cb(err or new errors.StanzaError(err))
             else
                 result = null
                 err = null
@@ -36,6 +37,7 @@ class DiscoverRequest extends Request
     xmlns: undefined
 
     requestIq: ->
+        console.log 'DiscoverRequest.requestIq': @opts
         queryAttrs =
             xmlns: @xmlns
         if @opts.node?
@@ -220,7 +222,7 @@ class ManageNodeAffiliations extends PubsubOwnerRequest
         affiliationsEl
 
 
-byOperation =
+REQUESTS =
     'browse-node-info': exports.DiscoverInfo
     'browse-info': exports.DiscoverInfo
     'publish-node-items': Publish
@@ -232,3 +234,6 @@ byOperation =
     'retrieve-node-affiliations': RetrieveNodeAffiliations
     'manage-node-subscriptions': ManageNodeSubscriptions
     'manage-node-affiliations': ManageNodeAffiliations
+
+exports.byOperation = (opName) ->
+    REQUESTS[opName]

@@ -15,16 +15,24 @@ class exports.PubsubBackend
         user = getNodeUser opts.node
         console.log 'PubsubBackend.run': opts, user: user
         @disco.findService user, (err, service) =>
+            if err
+                return opts.replyError err
+
             if @getMyJids().indexOf(service) >= 0
                 # is local, return to router
                 router.runLocally opts
             else
-                reqClass = pubsubClient.byOperation opts.operation
+                operation = opts.operation()
+                reqClass = pubsubClient.byOperation(operation)
                 unless reqClass
-                    opts.replyError new errors.FeatureNotImplemented("Operation not implemented for remote pubsub")
+                    opts.replyError new errors.FeatureNotImplemented("Operation #{operation} not implemented for remote pubsub")
                     return
 
-                req = new reqClass @conn, opts, (err, result) ->
+                console.log optsBefore: opts
+                opts2 = Object.create(opts)
+                opts2.jid = service
+                console.log optsAfter: [opts2, opts2.jid, opts2.node]
+                req = new reqClass @conn, opts2, (err, result) ->
                     if err
                         opts.replyError err
                     else
