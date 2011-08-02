@@ -110,10 +110,10 @@ class Transaction
             async.waterfall [(cb2) ->
                 db.query "SELECT node FROM nodes WHERE node=$1", [ node ], cb2
             , (res, cb2) ->
-                if res.rowCount < 1
-                    cb2 new errors.NotFound("Node does not exist")
-                else
+                if res?.rows?[0]
                     cb2 null
+                else
+                    cb2 new errors.NotFound("Node does not exist")
             ], cb
 
     createNode: (node, cb) ->
@@ -121,7 +121,7 @@ class Transaction
         async.waterfall [(cb2) ->
             db.query "SELECT node FROM nodes WHERE node=$1", [ node ], cb2
         , (res, cb2) ->
-            if res.rowCount > 0
+            if res?.rows?[0]
                 # Node already exists: ignore
                 cb2(null)
             else
@@ -326,10 +326,10 @@ class Transaction
         async.waterfall [(cb2) ->
             db.query "DELETE FROM items WHERE node=$1 AND id=$2", [ node, itemId ], cb2
         , (res, cb2) ->
-            if res.rowCount < 1
-                cb2 new errors.NotFound("No such item")
-            else
+            if res?.rows?[0]
                 cb2 null
+            else
+                cb2 new errors.NotFound("No such item")
         ], cb
 
     ##
