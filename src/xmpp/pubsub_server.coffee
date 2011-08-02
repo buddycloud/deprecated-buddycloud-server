@@ -1,6 +1,7 @@
 xmpp = require('node-xmpp')
 NS = require('./ns')
 Request = require('./request')
+forms = require('./forms')
 
 ###
 # XEP-0030: Service Discovery
@@ -23,26 +24,7 @@ class DiscoInfoRequest extends Request.Request
         @iq.attrs.type is 'get' &&
         @discoInfoEl?
 
-    reply: () ->
-        result =
-            features: [
-                NS.DISCO_ITEMS, NS.REGISTER,
-                NS.PUBSUB, NS.PUBSUB_OWNER
-            ]
-            identities: [{
-                 category: "pubsub"
-                type: "service"
-                name: "XEP-0060 service"
-            }, {
-                category: "pubsub"
-                type: "channels"
-                name: "Channels service"
-            }, {
-                category: "pubsub"
-                type: "inbox"
-                name: "Channels inbox service"
-            }]
-
+    reply: (result) ->
         queryEl = new xmpp.Element("query", xmlns: NS.DISCO_INFO)
         if result?.node?
             queryEl.attrs.node = result.node
@@ -58,7 +40,23 @@ class DiscoInfoRequest extends Request.Request
             queryEl.c "feature",
                 var: feature
 
-        # TODO: result.forms
+        if result.config?
+            form = new forms.Form('result', NS.PUBSUB_META_DATA)
+            addField = (key, fvar, label) ->
+                console.log [key,fvar,label,result.config[key]]
+                form.fields.push new forms.Field(fvar, 'text-single',
+                    label, result.config[key])
+            addField 'title', 'pubsub#title',
+                'A short name for the node'
+            addField 'description', 'pubsub#description',
+                'A description of the node'
+            addField 'accessModel', 'pubsub#access_model',
+                'Who may subscribe and retrieve items'
+            addField 'publishModel', 'pubsub#publish_model',
+                'Who may publish items'
+            addField 'defaultAffiliation', 'pubsub#default_affiliation',
+                'What role do new subscribers have?'
+            queryEl.cnode form.toXml()
 
         super queryEl
 

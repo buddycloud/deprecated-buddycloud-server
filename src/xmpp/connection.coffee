@@ -42,9 +42,9 @@ class exports.Connection
                             delete @iqCallbacks[stanza.attrs.id]
                             if stanza.attrs.type is 'error'
                                 # TODO: wrap into new Error(...)
-                                cb(stanza)
+                                cb and cb(stanza)
                             else
-                                cb(null, stanza)
+                                cb and cb(null, stanza)
                 when "presence"
                     @_handlePresence stanza
                 when "message" and stanza.attrs.type isnt "error"

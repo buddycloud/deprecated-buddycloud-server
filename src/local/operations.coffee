@@ -1,6 +1,7 @@
 async = require('async')
 uuid = require('node-uuid')
 errors = require('../errors')
+NS = require('../xmpp/ns')
 
 runTransaction = null
 exports.setModel = (model) ->
@@ -87,27 +88,71 @@ class PrivilegedOperation extends ModelOperation
 class BrowseInfo extends Operation
 
     run: (cb) ->
-        console.log "BrowseInfo run"
-        cb()
+        cb null,
+            features: [
+                NS.DISCO_INFO, NS.DISCO_ITEMS,
+                NS.REGISTER,
+                NS.PUBSUB, NS.PUBSUB_OWNER
+            ]
+            identities: [{
+                category: "pubsub"
+                type: "service"
+                name: "XEP-0060 service"
+            }, {
+                category: "pubsub"
+                type: "channels"
+                name: "Channels service"
+            }, {
+                category: "pubsub"
+                type: "inbox"
+                name: "Channels inbox service"
+            }]
+
+
+class BrowseNodeInfo extends PrivilegedOperation
+    requiredAffiliation: 'member'
+
+    privilegedTransaction: (t, cb) ->
+        t.getConfig @req.node, (err, config) =>
+            cb err,
+                node: @req.node
+                features: [
+                    NS.DISCO_INFO, NS.DISCO_ITEMS,
+                    NS.REGISTER,
+                    NS.PUBSUB, NS.PUBSUB_OWNER
+                ]
+                identities: [{
+                    category: "pubsub"
+                    type: "leaf"
+                    name: "XEP-0060 node"
+                }, {
+                    category: "pubsub"
+                    type: "channel"
+                    name: "buddycloud channel"
+                }]
+                config: config
 
 class Register extends ModelOperation
     # TODO: overwrite @run() and check if this component is
     # authoritative for the requesting user's domain
     transaction: (t, cb) ->
+        console.log 'Register cb': cb
         user = @req.actor
         listener = @req.sender
-        async.series(for own nodeType, config in defaultConfiguration(user)
+        async.parallel(for own nodeType, config of defaultConfiguration(user)
             do (nodeType, config) ->
                 (cb2) ->
+                    console.log 'Register cb2': cb2
                     node = "/user/#{user}/#{nodeType}"
                     console.log "creating #{node}"
-                    async.series [(cb3) ->
+                    async.waterfall [(cb3) ->
                         t.createNode node, cb3
                     , (cb3) ->
                         t.setAffiliation node, user, 'owner', cb3
                     , (cb3) ->
                         t.setSubscription node, user, listener, 'subscribed', cb3
                     , (cb3) ->
+                        # TODO: if already present, don't overwrite config
                         t.setConfig node, config, cb3
                     ], cb2
         , (err) ->
@@ -243,7 +288,7 @@ class Notify extends ModelOperation
                 @router.notify notification
 
 OPERATIONS =
-    'browse-node-info': undefined
+    'browse-node-info': BrowseNodeInfo
     'browse-info': BrowseInfo
     'register-user': Register
     'publish-node-items': Publish

@@ -107,14 +107,13 @@ class Transaction
     nodeExists: (node) ->
         db = @db
         (cb) ->
-            async.waterfall [(cb2) ->
-                db.query "SELECT node FROM nodes WHERE node=$1", [ node ], cb2
-            , (res, cb2) ->
-                if res?.rows?[0]
-                    cb2 null
+            db.query "SELECT node FROM nodes WHERE node=$1", [ node ], (err, res) ->
+                if err
+                    cb err
+                else if res?.rows?[0]?
+                    cb null
                 else
-                    cb2 new errors.NotFound("Node does not exist")
-            ], cb
+                    cb new errors.NotFound("Node does not exist")
 
     createNode: (node, cb) ->
         db = @db
@@ -194,7 +193,8 @@ class Transaction
                 cb2 null
             else
                 cb2 new Error('Invalid subscription transition')
-        ], cb
+        ], (err) ->
+            cb err
 
     getSubscribers: (node, cb) ->
         db = @db
@@ -270,7 +270,8 @@ class Transaction
                 db.query "DELETE FROM affiliations WHERE node=$1 AND \"user\"=$2", [ node, user ], cb2
             else if not isSet and toDelete
                 cb2 null
-        ], cb
+        ], (err) ->
+            cb err
 
     getAffiliations: (user, cb) ->
         db = @db
@@ -414,19 +415,24 @@ class Transaction
             # values will be added by controller. That way we can just
             # INSERT later.
             # TODO: FIXME
-            db.query "DELETE FROM node_config WHERE node=$1", [ node ], cb2
+            db.query "DELETE FROM node_config WHERE node=$1", [ node ], (err) ->
+                cb2 err
         , (cb2) ->
-            async.parallel(
-                for own key, value of config
+            async.parallel(for own key, value of config
+                do (key, value) ->
                     (cb3) ->
                 		# Do not set configuration fields that have:
                 		# * not been specified
                         # * no default config
-                        if value == "" or value
+                        if value?
                             db.query "INSERT INTO node_config (key, value, node, updated) VALUES ($1, $2, $3, CURRENT_TIMESTAMP)"
                             , [ key, value, node ]
                             , cb3
-            , cb2)
+                        else
+                            cb3 null
+            , (err) ->
+                cb2 err
+            )
         ], cb
 
 parseEl = (xml) ->
