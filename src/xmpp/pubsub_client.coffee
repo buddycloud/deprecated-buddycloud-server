@@ -91,7 +91,7 @@ class exports.DiscoverInfo extends DiscoverRequest
 class PubsubRequest extends Request
     xmlns: NS.PUBSUB
     requestIq: ->
-        pubsubEl = @pubsubChild()
+        pubsubEl = @pubsubChild().root()
         if @opts.actor
             pubsubEl.c('actor', xmlns: NS.BUDDYCLOUD_V1).
                 t(@opts.actor)
