@@ -1,6 +1,8 @@
 NS = require('./ns')
 forms = require('./forms')
 
+##
+# All notifications are per-node, so listeners can be fetched once
 class Notification
     constructor: (@opts) ->
 
@@ -25,10 +27,10 @@ class SubscriptionsNotification extends Notification
     toStanza: ->
         subscriptionEl = (super).
             c('subscription')
-        for {user, node, subscription} in @opts.subscriptions
+        for {user, subscription} in @opts.subscriptions
             subscriptionEl.c('subscription',
                 jid: user
-                node: node
+                node: @opts.node
                 subscription: subscription
             )
         subscriptionEl
@@ -37,10 +39,10 @@ class AffiliationsNotification extends Notification
     toStanza: ->
         affiliationEl = (super).
             c('affiliation')
-        for {user, node, affiliation} in @opts.affiliations
+        for {user, affiliation} in @opts.affiliations
             affiliationEl.c('affiliation',
                 jid: user
-                node: node
+                node: @opts.node
                 affiliation: affiliation
             )
         affiliationEl
@@ -74,5 +76,5 @@ NOTIFICATIONS =
     'affiliations-updated': AffiliationsNotification
     'node-config-updated': ConfigNotification
 
-exports.byOperation = (opName) ->
-    NOTIFICATIONS[opName]
+exports.byEvent = (event) ->
+    NOTIFICATIONS[event]

@@ -39,7 +39,7 @@ class exports.PubsubBackend
                         opts.reply result
 
     notify: (notification) ->
-        nKlass = notifications.byOperation notification.operation
+        nKlass = notifications.byEvent notification.event
         return false unless nKlass
 
         n = new nKlass(notification)

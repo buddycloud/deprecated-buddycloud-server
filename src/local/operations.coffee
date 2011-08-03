@@ -186,7 +186,7 @@ class Publish extends PrivilegedOperation
         )
 
     notification: ->
-        operation: 'publish-node-items'
+        event: 'publish-node-items'
         node: @req.node
         items: @req.items
 
@@ -199,10 +199,10 @@ class Subscribe extends PrivilegedOperation
                 cb err
 
     notification: ->
-        operation: 'subscriptions-updated'
+        event: 'subscriptions-updated'
+        node: @req.node
         subscriptions: [{
             user: @req.actor
-            node: @req.node
             subscription: 'subscribed'
         }]
 
@@ -218,10 +218,10 @@ class Unsubscribe extends ModelOperation
                     cb err
 
     notification: ->
-        operation: 'subscriptions-updated'
+        event: 'subscriptions-updated'
+        node: @req.node
         subscriptions: [{
             user: @req.actor
-            node: @req.node
             subscription: 'unsubscribed'
         }]
 
@@ -289,9 +289,10 @@ class ManageNodeSubscriptions extends PrivilegedOperation
         ), cb
 
     notification: ->
-        operation: 'subscriptions-updated'
+        event: 'subscriptions-updated'
+        node: @req.node
         subscriptions: @req.subscriptions.map ({user, subscription}) =>
-            { user, subscription, node: @req.node }
+            { user, subscription }
 
 class ManageNodeAffiliations extends PrivilegedOperation
     requiredAffiliation: 'owner'
@@ -304,9 +305,10 @@ class ManageNodeAffiliations extends PrivilegedOperation
 
 
     notification: ->
-        operation: 'affiliations-updated'
+        event: 'affiliations-updated'
+        node: @req.node
         subscriptions: @req.affiliations.map ({user, affiliation}) =>
-            { user, affiliation, node: @req.node }
+            { user, affiliation }
 
 ALLOWED_ACCESS_MODELS = ['open', 'whitelist', 'authorize']
 ALLOWED_PUBLISH_MODELS = ['open', 'subscribers', 'publishers']
@@ -330,7 +332,7 @@ class ManageNodeConfiguration extends PrivilegedOperation
         t.setConfig @req.node, @req.config, cb
 
     notification: ->
-        operation: 'node-config-updated'
+        event: 'node-config-updated'
         node: @req.node
         config: @req.config
 
