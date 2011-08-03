@@ -7,6 +7,8 @@ errors = require('../errors')
 class exports.PubsubBackend
     constructor: (@conn) ->
         @disco = new BuddycloudDiscovery(@conn)
+        @authorizeFor = (args...) =>
+            @disco.authorizeFor(args...)
 
     getMyJids: ->
         [@conn.jid]

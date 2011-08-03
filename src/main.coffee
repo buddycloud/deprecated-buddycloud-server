@@ -27,9 +27,9 @@ pubsubServer.onRequest = (request) ->
         # actor
         pubsubBackend.authorizeFor request.sender, request.actor, (err, valid) ->
             if err
-                stanza.replyError err
+                request.replyError err
             else unless valid
-                stanza.reply new errors.BadRequest('Requesting service not authorized for actor')
+                request.replyError new errors.BadRequest('Requesting service not authorized for actor')
             else
                 # Pass to router
                 router.run request
