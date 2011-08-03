@@ -91,13 +91,13 @@ class exports.DiscoverInfo extends DiscoverRequest
 class PubsubRequest extends Request
     xmlns: NS.PUBSUB
     requestIq: ->
-        pubsubEl = @pubsubChild().root()
+        pubsubEl = new xmpp.Element('iq', type: @iqType()).
+            c('pubsub', xmlns: @xmlns)
+        pubsubEl.cnode(@pubsubChild().root())
         if @opts.actor
             pubsubEl.c('actor', xmlns: NS.BUDDYCLOUD_V1).
                 t(@opts.actor)
-        new xmpp.Element('iq', type: @iqType()).
-            c('pubsub', xmlns: @xmlns).
-            cnode(pubsubEl)
+        pubsubEl.up()
 
     iqType: ->
         throw new TypeError("Unimplemented request")
