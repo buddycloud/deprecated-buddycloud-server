@@ -7,9 +7,6 @@ class Request
     constructor: (conn, @opts, cb) ->
         iq = @requestIq().root()
         iq.attrs.to = @opts.jid
-        if @opts.sender
-            iq.c('actor', xmlns: NS.BUDDYCLOUD_V1).
-                t(@opts.sender)
         conn.sendIq iq, (err, replyStanza) =>
             if err
                 # wrap <error/> child
@@ -94,9 +91,13 @@ class exports.DiscoverInfo extends DiscoverRequest
 class PubsubRequest extends Request
     xmlns: NS.PUBSUB
     requestIq: ->
+        pubsubEl = @pubsubChild()
+        if @opts.actor
+            pubsubEl.c('actor', xmlns: NS.BUDDYCLOUD_V1).
+                t(@opts.actor)
         new xmpp.Element('iq', type: @iqType()).
             c('pubsub', xmlns: @xmlns).
-            cnode(@pubsubChild())
+            cnode(pubsubEl)
 
     iqType: ->
         throw new TypeError("Unimplemented request")
