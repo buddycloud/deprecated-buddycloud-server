@@ -186,7 +186,7 @@ class Transaction
         , (cb2) ->
             db.query "SELECT subscription FROM subscriptions WHERE node=$1 AND \"user\"=$2", [ node, user ], cb2
         , (res, cb2) ->
-            isSet = res?.rows?[0]
+            isSet = res?.rows?[0]?
             console.log "setSubscription #{node} #{user} isSet=#{isSet} toDelete=#{toDelete}"
             if isSet and not toDelete
                 if listener
