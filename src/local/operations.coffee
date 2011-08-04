@@ -2,6 +2,7 @@ async = require('async')
 uuid = require('node-uuid')
 errors = require('../errors')
 NS = require('../xmpp/ns')
+{normalizeItem} = require('../normalize')
 
 runTransaction = null
 exports.setModel = (model) ->
@@ -175,9 +176,17 @@ class Publish extends PrivilegedOperation
         # TODO: normalize
         async.series(@req.items.map((item) =>
             (cb2) =>
-                unless item.id?
-                    item.id = uuid()
-                t.writeItem @req.node, item.id, @req.actor, item.el, cb2
+                async.waterfall [(cb3) =>
+                    unless item.id?
+                        item.id = uuid()
+                        cb3 null, null
+                    else
+                        t.getItem @req.node, item.id, cb3
+                , (oldItem, cb3) =>
+                    normalizeItem @req, oldItem, item, cb3
+                , (newItem, cb3) =>
+                    t.writeItem @req.node, newItem.id, @req.actor, newItem.el, cb3
+                ], cb2
         ), (err) ->
             if err
                 cb err

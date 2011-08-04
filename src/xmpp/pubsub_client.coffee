@@ -80,7 +80,7 @@ class exports.DiscoverInfo extends DiscoverRequest
                     category: el.attrs.category
                     type: el.attrs.type
             when "feature"
-                @results.features.push el.attrs.variable
+                @results.features.push el.attrs.var
             when "form"
                 # TODO: .getForm(formType)
                 @results.forms.push
