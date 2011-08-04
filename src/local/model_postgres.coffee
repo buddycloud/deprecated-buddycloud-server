@@ -77,6 +77,9 @@ exports.isListeningToNode = (node, listenerJids, cb) ->
                 dbIsAvailable(db)
             cb err, (res?.rows?[0]?)
 
+
+LOST_TRANSACTION_TIMEOUT = 10 * 1000
+
 ##
 # Wraps the postgres-js transaction with our model operations.
 class Transaction
@@ -85,8 +88,19 @@ class Transaction
         db.query "BEGIN", [], (err, res) =>
             cb err, @
 
+        timeout = setTimeout =>
+            console.error "Danger: lost transaction, rolling back!"
+            timeout = undefined
+            @rollback
+        , LOST_TRANSACTION_TIMEOUT
+        @rmTimeout = ->
+            if timeout
+                clearTimeout timeout
+                timeout = undefined
+
     commit: (cb) ->
         @db.query "COMMIT", [], (err, res) =>
+            @rmTimeout()
             process.nextTick =>
                 dbIsAvailable @db
 
@@ -94,6 +108,7 @@ class Transaction
 
     rollback: (cb) ->
         @db.query "ROLLBACK", [], (err, res) =>
+            @rmTimeout()
             process.nextTick =>
                 dbIsAvailable @db
 
