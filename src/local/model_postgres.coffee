@@ -167,7 +167,8 @@ class Transaction
     setSubscription: (node, user, listener, subscription, cb) ->
         db = @db
         toDelete = not subscription or subscription == "none"
-        async.waterfall [ @nodeExists(node), (cb2) ->
+        async.waterfall [ @nodeExists(node)
+        , (cb2) ->
             db.query "SELECT subscription FROM subscriptions WHERE node=$1 AND \"user\"=$2", [ node, user ], cb2
         , (res, cb2) ->
             isSet = res?.rows?[0]
@@ -258,7 +259,8 @@ class Transaction
 
     setAffiliation: (node, user, affiliation, cb) ->
         db = @db
-        async.waterfall [(cb2) ->
+        async.waterfall [ @nodeExists(node)
+        , (cb2) ->
             db.query "SELECT affiliation FROM affiliations WHERE node=$1 AND \"user\"=$2", [ node, user ], cb2
         , (res, cb2) ->
             isSet = res and res.rows and res.rows[0]
