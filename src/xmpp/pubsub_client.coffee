@@ -17,6 +17,7 @@ class Request
                 try
                     result = @decodeReply replyStanza
                 catch e
+                    console.error e.stack
                     err = e
                 cb err, result
 
@@ -147,8 +148,8 @@ class Subscribe extends PubsubRequest
     decodeReplyEl: (el) ->
         if el.is('subscription', @xmlns) and
            el.attrs.node is @opts.node
-            @result.user ?= el.attrs.jid or @opts.actor
-            @result.subscription ?= el.attrs.subscription or 'subscribed'
+            @results.user ?= el.attrs.jid or @opts.actor
+            @results.subscription ?= el.attrs.subscription or 'subscribed'
 
 class Unsubscribe extends PubsubRequest
     iqType: ->
