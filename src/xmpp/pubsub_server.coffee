@@ -200,13 +200,11 @@ class PubsubSubscribeRequest extends PubsubRequest
         @node
 
     reply: (result) ->
-        attrs = {}
-        attrs.jid = result.jid if result && result.jid
-        attrs.subscription = result.subscription if result && result.subscription
-        if attrs.jid || attrs.subscription
-            super new xmpp.Element("subscription", attrs)
-        else
-            super
+        attrs =
+            node: @node
+        attrs.jid ?= result?.user
+        attrs.subscription ?= result?.subscription
+        super new xmpp.Element("subscription", attrs)
 
     operation: ->
         'subscribe-node'

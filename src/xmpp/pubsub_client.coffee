@@ -142,7 +142,13 @@ class Subscribe extends PubsubRequest
         'set'
 
     pubsubChild: ->
-        new xmpp.Element('subscribe', node: @opts.node, jid: @opts.sender)
+        new xmpp.Element('subscribe', node: @opts.node, jid: @opts.actor)
+
+    decodeReplyEl: (el) ->
+        if el.is('subscription', @xmlns) and
+           el.attrs.node is @opts.node
+            @result.user ?= el.attrs.jid or @opts.actor
+            @result.subscription ?= el.attrs.subscription or 'subscribed'
 
 class Unsubscribe extends PubsubRequest
     iqType: ->

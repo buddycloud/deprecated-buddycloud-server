@@ -195,8 +195,10 @@ class Subscribe extends PrivilegedOperation
 
     privilegedTransaction: (t, cb) ->
         t.setSubscription @req.node, @req.actor, @req.sender, 'subscribed', (err) =>
-            t.setAffiliation @req.node, @req.actor, 'member', (err) ->
-                cb err
+            t.setAffiliation @req.node, @req.actor, 'member', (err) =>
+                cb err,
+                    user: @req.actor
+                    subscription: 'subscribed'
 
     notification: ->
         event: 'subscriptions-updated'
