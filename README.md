@@ -12,66 +12,12 @@ The primary network protocol is
 channel-server is distributed under the Apache License 2.0. See the
 `LICENSE` file.
 
-
 ## Installation
 
 At this early stage you should be prepared to upgrade this software in
 the future.
 
-
-### Requirements
-
-You will need [Node](http://nodejs.org/) and its package manager
-[npm](http://npmjs.org/). Then install development packages for
-installing the required libraries:
-
-    apt-get install -t testing libicu-dev libexpat-dev  # on Ubuntu/Debian
-
-Next, depending on your preference, you may choose to just
-`npm install channel-server` or install further dependencies
-manually and run channel-server from the repository:
-
-    npm install . # install all dependencies and build code
-
-
-### Configuration
-
-Edit `config.js`. It's not just JSON but full JavaScript, meaning you
-can use unquoted object keys and even code.
-
-The `xmpp` section sets up a component connection. For ejabberd the
-listener configuration should look like this:
-
-    {5347, ejabberd_service, [{hosts, ["channels.example.com"], [{password, "secret"}]}]}
-
-For OpenFire, configure an external component in the server settings
-in the admin interface.
-
-
-#### CouchDB configuration
-
-* Head to the administration interface at http://localhost:5984/_utils/
-* Change the `reduce_limit` to `false`
-* Create your database
-
-#### PostgreSQL configuration
-
-The [pg](https://github.com/brianc/node-postgres) library uses TCP
-connections, no Unix domain sockets with user account
-credentials. Hence, use `createuser -P` and grant the new user
-privileges on your database.
-
-Next, install the database schema:
-
-    psql channel-server
-    \i postgres.sql
-
-
-### Start
-
-Simply do:
-
-    node main.js
+Instructions are located at https://buddycloud.org/wiki/Install
 
 
 ## Hacking
