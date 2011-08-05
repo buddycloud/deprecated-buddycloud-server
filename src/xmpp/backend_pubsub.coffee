@@ -94,14 +94,14 @@ class exports.PubsubBackend extends EventEmitter
 
             if child.is('subscription')
                 updates.push
-                    type: 'subscriptions'
+                    type: 'subscription'
                     node: node
                     user: child.attrs.jid
                     subscription: child.attrs.subscription
 
             if child.is('affiliation')
                 updates.push
-                    type: 'affiliations'
+                    type: 'affiliation'
                     node: node
                     user: child.attrs.jid
                     affiliation: child.attrs.affiliation
@@ -112,28 +112,19 @@ class exports.PubsubBackend extends EventEmitter
                 config = form and forms.formToConfig(form)
                 if config
                     updates.push
-                        type: 'configs'
+                        type: 'config'
                         node: node
                         config: config
 
-        pushOpts =
-            subscriptions: []
-            affiliations: []
-            items: []
-            configs: []
-        async.parallel(updates.map (update) =>
-            do (cb) =>
-                user = getNodeUser(update.node)
-                unless user
-                    return cb()
-                @authorizeFor sender, user, (err, valid) ->
-                    if !err && valid
-                        pushOpts[update.type].push update
-                    cb()
-        , (err) =>
-            # Ignore partial errors, in the worst case pushOpts will
-            # be empty
-            @emit 'notificationPush', pushOpts
+        async.filter(updates, (update, cb) =>
+            user = getNodeUser(update.node)
+            unless user
+                return cb(null, false)
+            @authorizeFor sender, user, (err, valid) ->
+                cb(null, !err && valid)
+        , (err, updates) =>
+            if !err && updates?
+                @emit 'notificationPush', updates
         )
 
 

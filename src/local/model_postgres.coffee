@@ -119,7 +119,7 @@ class Transaction
 
     ##
     # Can be dropped in a async.waterfall() sequence to validate presence of a node.
-    nodeExists: (node) ->
+    _nodeExists: (node) ->
         db = @db
         (cb) ->
             db.query "SELECT node FROM nodes WHERE node=$1", [ node ], (err, res) ->
@@ -129,6 +129,9 @@ class Transaction
                     cb null
                 else
                     cb new errors.NotFound("Node does not exist")
+
+    nodeExists: (node, cb) ->
+        _nodeExists(node)(cb)
 
     createNode: (node, cb) ->
         db = @db
@@ -182,7 +185,7 @@ class Transaction
     setSubscription: (node, user, listener, subscription, cb) ->
         db = @db
         toDelete = not subscription or subscription == "none"
-        async.waterfall [ @nodeExists(node)
+        async.waterfall [ @_nodeExists(node)
         , (cb2) ->
             db.query "SELECT subscription FROM subscriptions WHERE node=$1 AND \"user\"=$2", [ node, user ], cb2
         , (res, cb2) ->
@@ -274,7 +277,7 @@ class Transaction
 
     setAffiliation: (node, user, affiliation, cb) ->
         db = @db
-        async.waterfall [ @nodeExists(node)
+        async.waterfall [ @_nodeExists(node)
         , (cb2) ->
             db.query "SELECT affiliation FROM affiliations WHERE node=$1 AND \"user\"=$2", [ node, user ], cb2
         , (res, cb2) ->
@@ -324,7 +327,7 @@ class Transaction
 
     writeItem: (node, id, author, el, cb) ->
         db = @db
-        async.waterfall [ @nodeExists(node), (cb2) ->
+        async.waterfall [ @_nodeExists(node), (cb2) ->
             db.query "SELECT id FROM items WHERE node=$1 AND id=$2", [ node, id ], cb2
         , (res, cb2) ->
             isSet = res and res.rows and res.rows[0]
@@ -412,7 +415,7 @@ class Transaction
 
     getConfig: (node, cb) ->
         db = @db
-        async.waterfall [ @nodeExists(node), (cb2) ->
+        async.waterfall [ @_nodeExists(node), (cb2) ->
             db.query "SELECT \"key\", \"value\" FROM node_config WHERE node=$1", [ node ], cb2
         , (res, cb2) ->
             if res.rows
@@ -428,7 +431,7 @@ class Transaction
     setConfig: (node, config, cb) ->
         db = @db
         console.log "setConfig " + node + ": " + require("util").inspect(config)
-        async.waterfall [ @nodeExists(node), (cb2) ->
+        async.waterfall [ @_nodeExists(node), (cb2) ->
             async.parallel(for own key, value of config
                 do (key, value) ->
                     (cb3) ->

@@ -348,19 +348,50 @@ class ManageNodeConfiguration extends PrivilegedOperation
         config: @req.config
 
 
-# TODO: createNode? transition from non-cached to cached and vice versa
 class PushInbox extends ModelOperation
     transaction: (t, cb) ->
         async.waterfall [(cb2) =>
-            cb2()
-        , (cb2) =>
-            async.parallel [(cb2) =>
-                async.series @req.subscriptions.map ({node, user, listener, subscription}) ->
-                    t.setSubscription node, user, listener, subscription, cb2
-            ], cb2
-        ], (err) ->
-            cb err
+            async.filter @opts, (update, cb3) ->
+                if update.type is 'subscription' and update.listener?
+                    # Was successful remote subscription attempt
+                    t.createNode update.node, (err, created) ->
+                        cb3 err, true
+                else
+                    # Just an update, to be cached locally?
+                    t.nodeExists update.node, (err, exists) ->
+                        cb3 err, exists
+            , cb2
+        , (updates, cb2) =>
+            async.forEach updates, (update, cb3) ->
+                switch update.type
+                    when 'items'
+                        {node, items} = update
+                        async.forEach items, (item, cb4) ->
+                            {id, el} = item
+                            # FIXME: refactor out
+                            author = el?.is('entry') and
+                                el.getChild('author')?.getChild('uri')
+                            if author and (m = /^acct:(.+)/)
+                                author = m[1]
+                            t.writeItem node, id, author, el, cb4
+                        , cb3
 
+                    when 'subscription'
+                        {node, user, listener, subscription} = update
+                        t.setSubscription node, user, listener, subscription, cb3
+
+                    when 'affiliation'
+                        {node, user, affiliation} = update
+                        t.setAffiliation node, user, affiliation, cb3
+
+                    when 'config'
+                        {node, config} = update
+                        t.setConfig node, config, cb3
+
+                    else
+                        cb3 new errors.InternalServerError("Bogus push update type: #{update.type}")
+            , cb2
+        ], cb
 
 
 class Notify extends ModelOperation
