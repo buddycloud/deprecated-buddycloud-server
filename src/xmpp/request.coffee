@@ -28,6 +28,12 @@ class exports.Request
     replyError: (error) ->
         @iq.replyError error
 
+    callback: (err, result) ->
+        if err
+            @replyError err
+        else
+            @reply result
+
     operation: () ->
         undefined
 

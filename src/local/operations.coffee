@@ -378,30 +378,30 @@ OPERATIONS =
     'manage-node-affiliations': ManageNodeAffiliations
     'manage-node-configuration': ManageNodeConfiguration
 
-exports.run = (router, request) ->
+exports.run = (router, request, cb) ->
     opName = request.operation()
     unless opName
         # No operation specified, reply immediately
-        request.reply()
-        return
+        return cb()
 
     opClass = OPERATIONS[opName]
     unless opClass
         console.error "Unimplemented operation #{opName}"
         console.log request: request
-        request.replyError(new errors.FeatureNotImplemented("Unimplemented operation #{opName}"))
-        return
+        return cb(new errors.FeatureNotImplemented("Unimplemented operation #{opName}"))
 
-    console.log "Creating operation #{opName}"
+    console.log "Creating operation #{opName}, cb=#{cb}"
     op = new opClass(router, request)
     op.run (error, result) ->
         console.log "operation ran: #{error}, #{result}"
         if error
-            request.replyError error
+            cb error
         else
+            # Successfully done
             console.log "replying for #{opName}"
-            request.reply result
+            cb null, result
 
+            # Run notifications
             notification = op.notification?()
             if notification
                 console.log "notifying for #{opName}"

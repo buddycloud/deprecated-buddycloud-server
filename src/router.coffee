@@ -23,14 +23,15 @@ class RemoteRouter
         backends = new Array(@backends...)
         tryBackend = =>
             backend = backends.shift()
-            console.log tryBackend: backend
             backend.run @router, opts, (err, results) ->
-                if err && backends.length >= 1
+                if err && backends.length > 0
                     # Retry with next backend
                     tryBackend()
+                else if results?
+                    cb null, results
                 else
                     # Was last backend
-                    cb err, results
+                    cb (err or new errors.NotFound("Resource not found on any backend"))
         tryBackend()
 
     notify: (notification) ->
@@ -56,22 +57,22 @@ class exports.Router
     isLocallySubscribed: (node, cb) ->
         @model.isListeningToNode node, @remote.getMyJids(), cb
 
-    run: (opts) ->
-        console.log 'Router.run': opts
+    run: (opts, cb) ->
+        console.log 'Router.run': opts, cb: cb
         # TODO: First, look if already subscribed, therefore database is up to date, or if hosted by ourselves
         unless opts.node?
-            @runLocally opts
+            @runLocally opts, cb
         else
             @isLocallySubscribed opts.node, (err, locallySubscribed) =>
                 console.log isLocallySubscribed: { err, locallySubscribed }
                 if locallySubscribed
-                    @runLocally opts
+                    @runLocally opts, cb
                 else
                     # run remotely
-                    @remote.run opts, ->
+                    @remote.run opts, cb
 
-    runLocally: (opts) ->
-        @operations.run @, opts
+    runLocally: (opts, cb) ->
+        @operations.run @, opts, cb
 
     notify: (notification) ->
         @remote.notify notification

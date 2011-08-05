@@ -27,12 +27,14 @@ pubsubServer.onRequest = (request) ->
         # actor
         pubsubBackend.authorizeFor request.sender, request.actor, (err, valid) ->
             if err
-                request.replyError err
+                request.callback err
             else unless valid
-                request.replyError new errors.BadRequest('Requesting service not authorized for actor')
+                request.callback new errors.BadRequest('Requesting service not authorized for actor')
             else
                 # Pass to router
-                router.run request
+                router.run request, (args...) ->
+                    request.callback(args...)
     else
         # Pass to router
-        router.run request
+        router.run request, (args...) ->
+            request.callback(args...)

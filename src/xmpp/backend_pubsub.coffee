@@ -13,21 +13,21 @@ class exports.PubsubBackend
     getMyJids: ->
         [@conn.jid]
 
-    run: (router, opts) ->
+    run: (router, opts, cb) ->
         user = getNodeUser opts.node
         console.log 'PubsubBackend.run': opts, user: user
         @disco.findService user, (err, service) =>
             if err
-                return opts.replyError err
+                return cb err
 
             if @getMyJids().indexOf(service) >= 0
                 # is local, return to router
-                router.runLocally opts
+                router.runLocally opts, cb
             else
                 operation = opts.operation()
                 reqClass = pubsubClient.byOperation(operation)
                 unless reqClass
-                    opts.replyError new errors.FeatureNotImplemented("Operation #{operation} not implemented for remote pubsub")
+                    cb new errors.FeatureNotImplemented("Operation #{operation} not implemented for remote pubsub")
                     return
 
                 console.log optsBefore: opts
@@ -36,9 +36,9 @@ class exports.PubsubBackend
                 console.log optsAfter: [opts2, opts2.jid, opts2.node]
                 req = new reqClass @conn, opts2, (err, result) ->
                     if err
-                        opts.replyError err
+                        cb err
                     else
-                        opts.reply result
+                        cb null, result
 
     notify: (notification) ->
         nKlass = notifications.byEvent notification.event
