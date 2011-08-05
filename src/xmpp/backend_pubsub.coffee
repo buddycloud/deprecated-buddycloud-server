@@ -38,7 +38,13 @@ class exports.PubsubBackend
                     if err
                         cb err
                     else
-                        cb null, result
+                        # Successfully done at remote
+                        localPushData = req.localPushData?()
+                        if hookOpts
+                            router.pushData localPushData, (err) ->
+                                cb err, result
+                        else
+                            cb null, result
 
     notify: (opts) ->
         notificationClass = notifications.byEvent notification.event

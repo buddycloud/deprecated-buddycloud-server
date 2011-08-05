@@ -5,6 +5,7 @@ errors = require('../errors')
 
 class Request
     constructor: (conn, @opts, cb) ->
+        @myJid = conn.jid
         iq = @requestIq().root()
         iq.attrs.to = @opts.jid
         conn.sendIq iq, (err, replyStanza) =>
@@ -151,12 +152,27 @@ class Subscribe extends PubsubRequest
             @results.user ?= el.attrs.jid or @opts.actor
             @results.subscription ?= el.attrs.subscription or 'subscribed'
 
+    localPushData: ->
+        subscriptions: [{
+            node: @opts.node
+            user: @results.user
+            listener: @myJid
+            subscription: @results.subscription
+        }]
+
 class Unsubscribe extends PubsubRequest
     iqType: ->
         'set'
 
     pubsubChild: ->
         new xmpp.Element('unsubscribe', node: @opts.node)
+
+    localPushData: ->
+        subscriptions: [{
+            node: @opts.node
+            user: @opts.actor
+            subscription: 'unsubscribed'
+        }]
 
 class RetrieveItems extends PubsubRequest
     iqType: ->

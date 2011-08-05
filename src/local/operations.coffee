@@ -347,6 +347,22 @@ class ManageNodeConfiguration extends PrivilegedOperation
         node: @req.node
         config: @req.config
 
+
+# TODO: createNode? transition from non-cached to cached and vice versa
+class PushInbox extends ModelOperation
+    transaction: (t, cb) ->
+        async.waterfall [(cb2) =>
+            cb2()
+        , (cb2) =>
+            async.parallel [(cb2) =>
+                async.series @req.subscriptions.map ({node, user, listener, subscription}) ->
+                    t.setSubscription node, user, listener, subscription, cb2
+            ], cb2
+        ], (err) ->
+            cb err
+
+
+
 class Notify extends ModelOperation
     transaction: (t, cb) ->
         # TODO: walk in batches
@@ -377,6 +393,7 @@ OPERATIONS =
     'manage-node-subscriptions': ManageNodeSubscriptions
     'manage-node-affiliations': ManageNodeAffiliations
     'manage-node-configuration': ManageNodeConfiguration
+    'push-inbox': PushInbox
 
 exports.run = (router, request, cb) ->
     opName = request.operation()

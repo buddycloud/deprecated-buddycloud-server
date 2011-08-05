@@ -74,5 +74,10 @@ class exports.Router
     runLocally: (opts, cb) ->
         @operations.run @, opts, cb
 
+    pushData: (opts, cb) ->
+        opts.operation = ->
+            'push-inbox'
+        @operations.run @, opts, cb
+
     notify: (notification) ->
         @remote.notify notification
