@@ -41,6 +41,7 @@ pubsubServer.on 'request', (request) ->
 
 # Handle incoming XEP-0060 Publish-Subscribe notifications
 pubsubBackend.on 'notificationPush', (opts) ->
+    console.log notificationPush: opts
     # Sender is already authenticated at this point
     opts.operation = ->
         'push-inbox'

@@ -153,11 +153,13 @@ class Subscribe extends PubsubRequest
             @results.subscription ?= el.attrs.subscription or 'subscribed'
 
     localPushData: ->
-        type: 'subscription'
-        node: @opts.node
-        user: @results.user
-        listener: @myJid
-        subscription: @results.subscription
+        [{
+            type: 'subscription'
+            node: @opts.node
+            user: @results.user
+            listener: @myJid
+            subscription: @results.subscription
+        }]
 
 class Unsubscribe extends PubsubRequest
     iqType: ->
@@ -167,10 +169,12 @@ class Unsubscribe extends PubsubRequest
         new xmpp.Element('unsubscribe', node: @opts.node)
 
     localPushData: ->
-        type: 'subscription'
-        node: @opts.node
-        user: @opts.actor
-        subscription: 'unsubscribed'
+        [{
+            type: 'subscription'
+            node: @opts.node
+            user: @opts.actor
+            subscription: 'unsubscribed'
+        }]
 
 class RetrieveItems extends PubsubRequest
     iqType: ->

@@ -43,8 +43,7 @@ class exports.PubsubBackend extends EventEmitter
                         cb err
                     else
                         # Successfully done at remote
-                        localPushData = req.localPushData?()
-                        if hookOpts
+                        if (localPushData = req.localPushData?())
                             router.pushData localPushData, (err) ->
                                 cb err, result
                         else

@@ -45,7 +45,7 @@ class Request
         # Else @actor stays @sender (see @constructor)
 
 
-class NotImplemented extends exports.Request
+class NotImplemented extends Request
     matches: () ->
         true
 

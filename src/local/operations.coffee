@@ -351,17 +351,20 @@ class ManageNodeConfiguration extends PrivilegedOperation
 class PushInbox extends ModelOperation
     transaction: (t, cb) ->
         async.waterfall [(cb2) =>
-            async.filter @opts, (update, cb3) ->
+            console.log updates: @req
+            async.filter @req, (update, cb3) ->
                 if update.type is 'subscription' and update.listener?
                     # Was successful remote subscription attempt
                     t.createNode update.node, (err, created) ->
-                        cb3 err, true
+                        cb3 not err
                 else
                     # Just an update, to be cached locally?
                     t.nodeExists update.node, (err, exists) ->
-                        cb3 err, exists
-            , cb2
+                        cb3 (not err) and exists
+            , (updates) ->
+                cb2 null, updates
         , (updates, cb2) =>
+            console.log filteredUpdates: updates
             async.forEach updates, (update, cb3) ->
                 switch update.type
                     when 'items'
@@ -439,6 +442,7 @@ exports.run = (router, request, cb) ->
         return cb(new errors.FeatureNotImplemented("Unimplemented operation #{opName}"))
 
     console.log "Creating operation #{opName}, cb=#{cb}"
+    console.log request: request
     op = new opClass(router, request)
     op.run (error, result) ->
         console.log "operation ran: #{error}, #{result}"
