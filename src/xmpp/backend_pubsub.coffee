@@ -40,14 +40,14 @@ class exports.PubsubBackend
                     else
                         cb null, result
 
-    notify: (notification) ->
-        nKlass = notifications.byEvent notification.event
-        return false unless nKlass
+    notify: (opts) ->
+        notificationClass = notifications.byEvent notification.event
+        return false unless notificationClass
 
-        n = new nKlass(notification)
+        notification = new notificationClass(opts)
         # is local? send to all resources...
         for onlineJid in @conn.getOnlineResources notification.listener
-            @conn.send n.toStanza(@conn.jid, onlineJid)
+            @conn.send notification.toStanza(@conn.jid, onlineJid)
 
 
 class BuddycloudDiscovery
