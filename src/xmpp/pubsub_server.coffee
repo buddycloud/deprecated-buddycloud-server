@@ -184,10 +184,12 @@ class RegisterSetRequest extends RegisterRequest
 ###
 
 class PubsubRequest extends Request
+    xmlns: NS.PUBSUB
+
     constructor: (stanza) ->
         super
 
-        @pubsubEl = @iq.getChild("pubsub", NS.PUBSUB)
+        @pubsubEl = @iq.getChild("pubsub", @xmlns)
         @setActor @pubsubEl
 
     matches: () ->
@@ -197,7 +199,7 @@ class PubsubRequest extends Request
 
     reply: (child) ->
         if child?
-            pubsubEl = new xmpp.Element("pubsub", { xmlns: NS.PUBSUB })
+            pubsubEl = new xmpp.Element("pubsub", { xmlns: @xmlns })
             pubsubEl.cnode child
             super pubsubEl
         else
@@ -450,25 +452,8 @@ class PubsubAffiliationsRequest extends PubsubRequest
 ##
 # *Owner* is not related to a required affiliation. The derived
 # *operations are all requested with the pubsub#owner xmlns.
-class PubsubOwnerRequest extends Request
-    constructor: (stanza) ->
-        super
-
-        @pubsubEl = @iq.getChild("pubsub", NS.PUBSUB_OWNER)
-        @setActor @pubsubEl
-
-    matches: () ->
-        (@iq.attrs.type is 'get' ||
-         @iq.attrs.type is 'set') &&
-        @pubsubEl?
-
-    reply: (child) ->
-        if child?
-            pubsubEl = new xmpp.Element("pubsub", xmlns: NS.PUBSUB_OWNER)
-            pubsubEl.cnode child
-            super pubsubEl
-        else
-            super()
+class PubsubOwnerRequest extends PubsubRequest
+    xmlns: NS.PUBSUB_OWNER
 
 # <iq type='get'
 #     from='hamlet@denmark.lit/elsinore'
