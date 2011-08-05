@@ -1,7 +1,55 @@
 xmpp = require('node-xmpp')
 NS = require('./ns')
-Request = require('./request')
 forms = require('./forms')
+
+##
+# A request:
+# * Unpacks the request
+# * Specifies the operation to run
+# * Compiles the response
+class Request
+    constructor: (stanza) ->
+        @iq = stanza
+        @sender = new xmpp.JID(stanza.attrs.from).bare().toString()
+        # can be overwritten by <actor xmlns="#{NS.BUDDYCLOUD_V1}"/>:
+        @actor = @sender
+
+    ##
+    # Is this handler eligible for the request, or proceed to next
+    # handler?
+    matches: () ->
+        false
+
+    ##
+    # Empty <iq type='result'/> by default
+    reply: (child) ->
+        @iq.reply child
+
+    replyError: (error) ->
+        @iq.replyError error
+
+    callback: (err, result) ->
+        if err
+            @replyError err
+        else
+            @reply result
+
+    operation: () ->
+        undefined
+
+    setActor: (childEl) ->
+        actorEl = childEl?.getChild("actor", NS.BUDDYCLOUD_V1)
+        if actorEl?
+            @actor = actorEl.getText()
+        # Else @actor stays @sender (see @constructor)
+
+
+class NotImplemented extends exports.Request
+    matches: () ->
+        true
+
+    reply: () ->
+        @replyError new errors.FeatureNotImplemented("Feature not implemented")
 
 ###
 # XEP-0030: Service Discovery
@@ -13,7 +61,7 @@ forms = require('./forms')
 #     id='info1'>
 #   <query xmlns='http://jabber.org/protocol/disco#info'/>
 # </iq>
-class DiscoInfoRequest extends Request.Request
+class DiscoInfoRequest extends Request
     constructor: (stanza) ->
         super
 
@@ -71,7 +119,7 @@ class DiscoInfoRequest extends Request.Request
 #     id='info1'>
 #   <query xmlns='http://jabber.org/protocol/disco#items'/>
 # </iq>
-class DiscoItemsRequest extends Request.Request
+class DiscoItemsRequest extends Request
     constructor: (stanza) ->
         super
 
@@ -103,7 +151,7 @@ class DiscoItemsRequest extends Request.Request
 # XEP-0077: In-Band Registration
 ##
 
-class RegisterRequest extends Request.Request
+class RegisterRequest extends Request
     constructor: (stanza) ->
         super
         @registerEl = @iq.getChild("query", NS.REGISTER)
@@ -135,7 +183,7 @@ class RegisterSetRequest extends RegisterRequest
 # XEP-0060: Publish-Subscribe
 ###
 
-class PubsubRequest extends Request.Request
+class PubsubRequest extends Request
     constructor: (stanza) ->
         super
 
@@ -402,7 +450,7 @@ class PubsubAffiliationsRequest extends PubsubRequest
 ##
 # *Owner* is not related to a required affiliation. The derived
 # *operations are all requested with the pubsub#owner xmlns.
-class PubsubOwnerRequest extends Request.Request
+class PubsubOwnerRequest extends Request
     constructor: (stanza) ->
         super
 
@@ -635,7 +683,7 @@ REQUESTS = [
     PubsubOwnerSetAffiliationsRequest,
     PubsubOwnerGetConfigurationRequest,
     PubsubOwnerSetConfigurationRequest,
-    Request.NotImplemented
+    NotImplemented
 ]
 
 
