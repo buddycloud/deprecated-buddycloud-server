@@ -1,11 +1,17 @@
+{EventEmitter} = require('events')
+async = require('async')
 notifications = require('./pubsub_notifications')
 pubsubClient = require('./pubsub_client')
 errors = require('../errors')
+ns = require('./ns')
 
 ##
 # Initialize with XMPP connection
-class exports.PubsubBackend
+class exports.PubsubBackend extends EventEmitter
     constructor: (@conn) ->
+        @conn.on 'message', (args...) =>
+            @onMessage_(args...)
+
         @disco = new BuddycloudDiscovery(@conn)
         @authorizeFor = (args...) =>
             @disco.authorizeFor(args...)
@@ -30,10 +36,8 @@ class exports.PubsubBackend
                     cb new errors.FeatureNotImplemented("Operation #{operation} not implemented for remote pubsub")
                     return
 
-                console.log optsBefore: opts
                 opts2 = Object.create(opts)
                 opts2.jid = service
-                console.log optsAfter: [opts2, opts2.jid, opts2.node]
                 req = new reqClass @conn, opts2, (err, result) ->
                     if err
                         cb err
@@ -54,6 +58,83 @@ class exports.PubsubBackend
         # is local? send to all resources...
         for onlineJid in @conn.getOnlineResources notification.listener
             @conn.send notification.toStanza(@conn.jid, onlineJid)
+
+    # <message from='pubsub.shakespeare.lit' to='francisco@denmark.lit' id='foo'>
+    #   <event xmlns='http://jabber.org/protocol/pubsub#event'>
+    onMessage_: (message) ->
+        sender = message.attrs.from
+        unless (eventEl = message.getChild("event", NS.PUBSUB_EVENT))
+            # No notification to handle
+            return
+
+        updates = {}
+        eventEl.children.forEach (child) ->
+            unless child.is
+                # No element, but text
+                return
+            node = child.attrs.node
+            unless node
+                return
+
+            if child.is('items')
+                items = []
+                for itemEl in child.getChildren('item')
+                    item =
+                        el: itemEl.children.filter((itemEl) ->
+                            itemEl.hasOwnProperty('children')
+                        )[0]
+                    if itemEl.attrs.id
+                        item.id = itemEl.attrs.id
+                    if item.el
+                        items.push item
+                updates.push
+                    type: 'items'
+                    node: node
+                    items: items
+
+            if child.is('subscription')
+                updates.push
+                    type: 'subscriptions'
+                    node: node
+                    user: child.attrs.jid
+                    subscription: child.attrs.subscription
+
+            if child.is('affiliation')
+                updates.push
+                    type: 'affiliations'
+                    node: node
+                    user: child.attrs.jid
+                    affiliation: child.attrs.affiliation
+
+            if child.is('configuration')
+                xEl = child.getChild('x', NS.DATA)
+                form = xEl and forms.fromXml(xEl)
+                config = form and forms.formToConfig(form)
+                if config
+                    updates.push
+                        type: 'configs'
+                        node: node
+                        config: config
+
+        pushOpts =
+            subscriptions: []
+            affiliations: []
+            items: []
+            configs: []
+        async.parallel(updates.map (update) =>
+            do (cb) =>
+                user = getNodeUser(update.node)
+                unless user
+                    return cb()
+                @authorizeFor sender, user, (err, valid) ->
+                    if !err && valid
+                        pushOpts[update.type].push update
+                    cb()
+        , (err) =>
+            # Ignore partial errors, in the worst case pushOpts will
+            # be empty
+            @emit 'notificationPush', pushOpts
+        )
 
 
 class BuddycloudDiscovery

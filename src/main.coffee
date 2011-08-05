@@ -20,7 +20,7 @@ pubsubBackend = new (require('./xmpp/backend_pubsub').PubsubBackend)(xmppConn)
 router.addBackend pubsubBackend
 
 # Handle XEP-0060 Publish-Subscribe and related requests:
-pubsubServer.onRequest = (request) ->
+pubsubServer.on 'request', (request) ->
     console.log request: request, operation: request.operation()
     if request.sender isnt request.actor
         # Validate if sender is authorized to act on behalf of the
@@ -38,3 +38,10 @@ pubsubServer.onRequest = (request) ->
         # Pass to router
         router.run request, (args...) ->
             request.callback(args...)
+
+# Handle incoming XEP-0060 Publish-Subscribe notifications
+pubsubBackend.on 'notificationPush', (opts) ->
+    # Sender is already authenticated at this point
+    opts.operation = ->
+        'push-inbox'
+    router.run opts, ->

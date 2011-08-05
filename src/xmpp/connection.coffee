@@ -5,6 +5,7 @@
 # * Track presence
 ###
 xmpp = require("node-xmpp")
+{EventEmitter} = require('events')
 #errors = require("./errors")
 
 IQ_TIMEOUT = 10000
@@ -12,7 +13,7 @@ IQ_TIMEOUT = 10000
 ##
 # XMPP Component Connection,
 # encapsulates the real node-xmpp connection
-class exports.Connection
+class exports.Connection extends EventEmitter
     constructor: (config) ->
         # For iq response tracking (@sendIq):
         @lastIqId = 0
@@ -47,8 +48,9 @@ class exports.Connection
                                 cb and cb(null, stanza)
                 when "presence"
                     @_handlePresence stanza
-                when "message" and stanza.attrs.type isnt "error"
-                    @_handleMessage stanza
+                when "message"
+                    unless stanza.attrs.type is "error"
+                        @_handleMessage stanza
 
     send: (stanza) ->
         stanza = stanza.root()
@@ -77,6 +79,7 @@ class exports.Connection
         @send iq
 
     _handleMessage: (message) ->
+        @emit 'message', message
 
     ##
     # Returns all full JIDs we've seen presence from for a bare JID
@@ -158,54 +161,53 @@ class exports.Connection
                     @onlineResources[bareJid].push resource
 
     _handleIq: (stanza) ->
-        if @iqHandler?
-            ##
-            # Prepare stanza reply hooks
+        ##
+        # Prepare stanza reply hooks
 
-            # Safety first:
-            replied = false
-            replying = () ->
-                if replied
-                    throw 'Sending additional iq reply'
-                replied = true
+        # Safety first:
+        replied = false
+        replying = () ->
+            if replied
+                throw 'Sending additional iq reply'
+            replied = true
 
-            # Interface for <iq type='result'/>
-            stanza.reply = (child) =>
-                replying()
+        # Interface for <iq type='result'/>
+        stanza.reply = (child) =>
+            replying()
 
-                reply = new xmpp.Element("iq",
-                    from: stanza.attrs.to
-                    to: stanza.attrs.from
-                    id: stanza.attrs.id or ""
-                    type: "result"
-                )
-                reply.cnode(child.root()) if child
+            reply = new xmpp.Element("iq",
+                from: stanza.attrs.to
+                to: stanza.attrs.from
+                id: stanza.attrs.id or ""
+                type: "result"
+            )
+            reply.cnode(child.root()) if child
 
-                console.log ">> #{reply.toString()}"
-                @conn.send reply
-            # Interface for <iq type='error'/>
-            stanza.replyError = (err) =>
-                replying()
+            console.log ">> #{reply.toString()}"
+            @conn.send reply
+        # Interface for <iq type='error'/>
+        stanza.replyError = (err) =>
+            replying()
 
-                reply = new xmpp.Element("iq",
-                    from: stanza.attrs.to
-                    to: stanza.attrs.from
-                    id: stanza.attrs.id or ""
-                    type: "error"
-                )
-                if err.xmppElement
-                    reply.cnode err.xmppElement()
-                else
-                    reply.c("error", type: "cancel").
-                        c("text").
-                        t('' + err.message)
+            reply = new xmpp.Element("iq",
+                from: stanza.attrs.to
+                to: stanza.attrs.from
+                id: stanza.attrs.id or ""
+                type: "error"
+            )
+            if err.xmppElement
+                reply.cnode err.xmppElement()
+            else
+                reply.c("error", type: "cancel").
+                    c("text").
+                    t('' + err.message)
 
-                console.log ">> #{reply.toString()}"
-                @conn.send reply
+            console.log ">> #{reply.toString()}"
+            @conn.send reply
 
-            ##
-            # Fire handler, done.
-            @iqHandler stanza
+        ##
+        # Fire handler, done.
+        @emit 'iqRequest', stanza
 
 
 ###

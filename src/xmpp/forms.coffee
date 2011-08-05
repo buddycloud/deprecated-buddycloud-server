@@ -70,3 +70,32 @@ exports.fromXml = (xEl) ->
             valueEl.getText()
         field
     form
+
+exports.configToResultForm = (config, formType) ->
+    form = new exports.Form('result', formType)
+    addField = (key, fvar, label) ->
+        if config[key]
+            form.fields.push new forms.Field(fvar, 'text-single', label, config[key])
+    addField 'title', 'pubsub#title',
+        'A short name for the node'
+    addField 'description', 'pubsub#description',
+        'A description of the node'
+    addField 'accessModel', 'pubsub#access_model',
+        'Who may subscribe and retrieve items'
+    addField 'publishModel', 'pubsub#publish_model',
+        'Who may publish items'
+    addField 'defaultAffiliation', 'pubsub#default_affiliation',
+        'What role do new subscribers have?'
+    form
+
+exports.formToConfig = (form) ->
+    config = null
+    if form.getFormType() is NS.PUBSUB_NODE_CONFIG and
+       (form.type is 'submit' or form.type is 'result')
+        config = {}
+        config.title ?= form.get('pubsub#title')
+        config.description ?= form.get('pubsub#description')
+        config.accessModel ?= form.get('pubsub#access_model')
+        config.publishModel ?= form.get('pubsub#publish_model')
+        config.defaultAffiliation ?= form.get('pubsub#default_affiliation')
+    config
