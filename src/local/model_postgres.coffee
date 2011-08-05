@@ -59,6 +59,7 @@ exports.transaction = (cb) ->
     withNextDb (db) ->
         new Transaction(db, cb)
 
+# TODO: currently unused, should re-check to delete local node after an unsubscribe
 exports.isListeningToNode = (node, listenerJids, cb) ->
     i = 1
     conditions = listenerJids.map((listenerJid) ->
@@ -76,6 +77,16 @@ exports.isListeningToNode = (node, listenerJids, cb) ->
             process.nextTick ->
                 dbIsAvailable(db)
             cb err, (res?.rows?[0]?)
+
+exports.nodeExists = (node, cb) ->
+    withNextDb (db) ->
+        db.query "SELECT node FROM nodes WHERE node=$1", [ node ], (err, res) ->
+            process.nextTick ->
+                dbIsAvailable(db)
+            if err
+                cb err
+            else
+                cb null, res?.rows?[0]?
 
 
 LOST_TRANSACTION_TIMEOUT = 10 * 1000
@@ -119,7 +130,7 @@ class Transaction
 
     ##
     # Can be dropped in a async.waterfall() sequence to validate presence of a node.
-    _nodeExists: (node) ->
+    validateNode: (node) ->
         db = @db
         (cb) ->
             db.query "SELECT node FROM nodes WHERE node=$1", [ node ], (err, res) ->
@@ -131,7 +142,13 @@ class Transaction
                     cb new errors.NotFound("Node does not exist")
 
     nodeExists: (node, cb) ->
-        _nodeExists(node)(cb)
+        db = @db
+        (cb) ->
+            db.query "SELECT node FROM nodes WHERE node=$1", [ node ], (err, res) ->
+                if err
+                    cb err
+                else
+                    cb null, res?.rows?[0]?
 
     createNode: (node, cb) ->
         db = @db
@@ -185,7 +202,7 @@ class Transaction
     setSubscription: (node, user, listener, subscription, cb) ->
         db = @db
         toDelete = not subscription or subscription == "none"
-        async.waterfall [ @_nodeExists(node)
+        async.waterfall [ @validateNode(node)
         , (cb2) ->
             db.query "SELECT subscription FROM subscriptions WHERE node=$1 AND \"user\"=$2", [ node, user ], cb2
         , (res, cb2) ->
@@ -277,7 +294,7 @@ class Transaction
 
     setAffiliation: (node, user, affiliation, cb) ->
         db = @db
-        async.waterfall [ @_nodeExists(node)
+        async.waterfall [ @validateNode(node)
         , (cb2) ->
             db.query "SELECT affiliation FROM affiliations WHERE node=$1 AND \"user\"=$2", [ node, user ], cb2
         , (res, cb2) ->
@@ -327,7 +344,7 @@ class Transaction
 
     writeItem: (node, id, author, el, cb) ->
         db = @db
-        async.waterfall [ @_nodeExists(node), (cb2) ->
+        async.waterfall [ @validateNode(node), (cb2) ->
             db.query "SELECT id FROM items WHERE node=$1 AND id=$2", [ node, id ], cb2
         , (res, cb2) ->
             isSet = res and res.rows and res.rows[0]
@@ -415,7 +432,7 @@ class Transaction
 
     getConfig: (node, cb) ->
         db = @db
-        async.waterfall [ @_nodeExists(node), (cb2) ->
+        async.waterfall [ @validateNode(node), (cb2) ->
             db.query "SELECT \"key\", \"value\" FROM node_config WHERE node=$1", [ node ], cb2
         , (res, cb2) ->
             if res.rows
@@ -431,7 +448,7 @@ class Transaction
     setConfig: (node, config, cb) ->
         db = @db
         console.log "setConfig " + node + ": " + require("util").inspect(config)
-        async.waterfall [ @_nodeExists(node), (cb2) ->
+        async.waterfall [ @validateNode(node), (cb2) ->
             async.parallel(for own key, value of config
                 do (key, value) ->
                     (cb3) ->

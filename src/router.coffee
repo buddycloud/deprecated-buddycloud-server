@@ -55,16 +55,18 @@ class exports.Router
     ##
     # If not, we may still find ourselves through disco
     isLocallySubscribed: (node, cb) ->
-        @model.isListeningToNode node, @remote.getMyJids(), cb
+        @model.nodeExists node, cb
 
     run: (opts, cb) ->
         console.log 'Router.run': opts, cb: cb
         # TODO: First, look if already subscribed, therefore database is up to date, or if hosted by ourselves
         unless opts.node?
             @runLocally opts, cb
+        else if opts.writes
+            # Request to mess with data, run remotely
+            @remote.run opts, cb
         else
             @isLocallySubscribed opts.node, (err, locallySubscribed) =>
-                console.log isLocallySubscribed: { err, locallySubscribed }
                 if locallySubscribed
                     @runLocally opts, cb
                 else

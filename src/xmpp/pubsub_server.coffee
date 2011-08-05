@@ -166,6 +166,8 @@ class RegisterSetRequest extends RegisterRequest
 
     subscriptionRequired: true
 
+    writes: true
+
 ###
 # XEP-0060: Publish-Subscribe
 ###
@@ -216,6 +218,8 @@ class PubsubCreateRequest extends PubsubRequest
         @iq.attrs.type is 'set' &&
         @node
 
+    writes: true
+
 # <iq type='set'
 #     from='francisco@denmark.lit/barracks'
 #     to='pubsub.shakespeare.lit'
@@ -246,6 +250,8 @@ class PubsubSubscribeRequest extends PubsubRequest
     operation: ->
         'subscribe-node'
 
+    writes: true
+
 # <iq type='set'
 #     from='francisco@denmark.lit/barracks'
 #     to='pubsub.shakespeare.lit'
@@ -269,6 +275,8 @@ class PubsubUnsubscribeRequest extends PubsubRequest
 
     operation: ->
         'unsubscribe-node'
+
+    writes: true
 
 # <iq type='set'
 #     from='hamlet@denmark.lit/blogbot'
@@ -304,6 +312,8 @@ class PubsubPublishRequest extends PubsubRequest
     operation: ->
         'publish-node-items'
 
+    writes: true
+
 # <iq type='set'
 #     from='hamlet@denmark.lit/elsinore'
 #     to='pubsub.shakespeare.lit'
@@ -333,6 +343,8 @@ class PubsubRetractRequest extends PubsubRequest
 
     operation: ->
         'retract-node-items'
+
+    writes: true
 
 # <iq type='get'
 #     from='francisco@denmark.lit/barracks'
@@ -506,6 +518,8 @@ class PubsubOwnerSetSubscriptionsRequest extends PubsubOwnerRequest
     operation: ->
         'manage-node-subscriptions'
 
+    writes: true
+
 # <iq type='get'
 #     from='hamlet@denmark.lit/elsinore'
 #     to='pubsub.shakespeare.lit'
@@ -570,6 +584,7 @@ class PubsubOwnerSetAffiliationsRequest extends PubsubOwnerRequest
     operation: ->
         'manage-node-affiliations'
 
+    writes: true
 
 class PubsubOwnerGetConfigurationRequest extends PubsubOwnerRequest
     constructor: (stanza) ->
@@ -613,6 +628,8 @@ class PubsubOwnerSetConfigurationRequest extends PubsubOwnerRequest
 
     operation: ->
         'manage-node-configuration'
+
+    writes: true
 
 
 REQUESTS = [
