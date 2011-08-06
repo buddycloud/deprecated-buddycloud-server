@@ -17,9 +17,9 @@
         ,"path": "git://github.com/astro/channel-server.git"
         }]
 ,"scripts": {
-    "install": "node-waf configure build",
-    "update": "node-waf build"
-    }
+    "start": "node src/main.js config.js",
+    "preinstall": "coffee -c `find src -name *.coffee`"
+}
 ,"homepage": "http://github.com/astro/channel-server"
 ,"bugs": "http://github.com/astro/channel-server/issues"
 ,"maintainers": [{"name": "Astro"
