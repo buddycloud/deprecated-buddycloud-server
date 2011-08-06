@@ -116,6 +116,13 @@ class PubsubRequest extends Request
                     @decodeReplyEl child
         @results
 
+class CreateNode extends PubsubRequest
+    iqType: ->
+        'set'
+
+    pubsubChild: ->
+        new xmpp.Element('create', node: @opts.node)
+
 class Publish extends PubsubRequest
     iqType: ->
         'set'
@@ -257,6 +264,7 @@ class RetrieveNodeConfiguration extends PubsubOwnerRequest
 REQUESTS =
     'browse-node-info': exports.DiscoverInfo
     'browse-info': exports.DiscoverInfo
+    'create-node': CreateNode
     'publish-node-items': Publish
     'subscribe-node': Subscribe
     'unsubscribe-node': Unsubscribe

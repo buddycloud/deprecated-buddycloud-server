@@ -202,10 +202,6 @@ class PubsubRequest extends Request
 #     <create node='princely_musings'/>
 #   </pubsub>
 # </iq>
-#
-# Not used for buddycloud /users/ (see register instead)
-#
-# TODO: implement for topic channels
 class PubsubCreateRequest extends PubsubRequest
     constructor: (stanza) ->
         super
@@ -217,6 +213,9 @@ class PubsubCreateRequest extends PubsubRequest
         super &&
         @iq.attrs.type is 'set' &&
         @node
+
+    operation: ->
+        'create-node'
 
     writes: true
 

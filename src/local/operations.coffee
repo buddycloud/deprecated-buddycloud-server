@@ -169,6 +169,18 @@ class Register extends ModelOperation
         )
 
 
+class CreateNode extends ModelOperation
+    run: (cb) ->
+        nodePrefix = "/user/#{@req.actor}/"
+        if @req.node.indexOf(nodePrefix) == 0
+            super
+        else
+            cb new errors.Forbidden("You can only create nodes under #{nodePrefix}")
+
+    transaction: (t, cb) ->
+        t.createNode @req.node, cb
+
+
 class Publish extends PrivilegedOperation
     requiredAffiliation: 'publisher'
 
@@ -426,6 +438,7 @@ OPERATIONS =
     'browse-node-info': BrowseNodeInfo
     'browse-info': BrowseInfo
     'register-user': Register
+    'create-node': CreateNode
     'publish-node-items': Publish
     'subscribe-node': Subscribe
     'unsubscribe-node': Unsubscribe
