@@ -475,7 +475,10 @@ exports.run = (router, request, cb) ->
         else
             # Successfully done
             console.log "replying for #{opName}"
-            cb null, result
+            try
+                cb null, result
+            catch e
+                console.error e
 
             # Run notifications
             notification = op.notification?()
