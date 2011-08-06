@@ -71,8 +71,8 @@ exports.fromXml = (xEl) ->
         field
     form
 
-exports.configToResultForm = (config, formType) ->
-    form = new exports.Form('result', formType)
+exports.configToForm = (config, type, formType) ->
+    form = new exports.Form(type, formType)
     addField = (key, fvar, label) ->
         if config[key]
             form.fields.push new forms.Field(fvar, 'text-single', label, config[key])

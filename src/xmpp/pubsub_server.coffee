@@ -90,7 +90,7 @@ class DiscoInfoRequest extends Request
                 var: feature
 
         if result.config?
-            queryEl.cnode forms.configToResultForm(result.config, NS.PUBSUB_META_DATA).toXml()
+            queryEl.cnode forms.configToForm(result.config, 'result', NS.PUBSUB_META_DATA).toXml()
 
         super queryEl
 
@@ -604,7 +604,7 @@ class PubsubOwnerGetConfigurationRequest extends PubsubOwnerRequest
         configureEl = new xmpp.Element("configure", node: @node)
 
         if result.config?
-            configureEl.cnode forms.configToResultForm(result.config, NS.PUBSUB_NODE_CONFIG).toXml()
+            configureEl.cnode forms.configToForm(result.config, 'result', NS.PUBSUB_NODE_CONFIG).toXml()
 
         super configureEl
 

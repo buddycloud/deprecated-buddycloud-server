@@ -272,9 +272,8 @@ class ManageNodeConfiguration extends PubsubOwnerRequest
         'set'
 
     pubsubChild: ->
-        # TODO: form type should not be "result" but "submit" here
         new xmpp.Element('configure', node: @opts.node).
-            cnode(forms.configToForm(@req.config).toXml())
+            cnode(forms.configToForm(@req.config, 'submit', NS.PUBSUB_NODE_CONFIG).toXml())
 
 
 REQUESTS =
