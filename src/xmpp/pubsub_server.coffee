@@ -675,7 +675,6 @@ class exports.PubsubServer extends EventEmitter
     # Matches the above REQUESTS for the received stanza
     makeRequest: (stanza) ->
         result = null
-        console.log "searching request for #{stanza.toString()}"
         for r in REQUESTS
             result = new r(stanza)
             if result.matches()

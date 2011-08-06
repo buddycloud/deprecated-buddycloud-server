@@ -65,6 +65,7 @@ class exports.PubsubBackend extends EventEmitter
 
     # <message from='pubsub.shakespeare.lit' to='francisco@denmark.lit' id='foo'>
     #   <event xmlns='http://jabber.org/protocol/pubsub#event'>
+    #
     # TODO: encapsulate XMPP protocol cruft
     onMessage_: (message) ->
         sender = message.attrs.from
