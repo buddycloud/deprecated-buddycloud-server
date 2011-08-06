@@ -3,7 +3,7 @@ async = require('async')
 {Notification} = require('./pubsub_notifications')
 pubsubClient = require('./pubsub_client')
 errors = require('../errors')
-ns = require('./ns')
+NS = require('./ns')
 
 ##
 # Initialize with XMPP connection
@@ -69,7 +69,7 @@ class exports.PubsubBackend extends EventEmitter
             # No notification to handle
             return
 
-        updates = {}
+        updates = []
         eventEl.children.forEach (child) ->
             unless child.is
                 # No element, but text
@@ -121,11 +121,11 @@ class exports.PubsubBackend extends EventEmitter
         async.filter(updates, (update, cb) =>
             user = getNodeUser(update.node)
             unless user
-                return cb(null, false)
+                return cb(false)
             @authorizeFor sender, user, (err, valid) ->
-                cb(null, !err && valid)
-        , (err, updates) =>
-            if !err && updates?
+                cb(!err && valid)
+        , (updates) =>
+            if updates?
                 @emit 'notificationPush', updates
         )
 

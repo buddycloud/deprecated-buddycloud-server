@@ -1,3 +1,4 @@
+xmpp = require('node-xmpp')
 NS = require('./ns')
 forms = require('./forms')
 
