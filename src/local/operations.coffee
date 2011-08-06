@@ -441,6 +441,7 @@ class Notify extends ModelOperation
                 notification = Object.create(@req)
                 notification.listener = listener
                 @router.notify notification
+            cb()
 
 OPERATIONS =
     'browse-node-info': BrowseNodeInfo
