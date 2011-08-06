@@ -51,9 +51,14 @@ class exports.PubsubBackend extends EventEmitter
 
     notify: (opts) ->
         notification = new Notification(opts)
-        # is local? send to all resources...
-        for onlineJid in @conn.getOnlineResources notification.listener
-            @conn.send notification.toStanza(@conn.jid, onlineJid)
+        listener = opts.listener
+        if listener.indexOf("@") >= 0
+            # is user? send to all resources...
+            for onlineJid in @conn.getOnlineResources listener
+                @conn.send notification.toStanza(@conn.jid, onlineJid)
+        else
+            # other component (inbox)? just send out
+            @conn.send notification.toStanza(@conn.jid, listener)
 
     # <message from='pubsub.shakespeare.lit' to='francisco@denmark.lit' id='foo'>
     #   <event xmlns='http://jabber.org/protocol/pubsub#event'>

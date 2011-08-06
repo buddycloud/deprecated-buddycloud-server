@@ -418,9 +418,8 @@ class Notify extends ModelOperation
                 return cb err
             for listener in listeners
                 console.log "listener: #{listener}"
-                notification = Object.create(@req,
-                    listener: value: listener
-                )
+                notification = Object.create(@req)
+                notification.listener = listener
                 @router.notify notification
 
 OPERATIONS =
