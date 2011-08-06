@@ -195,9 +195,11 @@ class Publish extends PrivilegedOperation
         )
 
     notification: ->
-        event: 'publish-node-items'
-        node: @req.node
-        items: @req.items
+        [{
+            type: 'items'
+            node: @req.node
+            items: @req.items
+        }]
 
 class Subscribe extends PrivilegedOperation
     requiredAffiliation: 'member'
@@ -210,9 +212,9 @@ class Subscribe extends PrivilegedOperation
                     subscription: 'subscribed'
 
     notification: ->
-        event: 'subscriptions-updated'
-        node: @req.node
-        subscriptions: [{
+        [{
+            type: 'subscription'
+            node: @req.node
             user: @req.actor
             subscription: 'subscribed'
         }]
@@ -229,9 +231,9 @@ class Unsubscribe extends ModelOperation
                     cb err
 
     notification: ->
-        event: 'subscriptions-updated'
-        node: @req.node
-        subscriptions: [{
+        [{
+            type: 'subscription'
+            node: @req.node
             user: @req.actor
             subscription: 'unsubscribed'
         }]
@@ -300,10 +302,13 @@ class ManageNodeSubscriptions extends PrivilegedOperation
         ), cb
 
     notification: ->
-        event: 'subscriptions-updated'
-        node: @req.node
-        subscriptions: @req.subscriptions.map ({user, subscription}) =>
-            { user, subscription }
+        @req.subscriptions.map ({user, subscription}) =>
+            {
+                type: 'subscription'
+                node: @req.node
+                user
+                subscription
+            }
 
 class ManageNodeAffiliations extends PrivilegedOperation
     requiredAffiliation: 'owner'
@@ -316,10 +321,13 @@ class ManageNodeAffiliations extends PrivilegedOperation
 
 
     notification: ->
-        event: 'affiliations-updated'
-        node: @req.node
-        subscriptions: @req.affiliations.map ({user, affiliation}) =>
-            { user, affiliation }
+        @req.affiliations.map ({user, affiliation}) =>
+            {
+                type: 'affiliation'
+                node: @req.node
+                user
+                affiliation
+            }
 
 ALLOWED_ACCESS_MODELS = ['open', 'whitelist', 'authorize']
 ALLOWED_PUBLISH_MODELS = ['open', 'subscribers', 'publishers']
@@ -343,10 +351,11 @@ class ManageNodeConfiguration extends PrivilegedOperation
         t.setConfig @req.node, @req.config, cb
 
     notification: ->
-        event: 'node-config-updated'
-        node: @req.node
-        config: @req.config
-
+        [{
+            type: 'config'
+            node: @req.node
+            config: @req.config
+        }]
 
 class PushInbox extends ModelOperation
     transaction: (t, cb) ->
@@ -394,6 +403,9 @@ class PushInbox extends ModelOperation
                     else
                         cb3 new errors.InternalServerError("Bogus push update type: #{update.type}")
             , cb2
+            # Memorize updates for notifications, same format:
+            @notification = ->
+                updates
         ], cb
 
 
@@ -457,7 +469,17 @@ exports.run = (router, request, cb) ->
             notification = op.notification?()
             if notification
                 console.log "notifying for #{opName}"
-                new Notify(router, notification).run (err) ->
-                    if err
-                        console.error("Error running notifications: #{err}")
 
+                for own node, notifications of groupByNode(notification)
+                    notification.node = node
+                    new Notify(router, notification).run (err) ->
+                        if err
+                            console.error("Error running notifications: #{err}")
+
+groupByNode = (updates) ->
+    result = {}
+    for update in updates
+        unless result.hasOwnProperty(update.node)
+            result[update.node] = []
+        result[update.node].push update
+    result

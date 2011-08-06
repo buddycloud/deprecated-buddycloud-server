@@ -1,6 +1,6 @@
 {EventEmitter} = require('events')
 async = require('async')
-notifications = require('./pubsub_notifications')
+{Notification} = require('./pubsub_notifications')
 pubsubClient = require('./pubsub_client')
 errors = require('../errors')
 ns = require('./ns')
@@ -50,16 +50,14 @@ class exports.PubsubBackend extends EventEmitter
                             cb null, result
 
     notify: (opts) ->
-        notificationClass = notifications.byEvent notification.event
-        return false unless notificationClass
-
-        notification = new notificationClass(opts)
+        notification = new Notification(opts)
         # is local? send to all resources...
         for onlineJid in @conn.getOnlineResources notification.listener
             @conn.send notification.toStanza(@conn.jid, onlineJid)
 
     # <message from='pubsub.shakespeare.lit' to='francisco@denmark.lit' id='foo'>
     #   <event xmlns='http://jabber.org/protocol/pubsub#event'>
+    # TODO: encapsulate XMPP protocol cruft
     onMessage_: (message) ->
         sender = message.attrs.from
         unless (eventEl = message.getChild("event", NS.PUBSUB_EVENT))
