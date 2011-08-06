@@ -94,9 +94,8 @@ class exports.Connection extends EventEmitter
 
     subscribePresence: (jid) ->
         unless @onlineResources.hasOwnProperty(jid)
-            @conn.send new xmpp.Element("presence",
+            @send new xmpp.Element("presence",
                 to: jid
-                from: @conn.jid
                 type: "subscribe"
             )
 
@@ -118,7 +117,7 @@ class exports.Connection extends EventEmitter
         switch presence.attrs.type
             when "subscribe"
                 # User subscribes to us
-                @conn.send new xmpp.Element("presence",
+                @send new xmpp.Element("presence",
                     from: presence.attrs.to
                     to: presence.attrs.from
                     id: presence.attrs.id
@@ -126,7 +125,7 @@ class exports.Connection extends EventEmitter
                 )
             when "unsubscribe"
                 # User unsubscribes from us
-                @conn.send new xmpp.Element("presence",
+                @send new xmpp.Element("presence",
                     from: presence.attrs.to
                     to: presence.attrs.from
                     id: presence.attrs.id
@@ -134,7 +133,7 @@ class exports.Connection extends EventEmitter
                 )
             when "probe"
                 # We are always available
-                @conn.send new xmpp.Element("presence",
+                @send new xmpp.Element("presence",
                     from: presence.attrs.to
                     to: presence.attrs.from
                     id: presence.attrs.id
