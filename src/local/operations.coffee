@@ -409,8 +409,8 @@ class PushInbox extends ModelOperation
                         , cb3
 
                     when 'subscription'
-                        {node, user, listener, subscription} = update
-                        t.setSubscription node, user, listener, subscription, cb3
+                        {node, user, subscription} = update
+                        t.setSubscription node, user, null, subscription, cb3
 
                     when 'affiliation'
                         {node, user, affiliation} = update
