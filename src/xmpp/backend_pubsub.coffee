@@ -9,6 +9,7 @@ NS = require('./ns')
 # Initialize with XMPP connection
 class exports.PubsubBackend extends EventEmitter
     constructor: (@conn) ->
+
         @conn.on 'message', (args...) =>
             @onMessage_(args...)
 
@@ -55,9 +56,11 @@ class exports.PubsubBackend extends EventEmitter
         if listener.indexOf("@") >= 0
             # is user? send to all resources...
             for onlineJid in @conn.getOnlineResources listener
+                console.log "notifying client #{onlineJid} for #{opts.node}"
                 @conn.send notification.toStanza(@conn.jid, onlineJid)
         else
             # other component (inbox)? just send out
+            console.log "notifying service #{listener} for #{opts.node}"
             @conn.send notification.toStanza(@conn.jid, listener)
 
     # <message from='pubsub.shakespeare.lit' to='francisco@denmark.lit' id='foo'>

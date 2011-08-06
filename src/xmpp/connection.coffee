@@ -56,7 +56,7 @@ class exports.Connection extends EventEmitter
         stanza = stanza.root()
         unless stanza.attrs.from
             stanza.attrs.from = @jid
-        console.log "send #{stanza.toString()}"
+        console.log ">> #{stanza.toString()}"
         @conn.send stanza
 
     ##
@@ -75,7 +75,6 @@ class exports.Connection extends EventEmitter
             clearTimeout timeout
             cb(error, result)
         # Finally, send out:
-        console.log ">> #{iq.toString()}"
         @send iq
 
     _handleMessage: (message) ->
@@ -183,8 +182,7 @@ class exports.Connection extends EventEmitter
             )
             reply.cnode(child.root()) if child
 
-            console.log ">> #{reply.toString()}"
-            @conn.send reply
+            @send reply
         # Interface for <iq type='error'/>
         stanza.replyError = (err) =>
             replying()
