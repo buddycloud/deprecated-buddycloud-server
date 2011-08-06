@@ -304,6 +304,13 @@ class RetrieveNodeAffiliations extends PrivilegedOperation
     privilegedTransaction: (t, cb) ->
         t.getAffiliated @req.node, cb
 
+class RetrieveNodeConfiguration extends PrivilegedOperation
+    requiredAffiliation: 'member'
+
+    privilegedTransaction: (t, cb) ->
+        t.getConfig @req.node, cb
+
+
 class ManageNodeSubscriptions extends PrivilegedOperation
     requiredAffiliation: 'owner'
 
@@ -368,6 +375,7 @@ class ManageNodeConfiguration extends PrivilegedOperation
             node: @req.node
             config: @req.config
         }]
+
 
 class PushInbox extends ModelOperation
     transaction: (t, cb) ->
@@ -448,6 +456,7 @@ OPERATIONS =
     'retrieve-user-affiliations': RetrieveUserAffiliations
     'retrieve-node-subscriptions': RetrieveNodeSubscriptions
     'retrieve-node-affiliations': RetrieveNodeAffiliations
+    'retrieve-node-configuration': RetrieveNodeConfiguration
     'manage-node-subscriptions': ManageNodeSubscriptions
     'manage-node-affiliations': ManageNodeAffiliations
     'manage-node-configuration': ManageNodeConfiguration

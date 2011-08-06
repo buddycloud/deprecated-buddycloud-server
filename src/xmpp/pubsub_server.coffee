@@ -598,7 +598,7 @@ class PubsubOwnerGetConfigurationRequest extends PubsubOwnerRequest
         @node
 
     operation: ->
-        'browse-node-info'
+        'retrieve-node-configuration'
 
     reply: (result) ->
         configureEl = new xmpp.Element("configure", node: @node)
