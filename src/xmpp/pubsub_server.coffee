@@ -2,6 +2,7 @@ xmpp = require('node-xmpp')
 {EventEmitter} = require('events')
 NS = require('./ns')
 forms = require('./forms')
+errors = require('../errors')
 
 ##
 # A request:
@@ -615,7 +616,7 @@ class PubsubOwnerSetConfigurationRequest extends PubsubOwnerRequest
         @configureEl = @pubsubEl?.getChild("configure")
         @node = @configureEl?.attrs?.node
         @config = {}
-        for formEl in @configureEl.getChildren("x", NS.DATA)
+        @configureEl?.getChildren("x", NS.DATA).forEach (formEl) =>
             form = forms.fromXml formEl
             @config = forms.formToConfig(form) or @config
         console.log config: @config

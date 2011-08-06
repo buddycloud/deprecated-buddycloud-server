@@ -27,15 +27,12 @@ class RemoteRouter
                 if err && backends.length > 0
                     # Retry with next backend
                     tryBackend()
-                else if results?
-                    cb null, results
                 else
                     # Was last backend
-                    cb (err or new errors.NotFound("Resource not found on any backend"))
+                    cb err, results
         tryBackend()
 
     notify: (notification) ->
-        # TODO: iterate all backends
         for backend in @backends
             backend.notify notification
 
@@ -59,7 +56,9 @@ class exports.Router
 
     run: (opts, cb) ->
         console.log 'Router.run': opts, cb: cb
-        # TODO: First, look if already subscribed, therefore database is up to date, or if hosted by ourselves
+        # TODO: remove this once syncing the inbox cache is implemented:
+        opts.writes = true
+
         unless opts.node?
             @runLocally opts, cb
         else if opts.writes

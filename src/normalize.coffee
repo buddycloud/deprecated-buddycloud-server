@@ -11,6 +11,7 @@ exports.normalizeItem = (req, oldItem, item, cb) ->
         return cb new errors.BadRequest("No recognized node type")
 
     nodeType = m[2]
+    # TODO: apply according to pubsub#type config
     if nodeType is 'posts' or
        nodeType is 'status'
         if item.el?.is('entry', NS_ATOM)
