@@ -258,8 +258,24 @@ class RetrieveNodeConfiguration extends PubsubOwnerRequest
     iqType: ->
         'get'
 
-    #pubsubChild:
-    #    new xmpp.Element
+    pubsubChild: ->
+        new xmpp.Element('configure', node: @opts.node)
+
+    decodeReplyEl: (el) ->
+        if el.is('configure', @xmlns)
+            xEl = el.getChild('x', NS.DATA)
+            form = xEl and forms.fromXml(xEl)
+            @results.config ?= form and forms.formToConfig(form)
+
+class ManageNodeConfiguration extends PubsubOwnerRequest
+    iqType: ->
+        'set'
+
+    pubsubChild: ->
+        # TODO: form type should not be "result" but "submit" here
+        new xmpp.Element('configure', node: @opts.node).
+            cnode(forms.configToForm(@req.config).toXml())
+
 
 REQUESTS =
     'browse-node-info': exports.DiscoverInfo
@@ -274,8 +290,8 @@ REQUESTS =
     'retrieve-node-affiliations': RetrieveNodeAffiliations
     'manage-node-subscriptions': ManageNodeSubscriptions
     'manage-node-affiliations': ManageNodeAffiliations
-    #'retrieve-node-configuration': RetrieveNodeConfiguration
-    #'manage-node-configuration': ManageNodeConfiguration
+    'retrieve-node-configuration': RetrieveNodeConfiguration
+    'manage-node-configuration': ManageNodeConfiguration
 
 exports.byOperation = (opName) ->
     REQUESTS[opName]
