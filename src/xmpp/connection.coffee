@@ -25,7 +25,8 @@ class exports.Connection extends EventEmitter
         # Setup connection:
         @jid = config.jid
         @conn = new xmpp.Component(config)
-        #@conn.on "online", startPresenceTracking
+        @conn.on "online", =>
+            @emit "online"
         @conn.on "stanza", (stanza) =>
             # Just debug output:
             console.log "<< #{stanza.toString()}"
@@ -199,28 +200,18 @@ class exports.Connection extends EventEmitter
                     c("text").
                     t('' + err.message)
 
-            console.log ">> #{reply.toString()}"
-            @conn.send reply
+            @send reply
 
         ##
         # Fire handler, done.
         @emit 'iqRequest', stanza
 
-
-###
-# TODO: bring back to life
-#
-startPresenceTracking = ->
-    onlineResources = {}
-    controller.getAllSubscribers (err, subscribers) ->
-        if not err and subscribers
-            subscribers.forEach (subscriber) ->
-                if (m = subscriber.match(/^xmpp:(.+)$/))
-                    jid = m[1]
-                    @conn.send new xmpp.Element("presence",
-                        to: jid
-                        from: conn.jid
-                        type: "probe"
-                    )
-###
-
+    probePresence: (user) ->
+        sendPresence = (type) =>
+            @conn.send new xmpp.Element('presence',
+                type: type
+                from: @conn.jid
+                to: user
+            )
+        sendPresence 'subscribe'
+        sendPresence 'probe'

@@ -46,3 +46,7 @@ pubsubBackend.on 'notificationPush', (opts) ->
     opts.operation = ->
         'push-inbox'
     router.run opts, ->
+
+xmppConn.on 'online', ->
+    model.forListeners (listener) ->
+        xmppConn.probePresence(listener)

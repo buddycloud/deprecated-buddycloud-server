@@ -89,6 +89,21 @@ exports.nodeExists = (node, cb) ->
                 cb null, res?.rows?[0]?
 
 
+# TODO: batchify
+exports.forListeners = (iter) ->
+    withNextDb (db) ->
+        db.query "SELECT DISTINCT listener FROM subscriptions", (err, res) ->
+            process.nextTick ->
+                dbIsAvailable(db)
+            if err
+                console.error err
+                return
+
+            res?.rows?.forEach (row) ->
+                console.log listener: row.listener
+                iter row.listener
+
+
 LOST_TRANSACTION_TIMEOUT = 10 * 1000
 
 ##
