@@ -157,13 +157,11 @@ class Transaction
                     cb new errors.NotFound("Node does not exist")
 
     nodeExists: (node, cb) ->
-        db = @db
-        (cb) ->
-            db.query "SELECT node FROM nodes WHERE node=$1", [ node ], (err, res) ->
-                if err
-                    cb err
-                else
-                    cb null, res?.rows?[0]?
+        @db.query "SELECT node FROM nodes WHERE node=$1", [ node ], (err, res) ->
+            if err
+                cb err
+            else
+                cb null, res?.rows?[0]?
 
     createNode: (node, cb) ->
         db = @db
