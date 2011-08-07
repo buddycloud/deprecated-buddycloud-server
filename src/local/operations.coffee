@@ -402,8 +402,8 @@ class PushInbox extends ModelOperation
                             {id, el} = item
                             # FIXME: refactor out
                             author = el?.is('entry') and
-                                el.getChild('author')?.getChild('uri')
-                            if author and (m = /^acct:(.+)/)
+                                el.getChild('author')?.getChild('uri')?.getText()
+                            if author and (m = /^acct:(.+)/.exec(author))
                                 author = m[1]
                             t.writeItem node, id, author, el, cb4
                         , cb3
