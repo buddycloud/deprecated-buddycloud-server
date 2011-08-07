@@ -180,7 +180,7 @@ class exports.Connection extends EventEmitter
                 id: stanza.attrs.id or ""
                 type: "result"
             )
-            reply.cnode(child.root()) if child
+            reply.cnode(child.root()) if child?.children?
 
             @send reply
         # Interface for <iq type='error'/>

@@ -188,7 +188,7 @@ class PubsubRequest extends Request
         @pubsubEl?
 
     reply: (child) ->
-        if child?
+        if child?.children?
             pubsubEl = new xmpp.Element("pubsub", { xmlns: @xmlns })
             pubsubEl.cnode child
             super pubsubEl
