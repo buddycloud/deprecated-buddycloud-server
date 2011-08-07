@@ -79,7 +79,6 @@ class DiscoInfoRequest extends Request
         if result?.node?
             queryEl.attrs.node = result.node
 
-        console.log "DiscoInfoRequest.reply result": result
         for identity in result.identities
             queryEl.c "identity",
                 category: identity.category
@@ -367,7 +366,6 @@ class PubsubItemsRequest extends PubsubRequest
         @node
 
     reply: (items) ->
-        console.log "PubsubItemsRequest.reply": items
         itemsEl = new xmpp.Element("items", node: items.node)
         for item in items
             itemEl = itemsEl.c("item", id: item.id)
