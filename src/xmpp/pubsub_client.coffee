@@ -164,7 +164,7 @@ class Subscribe extends PubsubRequest
             type: 'subscription'
             node: @opts.node
             user: @results.user
-            listener: @myJid
+            listener: @opts.sender
             subscription: @results.subscription
         }]
 
