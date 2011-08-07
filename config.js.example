@@ -1,8 +1,8 @@
 /**
  * XMPP Component connection
  */
-exports.xmpp = { jid: 'channels.example.com',
-		 password: 'secret',
+exports.xmpp = { jid: 'buddycloud.example.com',
+		 password: 'tellnoone',
 		 host: 'localhost',
 		 port: 5347
 	       };
@@ -12,8 +12,8 @@ exports.modelBackend = 'postgres';
 exports.modelConfig = {
     host: 'localhost',
     port: 5432,
-    database: 'channel-server',
-    user: 'node',
-    password: '***',
+    database: 'buddycloud-server',
+    user: 'buddycloud-server',
+    password: 'tellnoone',
     poolSize: 4
 };
