@@ -293,10 +293,10 @@ class Transaction
         ], cb
 
     getNodeListeners: (node, cb) ->
-        @db.query "SELECT DISTINCT listener FROM subscriptions WHERE node = $1"
+        @db.query "SELECT DISTINCT listener FROM subscriptions WHERE node = $1 AND listener NOT NULL"
         , [node]
         , (err, res) ->
-            cb err, res?.rows?.map((row) -> row.listener).filter((l) -> l?)
+            cb err, res?.rows?.map((row) -> row.listener)
 
     ##
     # Affiliation management
