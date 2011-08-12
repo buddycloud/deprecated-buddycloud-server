@@ -488,7 +488,7 @@ exports.run = (router, request, cb) ->
             try
                 cb null, result
             catch e
-                console.error e
+                console.error e.stack or e
 
             # Run notifications
             notification = op.notification?()
