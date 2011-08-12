@@ -232,9 +232,14 @@ class Transaction
                     , cb2
             else if not isSet and not toDelete
                 # listener=null is allowed for 3rd-party inboxes
-                db.query "INSERT INTO subscriptions (node, \"user\", listener, subscription, updated) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)"
-                , [ node, user, listener, subscription ]
-                , cb2
+                if listener
+                    db.query "INSERT INTO subscriptions (node, \"user\", listener, subscription, updated) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)"
+                    , [ node, user, listener, subscription ]
+                    , cb2
+                else
+                    db.query "INSERT INTO subscriptions (node, \"user\", subscription, updated) VALUES ($1, $2, $3, CURRENT_TIMESTAMP)"
+                    , [ node, user, subscription ]
+                    , cb2
             else if isSet and toDelete
                 db.query "DELETE FROM subscriptions WHERE node=$1 AND \"user\"=$2"
                 , [ node, user ]
