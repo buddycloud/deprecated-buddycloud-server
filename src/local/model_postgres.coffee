@@ -92,7 +92,7 @@ exports.nodeExists = (node, cb) ->
 # TODO: batchify
 exports.forListeners = (iter) ->
     withNextDb (db) ->
-        db.query "SELECT DISTINCT listener FROM subscriptions", (err, res) ->
+        db.query "SELECT DISTINCT listener FROM subscriptions WHERE listener IS NOT NULL", (err, res) ->
             process.nextTick ->
                 dbIsAvailable(db)
             if err
