@@ -296,7 +296,7 @@ class Transaction
         @db.query "SELECT DISTINCT listener FROM subscriptions WHERE node = $1"
         , [node]
         , (err, res) ->
-            cb err, res?.rows?.map((row) -> row.listener)
+            cb err, res?.rows?.map((row) -> row.listener).filter((l) -> l?)
 
     ##
     # Affiliation management
