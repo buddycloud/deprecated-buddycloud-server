@@ -197,13 +197,14 @@ class Publish extends PrivilegedOperation
                 , (oldItem, cb3) =>
                     normalizeItem @req, oldItem, item, cb3
                 , (newItem, cb3) =>
-                    t.writeItem @req.node, newItem.id, @req.actor, newItem.el, cb3
+                    t.writeItem @req.node, newItem.id, @req.actor, newItem.el, (err) ->
+                        cb3 err, newItem.id
                 ], cb2
-        ), (err) ->
+        ), (err, ids) ->
             if err
                 cb err
             else
-                cb null
+                cb null, ids
         )
 
     notification: ->

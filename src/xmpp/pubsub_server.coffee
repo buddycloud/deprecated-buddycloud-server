@@ -311,6 +311,15 @@ class PubsubPublishRequest extends PubsubRequest
     operation: ->
         'publish-node-items'
 
+    reply: (ids) ->
+        if ids?
+            publishEl = new xmpp.Element('publish', node: @node)
+            for id in ids
+                publishEl.c('item', id: id)
+            super publishEl
+        else
+            super()
+
     writes: true
 
 # <iq type='set'
