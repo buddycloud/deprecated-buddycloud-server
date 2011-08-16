@@ -3,6 +3,7 @@ xmpp = require('node-xmpp')
 NS = require('./ns')
 forms = require('./forms')
 errors = require('../errors')
+RSM = require('./rsm')
 
 ##
 # A request:
@@ -45,6 +46,12 @@ class Request
             @actor = actorEl.getText()
         # Else @actor stays @sender (see @constructor)
 
+    setRSM: (childEl) ->
+        @rsm = {}
+        rsmEl = childEl.get('set', NS.RSM)
+        unless rsmEl
+            return
+        @rsm = RSM.fromXml rsmEl
 
 class NotImplemented extends Request
     matches: () ->
@@ -179,7 +186,9 @@ class PubsubRequest extends Request
         super
 
         @pubsubEl = @iq.getChild("pubsub", @xmlns)
-        @setActor @pubsubEl
+        if @pubsubEl
+            @setActor @pubsubEl
+            @setRSM @pubsubEl
 
     matches: () ->
         (@iq.attrs.type is 'get' ||
