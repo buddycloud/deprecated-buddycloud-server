@@ -261,26 +261,8 @@ class RetrieveItems extends PrivilegedOperation
         count = 0
         firstIndex = 0
         t.getItemIds node, (err, ids) ->
-            # RSM offsets
-            count = ids?.length
-            if rsm.after
-                afterIdx = ids.indexOf(rsm.after)
-                if afterIdx >= 0
-                    ids = ids.slice(afterIdx + 1)
-                    firstIndex = afterIdx + 1
-            if rsm.before
-                beforeIdx = ids.indexOf(rsm.before)
-                if beforeIdx >= 0
-                    ids = ids.slice(0, beforeIdx)
-            # RSM crop item amount
-            max = Math.min(100, rsm.max or 100)
-            if 'before' of rsm
-                # Paging backwards
-                ids = ids.slice(Math.max(0, ids.length - max), ids.length)
-                firstIndex = count - ids.length
-            else
-                # Paging forward
-                ids = ids.slice(0, Math.min(max, ids.length))
+            # Apply RSM
+            ids = rsm.cropResults ids
 
             # Fetching actual items
             async.series ids.map((id) ->
@@ -298,7 +280,7 @@ class RetrieveItems extends PrivilegedOperation
                 else
                     # Annotate results array
                     results.node = node
-                    results.rsm = { count, firstIndex }
+                    results.rsm = rsm
                     cb null, results
 
 class RetractItems extends PrivilegedOperation

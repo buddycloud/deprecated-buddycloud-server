@@ -102,7 +102,7 @@ class PubsubRequest extends Request
             pubsubEl.c('actor', xmlns: NS.BUDDYCLOUD_V1).
                 t(@opts.actor)
         if @opts.rsm
-            pubsubEl.cnode RSM.toXml(@opts.rsm)
+            pubsubEl.cnode @opts.rsm.toXml()
         pubsubEl.up()
 
     iqType: ->
@@ -119,8 +119,7 @@ class PubsubRequest extends Request
                 for child in pubsubEl.children
                     unless typeof child is 'string'
                         @decodeReplyEl child
-            if (rsmEl = pubsubEl.getChild('rsm', NS.RSM))
-                @results.rsm = RSM.fromXml(rsmEl)
+            @results.rsm = RSM.fromXml(pubsubEl.getChild('rsm', NS.RSM))
         @results
 
 class CreateNode extends PubsubRequest

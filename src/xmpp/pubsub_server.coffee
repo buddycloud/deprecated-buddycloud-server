@@ -47,10 +47,7 @@ class Request
         # Else @actor stays @sender (see @constructor)
 
     setRSM: (childEl) ->
-        @rsm = {}
         rsmEl = childEl.getChild('set', NS.RSM)
-        unless rsmEl
-            return
         @rsm = RSM.fromXml rsmEl
 
 class NotImplemented extends Request
@@ -200,7 +197,8 @@ class PubsubRequest extends Request
             pubsubEl = new xmpp.Element("pubsub", { xmlns: @xmlns })
             pubsubEl.cnode child
             if rsm
-                pubsubEl.cnode RSM.toXml(rsm)
+                rsm.rmRequestInfo()
+                pubsubEl.cnode rsm.toXml()
             super pubsubEl
         else
             super()
@@ -386,10 +384,7 @@ class PubsubItemsRequest extends PubsubRequest
         @node
 
     reply: (items) ->
-        items.rsm = items.rsm or {}
-        if items.length > 0
-            items.rsm.first = items[0].id
-            items.rsm.last = items[items.length - 1].id
+        items.rsm.setReplyInfo(items)
 
         itemsEl = new xmpp.Element("items", node: items.node)
         for item in items
