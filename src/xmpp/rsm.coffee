@@ -11,9 +11,9 @@ exports.fromXml = (el) ->
     if (index = el.getChildText('index'))
         rsm.index = parseInt(index, 10)
     # Creates key even if <after/> empty
-    if (afterEl = el.getChild('after'))
+    if (afterEl = el.getChild('after'))?
         rsm.after = afterEl.getText()
-    if (beforeEl = el.getChild('before'))
+    if (beforeEl = el.getChild('before'))?
         rsm.before = beforeEl.getText()
 
     ##
@@ -23,8 +23,11 @@ exports.fromXml = (el) ->
         if 'index' of firstEl.attrs
             rsm.firstIndex = parseInt(firstEl.attrs.index, 10)
     rsm.last ?= el.getChildText('last')
-    if (count = el.getChild('count').getText())
+    if (count = el.getChild('count')?.getText())
         rsm.count = parseInt(count, 10)
+
+    rsm
+
 
 exports.toXml = (rsm) ->
     el = new xmpp.Element('set', xmlns: NS.RSM)

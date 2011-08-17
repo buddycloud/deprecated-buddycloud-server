@@ -48,7 +48,7 @@ class Request
 
     setRSM: (childEl) ->
         @rsm = {}
-        rsmEl = childEl.get('set', NS.RSM)
+        rsmEl = childEl.getChild('set', NS.RSM)
         unless rsmEl
             return
         @rsm = RSM.fromXml rsmEl
@@ -195,10 +195,12 @@ class PubsubRequest extends Request
          @iq.attrs.type is 'set') &&
         @pubsubEl?
 
-    reply: (child) ->
+    reply: (child, rsm) ->
         if child?.children?
             pubsubEl = new xmpp.Element("pubsub", { xmlns: @xmlns })
             pubsubEl.cnode child
+            if rsm
+                pubsubEl.cnode RSM.toXml(rsm)
             super pubsubEl
         else
             super()
@@ -384,12 +386,22 @@ class PubsubItemsRequest extends PubsubRequest
         @node
 
     reply: (items) ->
+        items.rsm = items.rsm or {}
+        if items.length > 0
+            items.rsm.first = items[0].id
+            items.rsm.last = items[items.length - 1].id
+
         itemsEl = new xmpp.Element("items", node: items.node)
         for item in items
             itemEl = itemsEl.c("item", id: item.id)
             itemEl.cnode(item.el)
 
-        super itemsEl
+        try
+            super itemsEl, items.rsm
+        catch e
+            console.error(e.stack or e)
+            # is >64k?
+            # @reply items.slice(0, items.length - 1)
 
     operation: ->
         'retrieve-node-items'

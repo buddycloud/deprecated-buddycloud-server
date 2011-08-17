@@ -257,7 +257,32 @@ class RetrieveItems extends PrivilegedOperation
 
     privilegedTransaction: (t, cb) ->
         node = @req.node
+        rsm = @req.rsm or {}
+        count = 0
+        firstIndex = 0
         t.getItemIds node, (err, ids) ->
+            # RSM offsets
+            count = ids?.length
+            if rsm.after
+                afterIdx = ids.indexOf(rsm.after)
+                if afterIdx >= 0
+                    ids = ids.slice(afterIdx + 1)
+                    firstIndex = afterIdx + 1
+            if rsm.before
+                beforeIdx = ids.indexOf(rsm.before)
+                if beforeIdx >= 0
+                    ids = ids.slice(0, beforeIdx)
+            # RSM crop item amount
+            max = Math.min(100, rsm.max or 100)
+            if 'before' of rsm
+                # Paging backwards
+                ids = ids.slice(Math.max(0, ids.length - max), ids.length)
+                firstIndex = count - ids.length
+            else
+                # Paging forward
+                ids = ids.slice(0, Math.min(max, ids.length))
+
+            # Fetching actual items
             async.series ids.map((id) ->
                 (cb2) ->
                     t.getItem node, id, (err, el) ->
@@ -271,10 +296,9 @@ class RetrieveItems extends PrivilegedOperation
                 if err
                     cb err
                 else
-                    # TODO: apply RSM to ids
-
                     # Annotate results array
                     results.node = node
+                    results.rsm = { count, firstIndex }
                     cb null, results
 
 class RetractItems extends PrivilegedOperation
