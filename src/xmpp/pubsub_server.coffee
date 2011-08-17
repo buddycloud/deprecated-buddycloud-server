@@ -47,6 +47,8 @@ class Request
         # Else @actor stays @sender (see @constructor)
 
     setRSM: (childEl) ->
+        # Even if there was no <set/> element,
+        # code relies on @rsm being present
         rsmEl = childEl.getChild('set', NS.RSM)
         @rsm = RSM.fromXml rsmEl
 
@@ -110,6 +112,8 @@ class DiscoInfoRequest extends Request
 #     id='info1'>
 #   <query xmlns='http://jabber.org/protocol/disco#items'/>
 # </iq>
+#
+# TODO: RSM
 class DiscoItemsRequest extends Request
     constructor: (stanza) ->
         super
@@ -202,6 +206,12 @@ class PubsubRequest extends Request
             super pubsubEl
         else
             super()
+
+##
+# *Owner* is not related to a required affiliation. The derived
+# *operations are all requested with the pubsub#owner xmlns.
+class PubsubOwnerRequest extends PubsubRequest
+    xmlns: NS.PUBSUB_OWNER
 
 # <iq type='set'
 #     from='hamlet@denmark.lit/elsinore'
@@ -422,6 +432,8 @@ class PubsubSubscriptionsRequest extends PubsubRequest
         @subscriptionsEl
 
     reply: (nodes) ->
+        nodes.rsm.setReplyInfo(nodes, 'node')
+
         subscriptionsEl = new xmpp.Element("subscriptions")
         for node in nodes
             attrs =
@@ -456,6 +468,8 @@ class PubsubAffiliationsRequest extends PubsubRequest
         @affiliationsEl
 
     reply: (nodes) ->
+        nodes.rsm.setReplyInfo(nodes, 'node')
+
         affiliationsEl = new xmpp.Element("affiliations")
         for node in nodes
             attrs =
@@ -470,12 +484,6 @@ class PubsubAffiliationsRequest extends PubsubRequest
     operation: ->
         'retrieve-user-affiliations'
 
-
-##
-# *Owner* is not related to a required affiliation. The derived
-# *operations are all requested with the pubsub#owner xmlns.
-class PubsubOwnerRequest extends PubsubRequest
-    xmlns: NS.PUBSUB_OWNER
 
 # <iq type='get'
 #     from='hamlet@denmark.lit/elsinore'
@@ -498,6 +506,8 @@ class PubsubOwnerGetSubscriptionsRequest extends PubsubOwnerRequest
         @node
 
     reply: (subscriptions) ->
+        subscriptions.rsm.setReplyInfo(subscriptions, 'user')
+
         subscriptionsEl = new xmpp.Element("subscriptions")
         for subscription in subscriptions
             subscriptionsEl.c 'subscription',
@@ -564,6 +574,8 @@ class PubsubOwnerGetAffiliationsRequest extends PubsubOwnerRequest
         @affiliationsEl
 
     reply: (affiliations) ->
+        affiliations.rsm.setReplyInfo(affiliations, 'user')
+
         affiliationsEl = new xmpp.Element("affiliations")
         for affiliation in affiliations
             affiliationsEl.c 'affiliation',

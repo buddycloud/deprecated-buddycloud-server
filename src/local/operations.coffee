@@ -295,6 +295,7 @@ class RetractItems extends PrivilegedOperation
         ), (err) ->
             cb err
 
+# TODO: RSM in all the following
 class RetrieveUserSubscriptions extends ModelOperation
     transaction: (t, cb) ->
         t.getSubscriptions @req.actor, cb
