@@ -222,7 +222,7 @@ getUserDomain = (user) ->
         user
 
 
-nodeRegexp = /^\/user\/([^\/]+)\/(.+)/
+nodeRegexp = /^\/user\/([^\/]+)\/?(.*)/
 getNodeUser = (node) ->
     unless node
         return null

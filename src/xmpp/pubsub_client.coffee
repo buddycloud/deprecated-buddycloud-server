@@ -2,6 +2,7 @@ xmpp = require('node-xmpp')
 async = require('async')
 NS = require('./ns')
 errors = require('../errors')
+forms = require('./forms')
 
 class Request
     constructor: (conn, @opts, cb) ->
@@ -273,7 +274,7 @@ class ManageNodeConfiguration extends PubsubOwnerRequest
 
     pubsubChild: ->
         new xmpp.Element('configure', node: @opts.node).
-            cnode(forms.configToForm(@req.config, 'submit', NS.PUBSUB_NODE_CONFIG).toXml())
+            cnode(forms.configToForm(@opts.config, 'submit', NS.PUBSUB_NODE_CONFIG).toXml())
 
 
 REQUESTS =
