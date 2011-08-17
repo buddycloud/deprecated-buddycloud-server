@@ -3,6 +3,7 @@ async = require('async')
 NS = require('./ns')
 errors = require('../errors')
 forms = require('./forms')
+RSM = require('./rsm')
 
 class Request
     constructor: (conn, @opts, cb) ->
@@ -100,6 +101,8 @@ class PubsubRequest extends Request
         if @opts.actor
             pubsubEl.c('actor', xmlns: NS.BUDDYCLOUD_V1).
                 t(@opts.actor)
+        if @opts.rsm
+            pubsubEl.cnode RSM.toXml(@opts.rsm)
         pubsubEl.up()
 
     iqType: ->
@@ -111,10 +114,13 @@ class PubsubRequest extends Request
     decodeReply: (stanza) ->
         @results = []
         pubsubEl = stanza?.getChild('pubsub', @xmlns)
-        if pubsubEl? and @decodeReplyEl?
-            for child in pubsubEl.children
-                unless typeof child is 'string'
-                    @decodeReplyEl child
+        if pubsubEl?
+            if @decodeReplyEl?
+                for child in pubsubEl.children
+                    unless typeof child is 'string'
+                        @decodeReplyEl child
+            if (rsmEl = pubsubEl.getChild('rsm', NS.RSM))
+                @results.rsm = RSM.fromXml(rsmEl)
         @results
 
 class CreateNode extends PubsubRequest
