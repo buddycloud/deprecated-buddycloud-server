@@ -133,6 +133,33 @@ class BrowseNodeInfo extends PrivilegedOperation
                 }]
                 config: config
 
+class BrowseNodes extends ModelOperation
+    transaction: (t, cb) ->
+        rsm = @req.rsm
+        t.listNodes (err, results) =>
+            if err
+                return cb err
+
+            results = rsm.cropResults(results, 'node')
+            results.forEach (item) =>
+                item.jid = @req.me
+                item.name ?= item.title
+            cb null, results
+
+class BrowseNodesItems extends PrivilegedOperation
+    privilegedTransaction: (t, cb) ->
+        t.getItemIds @req.node, (err, ids) =>
+            if err
+                return cb err
+
+            # Apply RSM
+            ids = @req.rsm.cropResults ids
+            results = ids.map (id) =>
+                { name: id, jid: @req.me, node: @req.node }
+            results.node = @req.node
+            results.rsm = @req.rsm
+            cb null, results
+
 class Register extends ModelOperation
     # TODO: overwrite @run() and check if this component is
     # authoritative for the requesting user's domain
@@ -258,8 +285,6 @@ class RetrieveItems extends PrivilegedOperation
     privilegedTransaction: (t, cb) ->
         node = @req.node
         rsm = @req.rsm
-        count = 0
-        firstIndex = 0
         t.getItemIds node, (err, ids) ->
             # Apply RSM
             ids = rsm.cropResults ids
@@ -475,8 +500,10 @@ class Notify extends ModelOperation
             cb()
 
 OPERATIONS =
-    'browse-node-info': BrowseNodeInfo
     'browse-info': BrowseInfo
+    'browse-node-info': BrowseNodeInfo
+    'browse-nodes': BrowseNodes
+    'browse-nodes-items': BrowseNodesItems
     'register-user': Register
     'create-node': CreateNode
     'publish-node-items': Publish

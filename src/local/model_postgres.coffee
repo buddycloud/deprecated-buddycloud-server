@@ -177,6 +177,8 @@ class Transaction
         ], cb
 
     ##
+    # only open ones
+    #
     # cb(err, [{ node: String, title: String }])
     listNodes: (cb) ->
         db = @db
@@ -185,18 +187,7 @@ class Transaction
         , (res, cb2) ->
             nodes = res.rows.map (row) ->
                 node: row.node
-                title: row.title
-            cb2 null, nodes
-        ], cb
-
-    listNodesByUser: (user, cb) ->
-        db = @db
-        async.waterfall [(cb2) ->
-            db.query "SELECT node FROM nodes WHERE position('/user/' || $1 IN node) = 1 AND node IN (SELECT node FROM node_config WHERE \"key\"='accessModel' AND \"value\"='open') " + "ORDER BY node ASC", [ user ], cb2
-        , (res, cb2) ->
-            nodes = res.rows.map (row) ->
-                node: row.node
-                title: row.title
+                title: undefined  # TODO
             cb2 null, nodes
         ], cb
 

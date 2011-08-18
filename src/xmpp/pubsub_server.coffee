@@ -16,6 +16,7 @@ class Request
         @sender = new xmpp.JID(stanza.attrs.from).bare().toString()
         # can be overwritten by <actor xmlns="#{NS.BUDDYCLOUD_V1}"/>:
         @actor = @sender
+        @me = stanza.attrs.to
 
     ##
     # Is this handler eligible for the request, or proceed to next
@@ -51,7 +52,7 @@ class Request
     setRSM: (childEl) ->
         # Even if there was no <set/> element,
         # code relies on @rsm being present
-        rsmEl = childEl.getChild('set', NS.RSM)
+        rsmEl = childEl?.getChild('set', NS.RSM)
         @rsm = RSM.fromXml rsmEl
 
 class NotImplemented extends Request
@@ -122,27 +123,42 @@ class DiscoItemsRequest extends Request
 
         @discoItemsEl = @iq.getChild("query", NS.DISCO_ITEMS)
         @node = @discoItemsEl?.attrs.node
+        @setRSM @discoItemsEl
 
     matches: () ->
         @iq.attrs.type is 'get' &&
         @discoItemsEl?
 
     reply: (results) ->
+        console.log 'DiscoItemsRequest.reply': results
         queryEl = new xmpp.Element("query", xmlns: NS.DISCO_ITEMS)
         if results?.node
             queryEl.attrs.node = results.node
 
         for item in results
-            attrs =
-                jid: result.jid
-            if item.name?
-                attrs.name = item.name
+            attrs = {}
+            attrs.jid ?= item.jid
+            attrs.name ?= item.name
+            attrs.node ?= item.node
             queryEl.c "item", attrs
+
+        if results.rsm
+            unless @node?
+                # browse-nodes operation
+                results.rsm.setReplyInfo results, 'node'
+            else
+                # browse-nodes-items operation, item id:
+                results.rsm.setReplyInfo results, 'name'
+            results.rsm.rmRequestInfo()
+            queryEl.cnode results.rsm.toXml()
 
         super queryEl
 
     operation: ->
-        'browse-nodes-items'
+        unless @node?
+            'browse-nodes'
+        else
+            'browse-nodes-items'
 
 ##
 # XEP-0077: In-Band Registration
