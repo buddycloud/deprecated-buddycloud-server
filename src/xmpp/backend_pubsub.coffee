@@ -22,6 +22,9 @@ class exports.PubsubBackend extends EventEmitter
 
     run: (router, opts, cb) ->
         user = getNodeUser opts.node
+        unless user
+            return cb new errors.NotFound("Unrecognized node form")
+
         console.log 'PubsubBackend.run': opts, user: user
         @disco.findService user, (err, service) =>
             if err
