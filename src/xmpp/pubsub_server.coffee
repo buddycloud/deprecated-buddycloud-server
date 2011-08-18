@@ -31,11 +31,13 @@ class Request
     replyError: (error) ->
         @iq.replyError error
 
-    callback: (err, result) ->
+    callback: (err, results) ->
         if err
             @replyError err
         else
-            @reply result
+            @reply results
+            # is >64k?
+            # @callback null, items.slice(0, items.length - 1)
 
     operation: () ->
         undefined
@@ -394,19 +396,14 @@ class PubsubItemsRequest extends PubsubRequest
         @node
 
     reply: (items) ->
-        items.rsm.setReplyInfo(items)
+        items.rsm.setReplyInfo(items, 'id')
 
         itemsEl = new xmpp.Element("items", node: items.node)
         for item in items
             itemEl = itemsEl.c("item", id: item.id)
             itemEl.cnode(item.el)
 
-        try
-            super itemsEl, items.rsm
-        catch e
-            console.error(e.stack or e)
-            # is >64k?
-            # @reply items.slice(0, items.length - 1)
+        super itemsEl, items.rsm
 
     operation: ->
         'retrieve-node-items'
@@ -443,7 +440,7 @@ class PubsubSubscriptionsRequest extends PubsubRequest
                 attrs.jid = node.jid
             subscriptionsEl.c "subscription", attrs
 
-        super subscriptionsEl
+        super subscriptionsEl, nodes.rsm
 
     operation: ->
         'retrieve-user-subscriptions'
@@ -479,7 +476,7 @@ class PubsubAffiliationsRequest extends PubsubRequest
                 attrs.jid = node.jid
             affiliationsEl.c "affiliation", attrs
 
-        super affiliationsEl
+        super affiliationsEl, nodes.rsm
 
     operation: ->
         'retrieve-user-affiliations'
@@ -514,7 +511,7 @@ class PubsubOwnerGetSubscriptionsRequest extends PubsubOwnerRequest
                 jid: subscription.user
                 subscription: subscription.subscription
 
-        super subscriptionsEl
+        super subscriptionsEl, subscriptions.rsm
 
     operation: ->
         'retrieve-node-subscriptions'
@@ -582,7 +579,7 @@ class PubsubOwnerGetAffiliationsRequest extends PubsubOwnerRequest
                 user: affiliation.user
                 affiliation: affiliation.affiliation
 
-        super affiliationsEl
+        super affiliationsEl, affiliations.rsm
 
     operation: ->
         'retrieve-node-affiliations'

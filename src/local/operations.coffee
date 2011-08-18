@@ -257,7 +257,7 @@ class RetrieveItems extends PrivilegedOperation
 
     privilegedTransaction: (t, cb) ->
         node = @req.node
-        rsm = @req.rsm or {}
+        rsm = @req.rsm
         count = 0
         firstIndex = 0
         t.getItemIds node, (err, ids) ->
@@ -295,22 +295,45 @@ class RetractItems extends PrivilegedOperation
         ), (err) ->
             cb err
 
-# TODO: RSM in all the following
 class RetrieveUserSubscriptions extends ModelOperation
     transaction: (t, cb) ->
-        t.getSubscriptions @req.actor, cb
+        rsm = @req.rsm
+        t.getSubscriptions @req.actor, (err, subscriptions) ->
+            if err
+                return cb err
+
+            subscriptions = rsm.cropResults subscriptions, 'node'
+            cb null, subscriptions
 
 class RetrieveUserAffiliations extends ModelOperation
     transaction: (t, cb) ->
-        t.getAffiliations @req.actor, cb
+        rsm = @req.rsm
+        t.getAffiliations @req.actor, (err, affiliations) ->
+            if err
+                return cb err
+
+            affiliations = rsm.cropResults affiliations, 'node'
+            cb null, affiliations
 
 class RetrieveNodeSubscriptions extends PrivilegedOperation
     privilegedTransaction: (t, cb) ->
-        t.getSubscribers @req.node, cb
+        rsm = @req.rsm
+        t.getSubscribers @req.node, (err, subscriptions) ->
+            if err
+                return cb err
+
+            subscriptions = rsm.cropResults subscriptions, 'user'
+            cb null, subscriptions
 
 class RetrieveNodeAffiliations extends PrivilegedOperation
     privilegedTransaction: (t, cb) ->
-        t.getAffiliated @req.node, cb
+        rsm = @req.rsm
+        t.getAffiliated @req.node, (err, affiliations) ->
+            if err
+                return cb err
+
+            affiliations = rsm.cropResults affiliations, 'user'
+            cb null, affiliations
 
 class RetrieveNodeConfiguration extends PrivilegedOperation
     requiredAffiliation: 'member'

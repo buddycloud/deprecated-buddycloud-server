@@ -44,9 +44,15 @@ class exports.RSM
             # Paging forward
             results = results.slice(0, Math.min(@max, results.length))
 
+        # And attach for convenience:
+        results.rsm = @
         results
 
     setReplyInfo: (results, key) ->
+        if @fromRemote
+            # Do not change
+            return
+
         delete @first
         delete @last
         if results.length > 0
@@ -78,10 +84,9 @@ class exports.RSM
 
         ##
         # Response data
-        if 'first' of @ or 'firstIndex' of @
+        if 'first' of @
             firstEl = el.c('first')
-            if 'first' of @
-                firstEl.t(@first)
+            firstEl.t(@first)
             if 'firstIndex' of @
                 firstEl.attrs.index = "#{@firstIndex}"
         if 'last' of @
@@ -92,7 +97,7 @@ class exports.RSM
         el
 
 
-exports.fromXml = (el) ->
+exports.fromXml = (el, @fromRemote) ->
     rsm = new exports.RSM()
     unless el
         return rsm

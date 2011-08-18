@@ -119,7 +119,9 @@ class PubsubRequest extends Request
                 for child in pubsubEl.children
                     unless typeof child is 'string'
                         @decodeReplyEl child
-            @results.rsm = RSM.fromXml(pubsubEl.getChild('rsm', NS.RSM))
+            # With fromRemote=true so that remote RSM information
+            # won't be overwritten by RSM.setReplyInfo():
+            @results.rsm = RSM.fromXml(pubsubEl.getChild('rsm', NS.RSM), true)
         @results
 
 class CreateNode extends PubsubRequest
