@@ -6,9 +6,10 @@
 ###
 xmpp = require("node-xmpp")
 {EventEmitter} = require('events')
-#errors = require("./errors")
+errors = require("../errors")
 
 IQ_TIMEOUT = 10000
+MAX_STANZA_SIZE = 65000  # 535 bytes spare room
 
 ##
 # XMPP Component Connection,
@@ -57,6 +58,13 @@ class exports.Connection extends EventEmitter
         stanza = stanza.root()
         unless stanza.attrs.from
             stanza.attrs.from = @jid
+
+        bytes = 0
+        stanza.root().write (s) ->
+            bytes += Buffer.byteLength(s)
+        if bytes > MAX_STANZA_SIZE
+            throw new errors.MaxStanzaSizeExceeded(bytes)
+
         console.log ">> #{stanza.toString()}"
         @conn.send stanza
 

@@ -36,9 +36,15 @@ class Request
         if err
             @replyError err
         else
-            @reply results
-            # is >64k?
-            # @callback null, items.slice(0, items.length - 1)
+            try
+                @reply results
+            catch e
+                if e.constructor is errors.MaxStanzaSizeExceeded and
+                   results.length > 0
+                    # Retry with smaller result set
+                    @callback err, results?.slice(0, results.length - 1)
+                else
+                    throw e
 
     operation: () ->
         undefined

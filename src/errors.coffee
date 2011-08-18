@@ -72,3 +72,9 @@ class exports.StanzaError extends Error
 class exports.SeeLocal extends Error
     constructor: ->
         super("Locally stored")
+
+##
+# Thrown by Connection.send()
+class exports.MaxStanzaSizeExceeded
+    constructor: (bytes) ->
+        super("Maximum stanza size exceeded (#{bytes} bytes)")
