@@ -12,8 +12,6 @@ NS_XMPP_STANZAS = "urn:ietf:params:xml:ns:xmpp-stanzas"
 # Base class for our well-defined error conditions
 class ServerError extends Error
     constructor: (message) ->
-        #super/Error.apply this, arguments
-
         # Isn't message set by Error()?
         @message = message
 
@@ -29,30 +27,39 @@ class ServerError extends Error
         errorEl
 
 ##
-# Creates the subclasses of ServerError
-makePrototype = (condition, type) ->
-    p = ->
-        ServerError.apply this, arguments
-    inherits p, ServerError
+# The actual exported error classes
 
-    if condition
-        p.prototype.condition = condition
-    if type
-        p.prototype.type = type
-    p
+class exports.Forbidden
+    condition: "forbidden"
+    type: "auth"
+
+class exports.Conflict
+    condition: "conflict"
+    type: "cancel"
+
+class exports.BadRequest
+    condition: "bad-request"
+    type: "modify"
+
+class exports.FeatureNotImplemented
+    condition: "feature-not-implemented"
+    type: "cancel"
+
+class exports.InternalServerError
+    condition: "internal-server-error"
+    type: "cancel"
+
+class exports.NotFound
+    condition: "item-not-found"
+    type: "cancel"
+
+class exports.NotAllowed
+    condition: "not-allowed"
+    type: "cancel"
 
 ##
-# The actual exported error classes
-module.exports =
-    Forbidden: makePrototype("forbidden", "auth")
-    Conflict: makePrototype("conflict", "cancel")
-    BadRequest: makePrototype("bad-request", "modify")
-    FeatureNotImplemented: makePrototype("feature-not-implemented", "cancel")
-    InternalServerError: makePrototype("internal-server-error", "wait")
-    NotFound: makePrototype("item-not-found", "cancel")
-    NotAllowed: makePrototype("not-allowed", "cancel")
-
-class module.exports.StanzaError extends Error
+# For wrapping errors from remote
+class exports.StanzaError extends Error
     constructor: (stanza) ->
         @el = stanza.getChild('error')
         @message = @el?.children[0]?.name
