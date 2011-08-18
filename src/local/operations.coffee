@@ -220,7 +220,11 @@ class Publish extends PrivilegedOperation
                         item.id = uuid()
                         cb3 null, null
                     else
-                        t.getItem @req.node, item.id, cb3
+                        t.getItem @req.node, item.id, (err, item) ->
+                            if err and err.constructor is errors.NotFound
+                                cb3 null, null
+                            else
+                                cb3 err, item
                 , (oldItem, cb3) =>
                     normalizeItem @req, oldItem, item, cb3
                 , (newItem, cb3) =>
