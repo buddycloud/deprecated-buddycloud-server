@@ -38,6 +38,7 @@ normalizeEntry = (req, cb) ->
         normalizeId req
         normalizePublished req
         normalizeUpdated req
+        normalizeLink req
         normalizeActivityStream req
         cb null, req
     catch e
@@ -93,3 +94,17 @@ normalizeActivityStream = (req) ->
         req.item.el.c('object', xmlns: NS_AS).
             c('object-type').
             t(objectType)
+
+normalizeLink = (req) ->
+    link = "xmpp:#{req.me}?pubsub;action=retrieve;" +
+        "node=#{encodeURI req.node};" +
+        "item=#{encodeURI req.item.id}"
+    alreadyPresent = req.item.el.children.some (child) ->
+        child.is('link') and
+        child.attrs.rel is 'self' and
+        child.attrs.href is link
+    unless alreadyPresent
+        req.item.el.c('link',
+            rel: 'self'
+            href: link
+        )
