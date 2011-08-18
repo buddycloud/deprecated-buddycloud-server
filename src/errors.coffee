@@ -66,3 +66,9 @@ class exports.StanzaError extends Error
 
     xmppElement: ->
         @el
+
+##
+# Signaling the router that a node is actually local
+class exports.SeeLocal extends Error
+    constructor: ->
+        super("Locally stored")

@@ -32,7 +32,7 @@ class exports.PubsubBackend extends EventEmitter
 
             if @getMyJids().indexOf(service) >= 0
                 # is local, return to router
-                router.runLocally opts, cb
+                return cb new errors.SeeLocal()
             else
                 operation = opts.operation()
                 reqClass = pubsubClient.byOperation(operation)

@@ -63,7 +63,13 @@ class exports.Router
             @runLocally opts, cb
         else if opts.writes
             # Request to mess with data, run remotely
-            @remote.run opts, cb
+            @remote.run opts, (err, results) =>
+                if err and err.constructor is errors.SeeLocal
+                    # Remote discovered ourselves
+                    @runLocally opts, cb
+                else
+                    # result/error from remote
+                    cb err, results
         else
             @isLocallySubscribed opts.node, (err, locallySubscribed) =>
                 if locallySubscribed
