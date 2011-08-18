@@ -1,3 +1,5 @@
+async = require('async')
+
 #process.on 'uncaughtException', (err) ->
 #    console.error "uncaughtException: #{err.stack || err.message || err.toString()}"
 
