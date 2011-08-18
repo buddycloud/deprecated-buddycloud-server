@@ -254,7 +254,7 @@ class Transaction
     getSubscribers: (node, cb) ->
         db = @db
         async.waterfall [(cb2) ->
-            db.query "SELECT \"user\", subscription FROM subscriptions WHERE node=$1", [ node ], cb2
+            db.query "SELECT \"user\", subscription FROM subscriptions WHERE node=$1 ORDER BY updated DESC", [ node ], cb2
         , (res, cb2) ->
             subscribers = for row in res.rows
                 { user: row.user, subscription: row.subscription }
@@ -265,7 +265,7 @@ class Transaction
     getSubscriptions: (user, cb) ->
         db = @db
         async.waterfall [(cb2) ->
-            db.query "SELECT node, subscription FROM subscriptions WHERE \"user\"=$1", [ user ], cb2
+            db.query "SELECT node, subscription FROM subscriptions WHERE \"user\" = $1 ORDER BY updated DESC", [ user ], cb2
         , (res, cb2) ->
             subscriptions = for row in res.rows
                 { node: row.node, subscription: row.subscription }
@@ -275,7 +275,7 @@ class Transaction
     getPingNodes: (user, cb) ->
         db = @db
         async.waterfall [(cb2) ->
-            db.query "SELECT node FROM affiliations WHERE affiliation = 'owner' AND \"user\" = $1 AND EXISTS (SELECT \"user\" FROM subscriptions WHERE subscription = 'pending' AND node = affiliations.node)", [ user ], cb2
+            db.query "SELECT node FROM affiliations WHERE affiliation = 'owner' AND \"user\" = $1 AND EXISTS (SELECT \"user\" FROM subscriptions WHERE subscription = 'pending' AND node = affiliations.node) ORDER BY updated DESC", [ user ], cb2
         , (res, cb2) ->
             cb2 null, res.rows.map((row) ->
                 row.node
@@ -285,7 +285,7 @@ class Transaction
     getPending: (node, cb) ->
         db = @db
         async.waterfall [(cb2) ->
-            db.query "SELECT user FROM subscriptions WHERE subscription = 'pending' AND node = $1", [ node ], cb2
+            db.query "SELECT user FROM subscriptions WHERE subscription = 'pending' AND node = $1 ORDER BY updated DESC", [ node ], cb2
         , (res, cb2) ->
             cb2 null, res.rows.map((row) ->
                 row.user
@@ -305,7 +305,7 @@ class Transaction
     getAffiliation: (node, user, cb) ->
         db = @db
         async.waterfall [(cb2) ->
-            db.query "SELECT affiliation FROM affiliations WHERE node=$1 AND \"user\"=$2", [ node, user ], cb2
+            db.query "SELECT affiliation FROM affiliations WHERE node=$1 AND \"user\"=$2 ORDER BY updated DESC", [ node, user ], cb2
         , (res, cb2) ->
             cb2 null, (res.rows[0] and res.rows[0].affiliation) or "none"
         ], cb
@@ -332,7 +332,7 @@ class Transaction
     getAffiliations: (user, cb) ->
         db = @db
         async.waterfall [(cb2) ->
-            db.query "SELECT node, affiliation FROM affiliations WHERE \"user\"=$1", [ user ], cb2
+            db.query "SELECT node, affiliation FROM affiliations WHERE \"user\"=$1 ORDER BY updated DESC", [ user ], cb2
         , (res, cb2) ->
             affiliations = for row in res.rows
                 { node: row.node, affiliation: row.affiliation }
@@ -342,7 +342,7 @@ class Transaction
     getAffiliated: (node, cb) ->
         db = @db
         async.waterfall [(cb2) ->
-            db.query "SELECT \"user\", affiliation FROM affiliations WHERE node=$1", [ node ], cb2
+            db.query "SELECT \"user\", affiliation FROM affiliations WHERE node=$1 ORDER BY updated DESC", [ node ], cb2
         , (res, cb2) ->
             affiliations = for row in res.rows
                 { user: row.user, affiliation: row.affiliation }
@@ -353,7 +353,7 @@ class Transaction
     getOwners: (node, cb) ->
         db = @db
         async.waterfall [(cb2) ->
-            db.query "SELECT \"user\" FROM affiliations WHERE node=$1 AND affiliation='owner'", [ node ], cb2
+            db.query "SELECT \"user\" FROM affiliations WHERE node=$1 AND affiliation='owner' ORDER BY updated DESC", [ node ], cb2
         , (res, cb2) ->
             cb2 null, res.rows.map((row) ->
                 row.user
