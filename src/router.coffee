@@ -56,8 +56,6 @@ class exports.Router
 
     run: (opts, cb) ->
         console.log 'Router.run': opts, cb: cb
-        # TODO: remove this once syncing the inbox cache is implemented:
-        opts.writes = true
 
         unless opts.node?
             @runLocally opts, cb
@@ -88,3 +86,7 @@ class exports.Router
 
     notify: (notification) ->
         @remote.notify notification
+
+    ##
+    # Synchronize node from remote
+    syncNode: (node, cb) ->

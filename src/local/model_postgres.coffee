@@ -103,6 +103,19 @@ exports.forListeners = (iter) ->
                 console.log listener: row.listener
                 iter row.listener
 
+# TODO: batchify
+exports.getAllNodes = (cb) ->
+    withNextDb (db) ->
+        db.query "SELECT node FROM nodes", (err, res) ->
+            process.nextTick ->
+                dbIsAvailable(db)
+            if err
+                return cb err
+
+            nodes = res?.rows?.map (row) ->
+                row.node
+            cb null, nodes
+
 
 LOST_TRANSACTION_TIMEOUT = 10 * 1000
 
