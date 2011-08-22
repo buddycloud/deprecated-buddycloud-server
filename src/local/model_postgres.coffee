@@ -33,6 +33,8 @@ connectDB = (config) ->
     db.connection.once "readyForQuery", ->
         dbIsAvailable db
 
+##
+# Put into connection pool
 dbIsAvailable = (db) ->
     if (cb = queue.shift())
         # request was waiting in queue
@@ -41,6 +43,8 @@ dbIsAvailable = (db) ->
         # no request, put into pool
         pool.push db
 
+##
+# Get from connection pool
 withNextDb = (cb) ->
     if (db = pool.shift())
         # Got one from pool

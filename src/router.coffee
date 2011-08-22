@@ -1,4 +1,5 @@
 errors = require('./errors')
+sync = require('./sync')
 async = require('async')
 
 CACHE_TIMEOUT = 60 * 1000
@@ -90,3 +91,5 @@ class exports.Router
     ##
     # Synchronize node from remote
     syncNode: (node, cb) ->
+        sync.syncNode @, node, cb
+
