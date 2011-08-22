@@ -1,19 +1,23 @@
 async = require('async')
 
 class Synchronization
-    constructor: (@router, node) ->
+    constructor: (@router, @node) ->
         @request = {
-            operation: => @operation,
-            node,
+            operation: => @operation
+            node: @node
             rsm: {}
         }
 
     run: (t, cb) ->
+        console.log 'router.run': @request, cb: cb
         @router.run @request, cb
 
 
 class ConfigSynchronization extends Synchronization
     operation: 'retrieve-node-configuration'
+
+    writeResults: (t, results, cb) ->
+        t.setConfig @node, results, cb
 
 ##
 # Walks items with RSM
@@ -27,15 +31,11 @@ class PaginatedSynchronization extends Synchronization
                 if err
                     return cb err
 
-                # reset() only after 1st successful result
-                unless @resetted  # (excuse my grammar)
-                    # TODO: is async!
-                    @reset(t)
-                    @resetted = true
-                async.forEach results, (item, cb2) =>
-                    @writeItem t, item, (err) ->
-                        cb2()
-                , (err) ->
+                go = (err) =>
+                    if err
+                        return cb err
+
+                    @writeResults t, results, (err) ->
                     if err
                         return cb results
 
@@ -50,6 +50,14 @@ class PaginatedSynchronization extends Synchronization
                     else
                         # No RSM support, done:
                         cb()
+
+                # reset() only after 1st successful result
+                unless @resetted  # (excuse my grammar)
+                    # TODO: is async!
+                    @resetted = true
+                    @reset t, go
+                else
+                    go()
         # Go
         walk()
 
@@ -59,11 +67,15 @@ class ItemsSynchronization extends PaginatedSynchronization
 
     operation: 'retrieve-node-items'
 
-    writeItem: (t, item, cb) ->
+    writeResults: (t, results, cb) ->
+        async.forEach results, (item, cb2) =>
+            # TODO: author?
+            t.writeItem @node, item.id, null, item.el, cb2
+        cb
 
 
 
-syncNode = (router, model, node, cb) ->
+exports.syncNode = (router, model, node, cb) ->
     async.forEachSeries [ConfigSynchronization, ItemsSynchronization]
     , (syncClass, cb2) ->
         synchronization = new syncClass(router, node)

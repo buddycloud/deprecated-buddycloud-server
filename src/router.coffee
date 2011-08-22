@@ -91,5 +91,5 @@ class exports.Router
     ##
     # Synchronize node from remote
     syncNode: (node, cb) ->
-        sync.syncNode @, node, cb
+        sync.syncNode @, @model, node, cb
 
