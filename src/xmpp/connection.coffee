@@ -10,6 +10,7 @@ errors = require("../errors")
 
 IQ_TIMEOUT = 10000
 MAX_STANZA_SIZE = 65000  # 535 bytes spare room
+MISSED_INTERVAL = 120 * 1000
 
 ##
 # XMPP Component Connection,
@@ -53,6 +54,17 @@ class exports.Connection extends EventEmitter
                 when "message"
                     unless stanza.attrs.type is "error"
                         @_handleMessage stanza
+                    else if stanza.attrs.from.indexOf('@') < 0
+                        # We've got an error back from a component,
+                        # which are not subject to presence and must
+                        # be probed manually.
+                        setTimeout =>
+                            @send new xmpp.Element('message',
+                                type: 'headline'
+                                from: @jid
+                                to: stanza.attrs.from
+                            ).c('you-missed-something', xmlns: NS.BUDDYCLOUD_V1)
+                        , MISSED_INTERVAL
 
     send: (stanza) ->
         stanza = stanza.root()
