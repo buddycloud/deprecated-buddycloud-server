@@ -54,13 +54,14 @@ xmppConn.on 'online', ->
         xmppConn.probePresence(listener)
 
     syncQueue = async.queue (node, cb) ->
+        console.log 'dequeue', node
         router.syncNode node, cb
-    , Math.ceil(config.modelConfig.poolSize / 2)
+    , Math.ceil((config.modelConfig.poolSize or 2) / 2)
     model.getAllNodes (err, nodes) ->
         if err
             console.error err.stack or err
             return
 
-        nodes.forEach (node) ->
+        for node in nodes
             syncQueue.push node
         # TODO: once batchified, syncQueue.drain = ...

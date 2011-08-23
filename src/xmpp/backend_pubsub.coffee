@@ -147,7 +147,6 @@ class BuddycloudDiscovery
 
     authorizeFor: (sender, actor, cb) ->
         @itemsCache.get getUserDomain(actor), (err, items) ->
-            console.log itemsCache: [err, items]
             if err
                 return cb err
             valid = items?.some (item) ->
@@ -158,7 +157,6 @@ class BuddycloudDiscovery
     findService: (user, cb) ->
         domain = getUserDomain(user)
         @itemsCache.get domain, (err, items) =>
-            console.log itemsCache: [err, items]
             if err
                 return cb err
 
@@ -173,9 +171,7 @@ class BuddycloudDiscovery
                     cb new errors.NotFound("No pubsub channels service discovered")
             items.forEach (item) =>
                 @infoCache.get item.jid, (err, result) ->
-                    console.log infoCacheErr: err, infoCache: result
                     for identity in result?.identities or []
-                        console.log { identity, resultSent }
                         if identity.category is "pubsub" and
                            identity.type is "channels" and
                            not resultSent
@@ -194,7 +190,6 @@ class RequestCache
         @entries = {}
 
     get: (id, cb) ->
-        console.log 'RequestCache.get': [id,cb]
         unless @entries.hasOwnProperty(id)
             @entries[id] =
                 queued: [cb]

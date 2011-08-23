@@ -77,19 +77,19 @@ class exports.RSM
             el.c('max').t("#{@max}")
         if 'index' of @
             el.c('index').t("#{@index}")
-        if 'after' of @
+        if @after
             el.c('after').t(@after)
-        if 'before' of @
+        if @before
             el.c('before').t(@before)
 
         ##
         # Response data
-        if 'first' of @
+        if @first
             firstEl = el.c('first')
             firstEl.t(@first)
             if 'firstIndex' of @
                 firstEl.attrs.index = "#{@firstIndex}"
-        if 'last' of @
+        if @last
             el.c('last').t(@last)
         if 'count' of @
             el.c('count').t("#{@count}")

@@ -55,14 +55,20 @@ class exports.Router
     isLocallySubscribed: (node, cb) ->
         @model.nodeExists node, cb
 
+    runLocally: (opts, cb) ->
+        @operations.run @, opts, cb
+
+    runRemotely: (opts, cb) ->
+        @remote.run opts, cb
+
     run: (opts, cb) ->
         console.log 'Router.run': opts, cb: cb
 
         unless opts.node?
             @runLocally opts, cb
-        else if opts.writes
+        else if opts.dontCache
             # Request to mess with data, run remotely
-            @remote.run opts, (err, results) =>
+            @runRemotely opts, (err, results) =>
                 if err and err.constructor is errors.SeeLocal
                     # Remote discovered ourselves
                     @runLocally opts, cb
@@ -75,10 +81,8 @@ class exports.Router
                     @runLocally opts, cb
                 else
                     # run remotely
-                    @remote.run opts, cb
-
-    runLocally: (opts, cb) ->
-        @operations.run @, opts, cb
+                    @runRemotely opts, cb
+                    # TODO: need to catch SeeLocal and return 404?
 
     pushData: (opts, cb) ->
         opts.operation = ->
