@@ -495,6 +495,34 @@ class Transaction
             )
         ], cb
 
+    ##
+    # Synchronization preparation
+    ##
+
+    resetConfig: (node, cb) ->
+        @db.query "DELETE FROM node_config WHERE node=$1", [node], cb
+
+    resetItems: (node, cb) ->
+        @db.query "DELETE FROM items WHERE node=$1", [node], cb
+
+    ##
+    # Calls back with { User: Listener }
+    resetSubscriptions: (node, cb) ->
+        @db.query "SELECT \"user\", listener FROM subscriptions WHERE node=$1 AND listener IS NOT NULL", [node], (err, res) =>
+            if err
+                return cb err
+
+            userListeners = {}
+            for row in res.rows
+                userListeners[row.user] = row.listener
+
+            @db.query "DELETE FROM subscriptions WHERE node=$1", [node], (err) ->
+                cb err, userListeners
+
+    resetAffiliations: (node, cb) ->
+        @db.query "DELETE FROM affiliations WHERE node=$1", [node], cb
+
+
 parseEl = (xml) ->
     try
         return ltx.parse(xml)

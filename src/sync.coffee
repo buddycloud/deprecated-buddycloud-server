@@ -29,7 +29,7 @@ class ConfigSynchronization extends Synchronization
     operation: 'browse-node-info'
 
     reset: (t, cb) ->
-        cb()
+        t.resetConfig(@node, cb)
 
     writeResults: (t, results, cb) ->
         console.log 'configResults': results
@@ -89,8 +89,7 @@ class PaginatedSynchronization extends Synchronization
 
 class ItemsSynchronization extends PaginatedSynchronization
     reset: (t, cb) ->
-        # TODO: clear table
-        cb()
+        t.resetItems(@node, cb)
 
     operation: 'retrieve-node-items'
 
@@ -100,11 +99,37 @@ class ItemsSynchronization extends PaginatedSynchronization
             t.writeItem @node, item.id, null, item.el, cb2
         , cb
 
+class SubscriptionsSynchronization extends PaginatedSynchronization
+    reset: (t, cb) ->
+        t.resetSubscriptions @node, (err, @userListeners) =>
+            cb err
+
+    operation: 'retrieve-node-subscriptions'
+
+    writeResults: (t, results, cb) ->
+        async.forEach results, (item, cb2) =>
+            listener = @userListeners[item.user]
+            t.setSubscription @node, item.user, listener, item.subscription, cb2
+        , cb
+
+class AffiliationsSynchronization extends PaginatedSynchronization
+    reset: (t, cb) ->
+        t.resetAffiliations(@node, cb)
+
+    operation: 'retrieve-node-affiliations'
+
+    writeResults: (t, results, cb) ->
+        async.forEach results, (item, cb2) =>
+            t.setAffiliation @node, item.user, item.affiliations, cb2
+        , cb
 
 
 exports.syncNode = (router, model, node, cb) ->
     console.log "syncNode #{node}"
-    async.forEachSeries [ConfigSynchronization, ItemsSynchronization]
+    async.forEachSeries [
+        ConfigSynchronization, ItemsSynchronization,
+        SubscriptionsSynchronization, AffiliationsSynchronization
+    ]
     , (syncClass, cb2) ->
         synchronization = new syncClass(router, node)
         model.transaction (err, t) ->
