@@ -686,6 +686,20 @@ class PubsubOwnerSetConfigurationRequest extends PubsubOwnerRequest
     dontCache: true
 
 
+class MessageArchiveRequest extends Request
+    constructor: (stanza) ->
+        super
+
+        @mamEl = @iq.getChild("query", NS.MAM)
+
+    matches: () ->
+        @iq.attrs.type is 'get' &&
+        @mamEl?
+
+    operation: ->
+        'replay-archive'
+
+
 REQUESTS = [
     DiscoInfoRequest,
     DiscoItemsRequest,
@@ -705,6 +719,7 @@ REQUESTS = [
     PubsubOwnerSetAffiliationsRequest,
     PubsubOwnerGetConfigurationRequest,
     PubsubOwnerSetConfigurationRequest,
+    MessageArchiveRequest,
     NotImplemented
 ]
 

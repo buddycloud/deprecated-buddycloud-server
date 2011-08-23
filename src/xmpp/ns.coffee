@@ -12,3 +12,4 @@ module.exports =
     ARCHIVE_MANAGEMENT: "urn:xmpp:archive#management"
     RSM: "http://jabber.org/protocol/rsm"
     BUDDYCLOUD_V1: "http://buddycloud.org/v1"
+    MAM: "urn:xmpp:archive#management"

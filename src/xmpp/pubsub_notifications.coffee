@@ -4,6 +4,8 @@ forms = require('./forms')
 
 ##
 # All notifications are per-node, so listeners can be fetched once
+#
+# TODO: enforce MAX_STANZA_LIMIT
 class exports.Notification
     constructor: (@opts) ->
 
@@ -39,5 +41,5 @@ class exports.Notification
                     eventEl.
                         c('configuration',
                             node: update.node
-                        ).cnode(forms.formToResultForm(update.config, NS.PUBSUB_NODE_CONFIG).toXml())
+                        ).cnode(forms.configToForm(update.config, 'result', NS.PUBSUB_NODE_CONFIG).toXml())
         eventEl.up()

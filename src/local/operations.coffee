@@ -436,6 +436,17 @@ class ManageNodeConfiguration extends PrivilegedOperation
             config: @req.config
         }]
 
+class ReplayArchive extends ModelOperation
+    transaction: (t, cb) ->
+        t.walkListenerArchive @req.sender, (results) =>
+            console.log iter: results
+            @sendNotification results
+        , cb
+
+    sendNotification: (results) ->
+        notification = Object.create(results)
+        notification.listener = @req.sender
+        @router.notify notification
 
 class PushInbox extends ModelOperation
     transaction: (t, cb) ->
@@ -524,6 +535,7 @@ OPERATIONS =
     'manage-node-subscriptions': ManageNodeSubscriptions
     'manage-node-affiliations': ManageNodeAffiliations
     'manage-node-configuration': ManageNodeConfiguration
+    'replay-archive': ReplayArchive
     'push-inbox': PushInbox
 
 exports.run = (router, request, cb) ->

@@ -120,6 +120,10 @@ exports.getAllNodes = (cb) ->
                 row.node
             cb null, nodes
 
+exports.getListenerNodes = (listener, cb) ->
+    db.query "SELECT DISTINCT node FROM subscriptions WHERE listener=$1", [listener], (err, res) ->
+        cb err, res?.rows?.map (row) -> row.node
+
 
 LOST_TRANSACTION_TIMEOUT = 10 * 1000
 
@@ -521,6 +525,58 @@ class Transaction
 
     resetAffiliations: (node, cb) ->
         @db.query "DELETE FROM affiliations WHERE node=$1", [node], cb
+
+    ##
+    # MAM
+    #
+    # @param cb: Function(err, results, next)
+    walkListenerArchive: (listener, iter, cb) ->
+        db = @db
+        q = (fields, table, cb2, mapper) ->
+            # TODO: ORDER BY updated
+            db.query "SELECT #{fields} FROM #{table} WHERE node in (SELECT node FROM subscriptions WHERE listener=$1)", [listener]
+            , (err, res) ->
+                if err
+                    return cb2 err
+
+                if mapper
+                    iter res.rows.map(mapper)
+                else
+                    iter res.rows
+                cb2()
+
+        async.parallel [ (cb2) ->
+            db.query "SELECT DISTINCT node FROM node_config WHERE node in (SELECT node FROM subscriptions WHERE listener=$1)", [listener]
+            , (err, res) =>
+                if err
+                    return cb2 err
+
+                async.map res.rows, (row, cb3) ->
+                    db.query "SELECT key, value FROM node_config WHERE node=$1", [row.node]
+                    , (err, res) ->
+                        if err
+                            return cb3 err
+
+                        config = {}
+                        for row in res.rows
+                            config[row.key] = row.value
+                        iter [{ type: 'config', config }]
+
+                        cb3()
+                , cb2
+        , (cb2) ->
+            q "node, id, xml, 'items' as type", "items"
+            , cb2, (row) ->
+                { type: 'items', node: row.node, items: [{ id: row.id, el: parseEl(row.xml) }] }
+        , (cb2) ->
+            q "node, \"user\", subscription, 'subscription' as type", "subscriptions"
+            , cb2
+        , (cb2) ->
+            q "node, \"user\", affiliation, 'affiliation' as type", "affiliations"
+            , cb2
+        ], (err) ->
+            console.log 'walkListenerArchive done'
+            cb err
 
 
 parseEl = (xml) ->
