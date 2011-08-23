@@ -486,6 +486,7 @@ class PushInbox extends ModelOperation
             # Memorize updates for notifications, same format:
             @notification = ->
                 updates
+            # TODO: no subscriptions left? DELETE NODE!
         ], cb
 
 
