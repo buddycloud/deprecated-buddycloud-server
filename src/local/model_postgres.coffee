@@ -530,11 +530,20 @@ class Transaction
     # MAM
     #
     # @param cb: Function(err, results, next)
-    walkListenerArchive: (listener, iter, cb) ->
+    walkListenerArchive: (listener, start, end, iter, cb) ->
         db = @db
+        params = [listener]
+        cond = ""
+        i = params.length
+        if start
+            cond = "AND updated >= $#{i += 1}::timestamp"
+            params.push start
+        if end
+            cond = " AND updated <= $#{i += 1}::timestamp"
+            params.push end
         q = (fields, table, cb2, mapper) ->
             # TODO: ORDER BY updated
-            db.query "SELECT #{fields} FROM #{table} WHERE node in (SELECT node FROM subscriptions WHERE listener=$1)", [listener]
+            db.query "SELECT #{fields} FROM #{table} WHERE node in (SELECT node FROM subscriptions WHERE listener=$1) #{cond}", params
             , (err, res) ->
                 if err
                     return cb2 err
@@ -546,7 +555,7 @@ class Transaction
                 cb2()
 
         async.parallel [ (cb2) ->
-            db.query "SELECT DISTINCT node FROM node_config WHERE node in (SELECT node FROM subscriptions WHERE listener=$1)", [listener]
+            db.query "SELECT DISTINCT node FROM node_config WHERE node in (SELECT node FROM subscriptions WHERE listener=$1) #{cond}", params
             , (err, res) =>
                 if err
                     return cb2 err
@@ -565,7 +574,7 @@ class Transaction
                         cb3()
                 , cb2
         , (cb2) ->
-            q "node, id, xml, 'items' as type", "items"
+            q "node, id, xml", "items"
             , cb2, (row) ->
                 { type: 'items', node: row.node, items: [{ id: row.id, el: parseEl(row.xml) }] }
         , (cb2) ->

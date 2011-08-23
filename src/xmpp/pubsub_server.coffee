@@ -691,6 +691,8 @@ class MessageArchiveRequest extends Request
         super
 
         @mamEl = @iq.getChild("query", NS.MAM)
+        @start = @mamEl?.attrs?.start
+        @end = @mamEl?.attrs?.end
 
     matches: () ->
         @iq.attrs.type is 'get' &&

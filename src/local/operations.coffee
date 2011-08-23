@@ -438,7 +438,7 @@ class ManageNodeConfiguration extends PrivilegedOperation
 
 class ReplayArchive extends ModelOperation
     transaction: (t, cb) ->
-        t.walkListenerArchive @req.sender, (results) =>
+        t.walkListenerArchive @req.sender, @req.start, @req.end, (results) =>
             console.log iter: results
             @sendNotification results
         , cb
