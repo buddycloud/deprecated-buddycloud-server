@@ -44,7 +44,6 @@ class PaginatedSynchronization extends Synchronization
     constructor: ->
         super
         @request.rsm = new RSM.RSM()
-        @request.rsm.max = 3
 
     run: (t, cb) ->
         # for detecting RSM loops
