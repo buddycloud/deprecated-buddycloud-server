@@ -21,7 +21,6 @@ class Synchronization
                 @writeResults t, results, cb
 
     runRequest: (cb) ->
-        console.log 'router.run': @request, cb: cb
         @router.runRemotely @request, cb
 
 
@@ -47,7 +46,7 @@ class PaginatedSynchronization extends Synchronization
         seenOffsets = {}
         walk = (offset) =>
             console.log "walk", offset
-            @request.rsm.after ?= offset
+            @request.rsm.after = offset
             @runRequest (err, results) =>
                 console.log "ranRequest", err, results
                 if err
@@ -61,14 +60,14 @@ class PaginatedSynchronization extends Synchronization
                         if err
                             return cb results
 
-                        offset = results.rsm?.last
-                        if offset
+                        nextOffset = results.rsm?.last
+                        if nextOffset
                             # Remote supports RSM, walk:
-                            if seenOffsets.hasOwnProperty(offset)
+                            if seenOffsets.hasOwnProperty(nextOffset)
                                 cb new Error("RSM offset loop detected for #{@request.node}: #{offset} already seen")
                             else
-                                seenOffsets[offset] = true
-                                walk offset
+                                seenOffsets[nextOffset] = true
+                                walk nextOffset
                         else
                             # No RSM support, done:
                             console.log("No RSM last")
