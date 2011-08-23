@@ -75,18 +75,19 @@ class exports.DiscoverInfo extends DiscoverRequest
     decodeReplyEl: (el) ->
         @results.identities ?= []
         @results.features ?= []
-        @results.forms ?= []
-        switch el.getName()
-            when "identity"
-                @results.identities.push
-                    name: el.attrs.name
-                    category: el.attrs.category
-                    type: el.attrs.type
-            when "feature"
-                @results.features.push el.attrs.var
-            when "form"
-                # TODO: .getForm(formType)
-                @results.forms.push
+        @results.config ?= null
+        if el.is('identity', @xmlns)
+            @results.identities.push
+                name: el.attrs.name
+                category: el.attrs.category
+                type: el.attrs.type
+        else if el.is('feature', @xmlns)
+            @results.features.push el.attrs.var
+        else if el.is('x', NS.DATA)
+            form = forms.fromXml(el)
+            console.log form: form, formType: form.getFormType(), is: (form.getFormType() is NS.PUBSUB_META_DATA)
+            if form.getFormType() is NS.PUBSUB_META_DATA
+                @results.config = forms.formToConfig(form)
 
 ##
 # XEP-0060

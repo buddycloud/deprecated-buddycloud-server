@@ -1,5 +1,6 @@
 async = require('async')
 RSM = require('./xmpp/rsm')
+NS = require('./xmpp/ns')
 
 class Synchronization
     constructor: (@router, @node) ->
@@ -25,13 +26,17 @@ class Synchronization
 
 
 class ConfigSynchronization extends Synchronization
-    operation: 'retrieve-node-configuration'
+    operation: 'browse-node-info'
 
     reset: (t, cb) ->
         cb()
 
     writeResults: (t, results, cb) ->
-        t.setConfig @node, results, cb
+        console.log 'configResults': results
+        if results.config
+            t.setConfig(@node, results.config, cb)
+        else
+            cb(new Error("No pubsub meta data form found"))
 
 ##
 # Walks items with RSM

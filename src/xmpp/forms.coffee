@@ -90,7 +90,8 @@ exports.configToForm = (config, type, formType) ->
 
 exports.formToConfig = (form) ->
     config = null
-    if form.getFormType() is NS.PUBSUB_NODE_CONFIG and
+    if (form.getFormType() is NS.PUBSUB_NODE_CONFIG or
+        form.getFormType() is NS.PUBSUB_META_DATA) and
        (form.type is 'submit' or form.type is 'result')
         config = {}
         config.title ?= form.get('pubsub#title')

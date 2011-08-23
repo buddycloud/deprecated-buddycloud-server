@@ -63,5 +63,7 @@ xmppConn.on 'online', ->
             return
 
         for node in nodes
-            syncQueue.push node
+            syncQueue.push node, (err) ->
+                if err
+                    console.error err
         # TODO: once batchified, syncQueue.drain = ...
