@@ -598,7 +598,7 @@ class PubsubOwnerGetAffiliationsRequest extends PubsubOwnerRequest
         affiliationsEl = new xmpp.Element("affiliations")
         for affiliation in affiliations
             affiliationsEl.c 'affiliation',
-                user: affiliation.user
+                jid: affiliation.user
                 affiliation: affiliation.affiliation
 
         super affiliationsEl, affiliations.rsm

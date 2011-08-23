@@ -222,7 +222,7 @@ class RetrieveNodeSubscriptions extends PubsubOwnerRequest
         if el.is('subscriptions', @xmlns)
             for subscriptionEl in el.getChildren('subscription')
                 @results.push
-                    jid: subscriptionEl.attrs.jid
+                    user: subscriptionEl.attrs.jid
                     subscription: subscriptionEl.attrs.subscription
 
 class RetrieveNodeAffiliations extends PubsubOwnerRequest
@@ -236,7 +236,7 @@ class RetrieveNodeAffiliations extends PubsubOwnerRequest
         if el.is('affiliations', @xmlns)
             for affiliationEl in el.getChildren('affiliation')
                 @results.push
-                    jid: affiliationEl.attrs.jid
+                    user: affiliationEl.attrs.jid
                     affiliation: affiliationEl.attrs.affiliation
 
 class ManageNodeSubscriptions extends PubsubOwnerRequest
