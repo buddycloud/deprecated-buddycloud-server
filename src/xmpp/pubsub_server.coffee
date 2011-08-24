@@ -46,8 +46,7 @@ class Request
                 else
                     throw e
 
-    operation: () ->
-        undefined
+    operation: undefined
 
     setActor: (childEl) ->
         actorEl = childEl?.getChild("actor", NS.BUDDYCLOUD_V1)
@@ -84,6 +83,10 @@ class DiscoInfoRequest extends Request
 
         @discoInfoEl = @iq.getChild("query", NS.DISCO_INFO)
         @node = @discoInfoEl?.attrs.node
+        if @node
+            @operation = 'browse-node-info'
+        else
+            @operation = 'browse-info'
 
     matches: () ->
         @iq.attrs.type is 'get' &&
@@ -109,12 +112,6 @@ class DiscoInfoRequest extends Request
 
         super queryEl
 
-    operation: ->
-        if @node
-            'browse-node-info'
-        else
-            'browse-info'
-
 # <iq type='get'
 #     from='romeo@montague.net/orchard'
 #     to='plays.shakespeare.lit'
@@ -129,6 +126,10 @@ class DiscoItemsRequest extends Request
 
         @discoItemsEl = @iq.getChild("query", NS.DISCO_ITEMS)
         @node = @discoItemsEl?.attrs.node
+        unless @node?
+            @operation = 'browse-nodes'
+        else
+            @operation = 'browse-nodes-items'
         @setRSM @discoItemsEl
 
     matches: () ->
@@ -160,11 +161,6 @@ class DiscoItemsRequest extends Request
 
         super queryEl
 
-    operation: ->
-        unless @node?
-            'browse-nodes'
-        else
-            'browse-nodes-items'
 
 ##
 # XEP-0077: In-Band Registration
@@ -193,8 +189,7 @@ class RegisterSetRequest extends RegisterRequest
         super &&
         @iq.attrs.type is 'set'
 
-    operation: () ->
-        'register-user'
+    operation: 'register-user'
 
     subscriptionRequired: true
 
@@ -257,8 +252,7 @@ class PubsubCreateRequest extends PubsubRequest
         @iq.attrs.type is 'set' &&
         @node
 
-    operation: ->
-        'create-node'
+    operation: 'create-node'
 
     dontCache: true
 
@@ -289,8 +283,7 @@ class PubsubSubscribeRequest extends PubsubRequest
         attrs.subscription ?= result?.subscription
         super new xmpp.Element("subscription", attrs)
 
-    operation: ->
-        'subscribe-node'
+    operation: 'subscribe-node'
 
     dontCache: true
 
@@ -315,8 +308,7 @@ class PubsubUnsubscribeRequest extends PubsubRequest
         @iq.attrs.type is 'set' &&
         @node
 
-    operation: ->
-        'unsubscribe-node'
+    operation: 'unsubscribe-node'
 
     dontCache: true
 
@@ -351,8 +343,7 @@ class PubsubPublishRequest extends PubsubRequest
         @iq.attrs.type is 'set' &&
         @node
 
-    operation: ->
-        'publish-node-items'
+    operation: 'publish-node-items'
 
     reply: (ids) ->
         if ids?
@@ -392,8 +383,7 @@ class PubsubRetractRequest extends PubsubRequest
         @iq.attrs.type is 'set' &&
         @node
 
-    operation: ->
-        'retract-node-items'
+    operation: 'retract-node-items'
 
     dontCache: true
 
@@ -427,8 +417,7 @@ class PubsubItemsRequest extends PubsubRequest
 
         super itemsEl, items.rsm
 
-    operation: ->
-        'retrieve-node-items'
+    operation: 'retrieve-node-items'
 
 
 # <iq type='get'
@@ -464,8 +453,7 @@ class PubsubSubscriptionsRequest extends PubsubRequest
 
         super subscriptionsEl, nodes.rsm
 
-    operation: ->
-        'retrieve-user-subscriptions'
+    operation: 'retrieve-user-subscriptions'
 
 # <iq type='get'
 #     from='francisco@denmark.lit/barracks'
@@ -500,8 +488,7 @@ class PubsubAffiliationsRequest extends PubsubRequest
 
         super affiliationsEl, nodes.rsm
 
-    operation: ->
-        'retrieve-user-affiliations'
+    operation: 'retrieve-user-affiliations'
 
 
 # <iq type='get'
@@ -535,8 +522,7 @@ class PubsubOwnerGetSubscriptionsRequest extends PubsubOwnerRequest
 
         super subscriptionsEl, subscriptions.rsm
 
-    operation: ->
-        'retrieve-node-subscriptions'
+    operation: 'retrieve-node-subscriptions'
 
 # <iq type='set'
 #     from='hamlet@denmark.lit/elsinore'
@@ -567,8 +553,7 @@ class PubsubOwnerSetSubscriptionsRequest extends PubsubOwnerRequest
         @iq.attrs.type is 'set' &&
         @subscriptionsEl
 
-    operation: ->
-        'manage-node-subscriptions'
+    operation: 'manage-node-subscriptions'
 
     dontCache: true
 
@@ -603,8 +588,7 @@ class PubsubOwnerGetAffiliationsRequest extends PubsubOwnerRequest
 
         super affiliationsEl, affiliations.rsm
 
-    operation: ->
-        'retrieve-node-affiliations'
+    operation: 'retrieve-node-affiliations'
 
 # <iq type='set'
 #     from='hamlet@denmark.lit/elsinore'
@@ -635,8 +619,7 @@ class PubsubOwnerSetAffiliationsRequest extends PubsubOwnerRequest
         @iq.attrs.type is 'set' &&
         @affiliationsEl
 
-    operation: ->
-        'manage-node-affiliations'
+    operation: 'manage-node-affiliations'
 
     dontCache: true
 
@@ -652,8 +635,7 @@ class PubsubOwnerGetConfigurationRequest extends PubsubOwnerRequest
         @iq.attrs.type is 'get' &&
         @node
 
-    operation: ->
-        'retrieve-node-configuration'
+    operation: 'retrieve-node-configuration'
 
     reply: (result) ->
         configureEl = new xmpp.Element("configure", node: @node)
@@ -680,8 +662,7 @@ class PubsubOwnerSetConfigurationRequest extends PubsubOwnerRequest
         @iq.attrs.type is 'set' &&
         @node
 
-    operation: ->
-        'manage-node-configuration'
+    operation: 'manage-node-configuration'
 
     dontCache: true
 
@@ -698,8 +679,7 @@ class MessageArchiveRequest extends Request
         @iq.attrs.type is 'get' &&
         @mamEl?
 
-    operation: ->
-        'replay-archive'
+    operation: 'replay-archive'
 
 
 REQUESTS = [

@@ -539,7 +539,7 @@ OPERATIONS =
     'push-inbox': PushInbox
 
 exports.run = (router, request, cb) ->
-    opName = request.operation()
+    opName = request.operation
     unless opName
         # No operation specified, reply immediately
         return cb()

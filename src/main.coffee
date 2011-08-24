@@ -23,7 +23,7 @@ router.addBackend pubsubBackend
 
 # Handle XEP-0060 Publish-Subscribe and related requests:
 pubsubServer.on 'request', (request) ->
-    console.log request: request, operation: request.operation()
+    console.log request: request, operation: request.operation
     if request.sender isnt request.actor
         # Validate if sender is authorized to act on behalf of the
         # actor
@@ -45,8 +45,7 @@ pubsubServer.on 'request', (request) ->
 pubsubBackend.on 'notificationPush', (opts) ->
     console.log notificationPush: opts
     # Sender is already authenticated at this point
-    opts.operation = ->
-        'push-inbox'
+    opts.operation = 'push-inbox'
     router.run opts, ->
 
 pubsubBackend.on 'syncNeeded', (server) ->

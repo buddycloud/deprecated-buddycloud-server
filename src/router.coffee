@@ -101,8 +101,7 @@ class exports.Router
                     # TODO: need to catch SeeLocal and return 404?
 
     pushData: (opts, cb) ->
-        opts.operation = ->
-            'push-inbox'
+        opts.operation = 'push-inbox'
         @operations.run @, opts, cb
 
     notify: (notification) ->

@@ -23,10 +23,9 @@ class exports.PubsubBackend extends EventEmitter
     run: (router, opts, cb) ->
         if opts.jid?
             # Target server already known
-            operation = opts.operation()
-            reqClass = pubsubClient.byOperation(operation)
+            reqClass = pubsubClient.byOperation(opts.operation)
             unless reqClass
-                return cb(new errors.FeatureNotImplemented("Operation #{operation} not implemented for remote pubsub"))
+                return cb(new errors.FeatureNotImplemented("Operation #{opts.operation} not implemented for remote pubsub"))
 
             req = new reqClass @conn, opts, (err, result) ->
                 if err

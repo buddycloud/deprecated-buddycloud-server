@@ -6,7 +6,7 @@ rsmWalk = require('./rsm_walk')
 class Synchronization
     constructor: (@router, @node) ->
         @request = {
-            operation: => @operation
+            operation: @operation
             node: @node
             dontCache: true
         }
@@ -145,7 +145,7 @@ exports.syncNode = (router, model, node, cb) ->
 # requested after all nodes have been processed.
 exports.syncServer = (router, model, server, cb) ->
     opts =
-        operation: -> 'retrieve-user-subscriptions'
+        operation: 'retrieve-user-subscriptions'
         jid: server
     opts.rsm = new RSM.RSM()
     rsmWalk (nextOffset, cb2) ->
