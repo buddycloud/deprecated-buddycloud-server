@@ -274,15 +274,12 @@ class Transaction
             cb2 null, subscribers
         ], cb
 
-    getSubscriptions: (user, cb) ->
-        db = @db
-        async.waterfall [(cb2) ->
-            db.query "SELECT node, subscription FROM subscriptions WHERE \"user\" = $1 ORDER BY updated DESC", [ user ], cb2
-        , (res, cb2) ->
-            subscriptions = for row in res.rows
-                { node: row.node, subscription: row.subscription }
-            cb2 null, subscriptions
-        ], cb
+    ##
+    # Not only by users but also by listeners.
+    # @param cb {Function} cb(Error, { user, node, subscription })
+    getSubscriptions: (actor, cb) ->
+        db.query "SELECT user, node, subscription FROM subscriptions WHERE \"user\"=$1 OR listener=$1 ORDER BY updated DESC", [ actor ], (err, res) ->
+            cb err, res?.rows
 
     getPingNodes: (user, cb) ->
         db = @db
