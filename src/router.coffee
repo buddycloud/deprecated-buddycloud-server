@@ -37,6 +37,19 @@ class RemoteRouter
         for backend in @backends
             backend.notify notification
 
+    authorizeFor: (sender, actor, cb) ->
+        backends = new Array(@backends...)
+        tryBackend = =>
+            backend = backends.shift()
+            backend.authorizeFor sender, actor, (err, valid) ->
+                if err && !valid
+                    # Retry with next backend
+                    tryBackend()
+                else
+                    # Was valid or last backend
+                    cb err, valid
+        tryBackend()
+
 ##
 # Decides whether operations can be served from the local DB by an
 # Operation, or to go remote
@@ -49,6 +62,9 @@ class exports.Router
 
     addBackend: (backend) ->
         @remote.addBackend backend
+
+    authorizeFor: (args...) ->
+        @remote.authorizeFor(args...)
 
     ##
     # If not, we may still find ourselves through disco
@@ -97,3 +113,5 @@ class exports.Router
     syncNode: (node, cb) ->
         sync.syncNode @, @model, node, cb
 
+    syncServer: (server, cb) ->
+        sync.syncServer @, @model, server, cb

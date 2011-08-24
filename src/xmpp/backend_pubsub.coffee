@@ -21,37 +21,42 @@ class exports.PubsubBackend extends EventEmitter
         [@conn.jid]
 
     run: (router, opts, cb) ->
-        user = getNodeUser opts.node
-        unless user
-            return cb new errors.NotFound("Unrecognized node form")
+        if opts.jid?
+            # Target server already known
+            operation = opts.operation()
+            reqClass = pubsubClient.byOperation(operation)
+            unless reqClass
+                return cb(new errors.FeatureNotImplemented("Operation #{operation} not implemented for remote pubsub"))
 
-        console.log 'PubsubBackend.run': opts, user: user
-        @disco.findService user, (err, service) =>
-            if err
-                return cb err
-
-            if @getMyJids().indexOf(service) >= 0
-                # is local, return to router
-                return cb new errors.SeeLocal()
-            else
-                operation = opts.operation()
-                reqClass = pubsubClient.byOperation(operation)
-                unless reqClass
-                    cb new errors.FeatureNotImplemented("Operation #{operation} not implemented for remote pubsub")
-                    return
-
-                opts2 = Object.create(opts)
-                opts2.jid = service
-                req = new reqClass @conn, opts2, (err, result) ->
-                    if err
-                        cb err
+            req = new reqClass @conn, opts, (err, result) ->
+                if err
+                    cb err
+                else
+                    # Successfully done at remote
+                    if (localPushData = req.localPushData?())
+                        router.pushData localPushData, (err) ->
+                            cb err, result
                     else
-                        # Successfully done at remote
-                        if (localPushData = req.localPushData?())
-                            router.pushData localPushData, (err) ->
-                                cb err, result
-                        else
-                            cb null, result
+                        cb null, result
+        else
+            # Discover first
+            user = getNodeUser opts.node
+            unless user
+                return cb new errors.NotFound("Unrecognized node form")
+
+            console.log 'PubsubBackend.run': opts, user: user
+            @disco.findService user, (err, service) =>
+                if err
+                    return cb err
+
+                if @getMyJids().indexOf(service) >= 0
+                    # is local, return to router
+                    return cb new errors.SeeLocal()
+                else
+                    opts2 = Object.create(opts)
+                    opts2.jid = service
+                    # Target server now known, recurse:
+                    @run router, opts2, cb
 
     notify: (opts) ->
         notification = new Notification(opts)

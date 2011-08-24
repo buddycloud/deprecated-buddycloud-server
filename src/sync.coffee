@@ -1,6 +1,7 @@
 async = require('async')
 RSM = require('./xmpp/rsm')
 NS = require('./xmpp/ns')
+rsmWalk = require('./rsm_walk')
 
 class Synchronization
     constructor: (@router, @node) ->
@@ -46,36 +47,24 @@ class PaginatedSynchronization extends Synchronization
         @request.rsm = new RSM.RSM()
 
     run: (t, cb) ->
-        # for detecting RSM loops
-        seenOffsets = {}
-        walk = (offset) =>
+        rsmWalk (offset, cb2) ->
             console.log "walk", offset
             @request.rsm.after = offset
             @runRequest (err, results) =>
                 console.log "ranRequest", err, results
                 if err
-                    return cb err
+                    return cb2 err
 
                 go = (err) =>
                     if err
-                        return cb err
+                        return cb2 err
 
                     @writeResults t, results, (err) =>
                         if err
-                            return cb results
+                            return cb2 results
 
                         nextOffset = results.rsm?.last
-                        if nextOffset
-                            # Remote supports RSM, walk:
-                            if seenOffsets.hasOwnProperty(nextOffset)
-                                cb new Error("RSM offset loop detected for #{@request.node}: #{offset} already seen")
-                            else
-                                seenOffsets[nextOffset] = true
-                                walk nextOffset
-                        else
-                            # No RSM support, done:
-                            console.log("No RSM last")
-                            cb()
+                        cb2 null, nextOffset
 
                 # reset() only after 1st successful result
                 unless @resetted  # (excuse my grammar)
@@ -83,8 +72,7 @@ class PaginatedSynchronization extends Synchronization
                     @reset t, go
                 else
                     go()
-        # Go
-        walk()
+        , cb
 
 class ItemsSynchronization extends PaginatedSynchronization
     reset: (t, cb) ->
@@ -123,6 +111,7 @@ class AffiliationsSynchronization extends PaginatedSynchronization
         , cb
 
 
+# TODO: move queueing here
 exports.syncNode = (router, model, node, cb) ->
     console.log "syncNode #{node}"
     async.forEachSeries [
@@ -149,3 +138,48 @@ exports.syncNode = (router, model, node, cb) ->
 
                     cb2()
     , cb
+
+exports.syncServer = (router, model, server, cb) ->
+    opts =
+        operation: -> 'retrieve-user-subscriptions'
+        jid: server
+    opts.rsm = new RSM.RSM()
+    rsmWalk (nextOffset, cb2) ->
+        opts.rsm.after = nextOffset
+        router.runRemotely opts, (err, results) ->
+            if err
+                return cb2 err
+
+            async.forEach results, (subscription, cb3) ->
+                unless subscription.node
+                    # Weird, skip;
+                    cb3()
+
+                user = getNodeUser(subscription.node)
+                unless user
+                    # Weird, skip;
+                    cb3()
+
+                router.authorizeFor user, server, (err, valid) ->
+                    if err or !valid
+                        console.error(err.stack or err or
+                            "Cannot sync #{subscription.node} from unauthorized server #{server}"
+                        )
+                        cb3()
+                    else
+                        exports.syncNode router, model, subscription.node, (err) ->
+                            # Ignore err, a single node may fail
+                            cb3()
+            , cb2
+    , cb
+
+nodeRegexp = /^\/user\/([^\/]+)\/?(.*)/
+getNodeUser = (node) ->
+    unless node
+        return null
+
+    m = nodeRegexp.exec(node)
+    unless m
+        return null
+
+    m[1]

@@ -208,6 +208,22 @@ class RetrieveItems extends PubsubRequest
                         child isnt 'string'
                     )[0]
 
+class RetrieveUserSubscriptions extends PubsubRequest
+    iqType: ->
+        'get'
+
+    pubsubChild: ->
+        new xmpp.Element('subscriptions')
+
+    decodeReplyEl: (el) ->
+        if el.is('subscriptions', @xmlns)
+            for subscriptionEl in el.getChildren('subscription')
+                subscription = {}
+                subscription.user ?= subscriptionEl.attrs.jid
+                subscription.subscription ?= subscriptionEl.attrs.subscription
+                subscription.node ?= subscriptionEl.attrs.node
+                @results.push subscription
+
 class PubsubOwnerRequest extends PubsubRequest
     xmlns: NS.PUBSUB_OWNER
 
@@ -294,6 +310,7 @@ REQUESTS =
     'unsubscribe-node': Unsubscribe
     'retrieve-node-items': RetrieveItems
     'retract-node-items': RetractItems
+    'retrieve-user-subscriptions': RetrieveUserSubscriptions
     'retrieve-node-subscriptions': RetrieveNodeSubscriptions
     'retrieve-node-affiliations': RetrieveNodeAffiliations
     'manage-node-subscriptions': ManageNodeSubscriptions
