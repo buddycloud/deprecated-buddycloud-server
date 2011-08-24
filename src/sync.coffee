@@ -47,7 +47,7 @@ class PaginatedSynchronization extends Synchronization
         @request.rsm = new RSM.RSM()
 
     run: (t, cb) ->
-        rsmWalk (offset, cb2) ->
+        rsmWalk (offset, cb2) =>
             console.log "walk", offset
             @request.rsm.after = offset
             @runRequest (err, results) =>
@@ -113,7 +113,7 @@ class AffiliationsSynchronization extends PaginatedSynchronization
 
 # TODO: move queueing here
 syncQueue = async.queue (task, cb) ->
-    { model, router, node } = task
+    { model, router, node, syncClass } = task
     synchronization = new syncClass(router, node)
     model.transaction (err, t) ->
         if err
@@ -137,7 +137,7 @@ exports.syncNode = (router, model, node, cb) ->
         SubscriptionsSynchronization, AffiliationsSynchronization
     ]
     , (syncClass, cb2) ->
-        syncQueue.push { router, model, node }, cb2
+        syncQueue.push { router, model, node, syncClass }, cb2
     , cb
 
 ##
