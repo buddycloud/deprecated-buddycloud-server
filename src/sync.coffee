@@ -112,6 +112,24 @@ class AffiliationsSynchronization extends PaginatedSynchronization
 
 
 # TODO: move queueing here
+syncQueue = async.queue (task, cb) ->
+    { model, router, node } = task
+    synchronization = new syncClass(router, node)
+    model.transaction (err, t) ->
+        if err
+            console.error err.stack or err
+            return cb err
+
+        synchronization.run t, (err) ->
+            if err
+                console.error err.stack or err
+                t.rollback ->
+                    return cb err
+
+            t.commit (err) ->
+                cb err
+, 1
+
 exports.syncNode = (router, model, node, cb) ->
     console.log "syncNode #{node}"
     async.forEachSeries [
@@ -119,26 +137,12 @@ exports.syncNode = (router, model, node, cb) ->
         SubscriptionsSynchronization, AffiliationsSynchronization
     ]
     , (syncClass, cb2) ->
-        synchronization = new syncClass(router, node)
-        model.transaction (err, t) ->
-            if err
-                console.error err.stack or err
-                return cb2 err
-
-            synchronization.run t, (err) ->
-                if err
-                    console.error err.stack or err
-                    t.rollback ->
-                        cb2 err
-                    return
-
-                t.commit (err) ->
-                    if err
-                        return cb2 err
-
-                    cb2()
+        syncQueue.push { router, model, node }, cb2
     , cb
 
+##
+# Batchified by walking RSM: the next result set page will be
+# requested after all nodes have been processed.
 exports.syncServer = (router, model, server, cb) ->
     opts =
         operation: -> 'retrieve-user-subscriptions'
@@ -172,6 +176,20 @@ exports.syncServer = (router, model, server, cb) ->
                             cb3()
             , cb2
     , cb
+
+exports.setup = (router, model, jobs) ->
+    syncQueue.concurrency = jobs
+    model.getAllNodes (err, nodes) ->
+        if err
+            console.error err.stack or err
+            return
+
+        for node in nodes
+            exports.syncNode router, model, node, (err) ->
+                if err
+                    console.error err
+        # TODO: once batchified, syncQueue.drain = ...
+
 
 nodeRegexp = /^\/user\/([^\/]+)\/?(.*)/
 getNodeUser = (node) ->

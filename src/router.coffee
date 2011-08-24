@@ -110,6 +110,9 @@ class exports.Router
 
     ##
     # Synchronize node from remote
+    setupSync: (jobs) ->
+        sync.setup @, @model, jobs
+
     syncNode: (node, cb) ->
         sync.syncNode @, @model, node, cb
 
