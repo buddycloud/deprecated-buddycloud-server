@@ -58,7 +58,7 @@ class exports.Connection extends EventEmitter
                     if stanza.attrs.type isnt "error"
                         @_handleMessage stanza
                     else if from.indexOf('@') < 0
-                        unless missedServerTimeouts.hasOwnProperty(from)
+                        unless @missedServerTimeouts.hasOwnProperty(from)
                             # We've got an error back from a component,
                             # which are not subject to presence and must
                             # be probed manually.
