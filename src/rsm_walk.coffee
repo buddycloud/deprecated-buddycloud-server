@@ -11,11 +11,11 @@ module.exports = (iter, cb) ->
 
             if lastOffset
                 # Remote supports RSM, walk:
-                if seenOffsets.hasOwnProperty(nextOffset)
+                if seenOffsets.hasOwnProperty(lastOffset)
                     cb new Error("RSM offset loop detected for #{@request.node}: #{offset} already seen")
                 else
-                    seenOffsets[nextOffset] = true
-                    walk nextOffset
+                    seenOffsets[lastOffset] = true
+                    walk lastOffset
             else
                 # No RSM support, done:
                 cb()
