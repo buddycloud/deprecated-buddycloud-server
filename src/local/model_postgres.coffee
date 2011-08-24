@@ -217,6 +217,11 @@ class Transaction
     ##
 
     getSubscription: (node, user, cb) ->
+        unless node
+            return cb(new Error("No node"))
+        unless user
+            return cb(new Error("No user"))
+
         db = @db
         async.waterfall [(cb2) ->
             db.query "SELECT subscription FROM subscriptions WHERE node=$1 AND user=$2", [ node, user ], cb2
@@ -225,6 +230,11 @@ class Transaction
         ], cb
 
     setSubscription: (node, user, listener, subscription, cb) ->
+        unless node
+            return cb(new Error("No node"))
+        unless user
+            return cb(new Error("No user"))
+
         db = @db
         toDelete = not subscription or subscription == "none"
         async.waterfall [ @validateNode(node)
@@ -264,6 +274,9 @@ class Transaction
             cb err
 
     getSubscribers: (node, cb) ->
+        unless node
+            return cb(new Error("No node"))
+
         db = @db
         async.waterfall [(cb2) ->
             db.query "SELECT \"user\", subscription FROM subscriptions WHERE node=$1 ORDER BY updated DESC", [ node ], cb2
@@ -312,11 +325,21 @@ class Transaction
     ##
 
     getAffiliation: (node, user, cb) ->
+        unless node
+            return cb(new Error("No node"))
+        unless user
+            return cb(new Error("No user"))
+
         @db.query "SELECT affiliation FROM affiliations WHERE node=$1 AND \"user\"=$2 ORDER BY updated DESC", [ node, user ], cb2
         , (err, res) ->
             cb err, (res?.rows?[0]?.affiliation or "none")
 
     setAffiliation: (node, user, affiliation, cb) ->
+        unless node
+            return cb(new Error("No node"))
+        unless user
+            return cb(new Error("No user"))
+
         db = @db
         async.waterfall [ @validateNode(node)
         , (cb2) ->
@@ -336,6 +359,9 @@ class Transaction
             cb err
 
     getAffiliations: (user, cb) ->
+        unless user
+            return cb(new Error("No user"))
+
         db = @db
         async.waterfall [(cb2) ->
             db.query "SELECT node, affiliation FROM affiliations WHERE \"user\"=$1 ORDER BY updated DESC", [ user ], cb2
