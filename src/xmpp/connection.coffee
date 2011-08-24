@@ -20,6 +20,8 @@ class exports.Connection extends EventEmitter
         # For iq response tracking (@sendIq):
         @lastIqId = 0
         @iqCallbacks = {}
+        # For <you-missed-something/> sending
+        @missedServerTimeouts = {}
 
         # For presence tracking:
         @onlineResources = {}
@@ -32,6 +34,7 @@ class exports.Connection extends EventEmitter
         @conn.on "stanza", (stanza) =>
             # Just debug output:
             console.log "<< #{stanza.toString()}"
+            from = stanza.attrs.from
 
             switch stanza.name
                 when "iq"
@@ -54,17 +57,19 @@ class exports.Connection extends EventEmitter
                 when "message"
                     unless stanza.attrs.type is "error"
                         @_handleMessage stanza
-                    else if stanza.attrs.from.indexOf('@') < 0
-                        # We've got an error back from a component,
-                        # which are not subject to presence and must
-                        # be probed manually.
-                        setTimeout =>
-                            @send new xmpp.Element('message',
-                                type: 'headline'
-                                from: @jid
-                                to: stanza.attrs.from
-                            ).c('you-missed-something', xmlns: NS.BUDDYCLOUD_V1)
-                        , MISSED_INTERVAL
+                    else if from.indexOf('@') < 0
+                        unless missedServerTimeouts.hasOwnProperty(from)
+                            # We've got an error back from a component,
+                            # which are not subject to presence and must
+                            # be probed manually.
+                            @missedServerTimeouts[from] = setTimeout =>
+                                delete @missedServerTimeouts[from]
+                                @send new xmpp.Element('message',
+                                    type: 'headline'
+                                    from: @jid
+                                    to: from
+                                ).c('you-missed-something', xmlns: NS.BUDDYCLOUD_V1)
+                            , MISSED_INTERVAL
 
     send: (stanza) ->
         stanza = stanza.root()
