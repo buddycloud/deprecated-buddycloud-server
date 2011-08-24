@@ -7,6 +7,7 @@
 xmpp = require("node-xmpp")
 {EventEmitter} = require('events')
 errors = require("../errors")
+ns = require('./ns')
 
 IQ_TIMEOUT = 10000
 MAX_STANZA_SIZE = 65000  # 535 bytes spare room
