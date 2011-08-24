@@ -55,7 +55,7 @@ class exports.Connection extends EventEmitter
                 when "presence"
                     @_handlePresence stanza
                 when "message"
-                    unless stanza.attrs.type is "error"
+                    if stanza.attrs.type isnt "error"
                         @_handleMessage stanza
                     else if from.indexOf('@') < 0
                         unless missedServerTimeouts.hasOwnProperty(from)
