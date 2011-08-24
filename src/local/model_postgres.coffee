@@ -312,12 +312,9 @@ class Transaction
     ##
 
     getAffiliation: (node, user, cb) ->
-        db = @db
-        async.waterfall [(cb2) ->
-            db.query "SELECT affiliation FROM affiliations WHERE node=$1 AND \"user\"=$2 ORDER BY updated DESC", [ node, user ], cb2
-        , (res, cb2) ->
-            cb2 null, (res.rows[0] and res.rows[0].affiliation) or "none"
-        ], cb
+        @db.query "SELECT affiliation FROM affiliations WHERE node=$1 AND \"user\"=$2 ORDER BY updated DESC", [ node, user ], cb2
+        , (err, res) ->
+            cb err, (res?.rows?[0]?.affiliation or "none")
 
     setAffiliation: (node, user, affiliation, cb) ->
         db = @db

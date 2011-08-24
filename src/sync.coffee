@@ -130,6 +130,7 @@ syncQueue = async.queue (task, cb) ->
                 cb err
 , 1
 
+# TODO: emit notifications for all changed things?
 exports.syncNode = (router, model, node, cb) ->
     console.log "syncNode #{node}"
     async.forEachSeries [
