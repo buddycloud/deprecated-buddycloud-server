@@ -224,12 +224,10 @@ class Transaction
         unless user
             return cb(new Error("No user"))
 
-        db = @db
-        async.waterfall [(cb2) ->
-            db.query "SELECT subscription FROM subscriptions WHERE node=$1 AND user=$2", [ node, user ], cb2
-        , (res, cb2) ->
-            cb2 null, (res.rows[0] and res.rows[0].subscription) or "none"
-        ], cb
+        @db.query "SELECT subscription FROM subscriptions WHERE node=$1 AND \"user\"=$2"
+        , [ node, user ]
+        , (err, res) ->
+            cb err, res?.rows?[0]?.subscription or "none"
 
     setSubscription: (node, user, listener, subscription, cb) ->
         unless node
@@ -293,7 +291,7 @@ class Transaction
     # Not only by users but also by listeners.
     # @param cb {Function} cb(Error, { user, node, subscription })
     getSubscriptions: (actor, cb) ->
-        db.query "SELECT user, node, subscription FROM subscriptions WHERE \"user\"=$1 OR listener=$1 ORDER BY updated DESC", [ actor ], (err, res) ->
+        @db.query "SELECT \"user\", node, subscription FROM subscriptions WHERE \"user\"=$1 OR listener=$1 ORDER BY updated DESC", [ actor ], (err, res) ->
             cb err, res?.rows
 
     getPingNodes: (user, cb) ->
