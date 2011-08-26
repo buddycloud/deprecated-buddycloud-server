@@ -78,13 +78,102 @@ class ModelOperation extends Operation
         cb null
 
 
+AFFILIATIONS = [
+    'outcast', 'none', 'member',
+    'publisher', 'moderator', 'owner'
+]
 class PrivilegedOperation extends ModelOperation
 
     transaction: (t, cb) ->
-        # TODO: Check privileges
+        async.waterfall [ (cb2) =>
+            console.log 'fetchActorAffiliation'
+            @fetchActorAffiliation t, cb2
+        , (cb2) =>
+            console.log 'fetchNodeConfig'
+            @fetchNodeConfig t, cb2
+        , (cb2) =>
+            console.log 'checkRequiredAffiliation'
+            @checkRequiredAffiliation t, cb2
+        , (cb2) =>
+            console.log 'checkAccessModel'
+            @checkAccessModel t, cb2
+        , (cb2) =>
+            console.log 'checkAccess'
+            @checkAccess t, cb2
+        ], (err) =>
+            if err
+                return cb err
 
-        @privilegedTransaction t, cb
+            @privilegedTransaction t, cb
 
+    fetchActorAffiliation: (t, cb) ->
+        unless @req.node
+            return cb()
+
+        # TODO: actor no user? check if listener!
+        t.getAffiliation @req.node, @req.actor, (err, affiliation) =>
+            console.log 'getAffiliation ->', err, affiliation
+            if err
+                return cb err
+
+            @actorAffiliation = affiliation or @none
+            console.log 'actorAffiliation', @actorAffiliation
+            cb()
+
+    fetchNodeConfig: (t, cb) ->
+        unless @req.node
+            return cb()
+
+        t.getConfig @req.node, (err, config) ->
+            if err
+                return cb err
+
+            @nodeConfig = config
+            cb()
+
+    checkAccessModel: (t, cb) ->
+        # Deny any outcast
+        if @actorAffiliation is 'outcast'
+            return cb new errors.Forbidden("Outcast")
+
+        # Set default according to node config
+        unless @requiredAffiliation
+            if @nodeConfig.accessModel is 'open'
+                # Open nodes allow anyone
+                @requiredAffiliation = 'none'
+            else
+                # For all other access models, actor has to be member
+                @requiredAffiliation = 'member'
+
+        cb()
+
+    checkRequiredAffiliation: (t, cb) ->
+        if AFFILIATIONS.indexOf(@actorAffiliation) >= AFFILIATIONS.indexOf(@requiredAffiliation)
+            cb()
+        else
+            cb new errors.Forbidden("Requires affiliation #{@requiredAffiliation}")
+
+    # Used by Publish operation
+    checkPublishModel: (t, cb) ->
+        pass = false
+        switch @nodeConfig.publishModel
+            when 'open'
+                pass = true
+            when 'members'
+                # XEP-0060 actually indicates an option 'subscribers',
+                # but we may not have fetched the actor's subscription
+                # state yet.
+                pass = (AFFILIATIONS.indexOf(@actorAffiliation) >= 'member')
+            when 'publishers'
+                pass = (AFFILIATIONS.indexOf(@actorAffiliation) >= 'publishers')
+            else
+                # Owners can always post
+                pass = (@actorAffiliation is 'owner')
+
+        if pass
+            cb()
+        else
+            cb new errors.Forbidden("Only #{@nodeConfig.publishModel} may publish")
 
 class BrowseInfo extends Operation
 
@@ -212,31 +301,29 @@ class Publish extends PrivilegedOperation
     requiredAffiliation: 'publisher'
 
     privilegedTransaction: (t, cb) ->
-        # TODO: normalize
-        async.series(@req.items.map((item) =>
-            (cb2) =>
-                async.waterfall [(cb3) =>
-                    unless item.id?
-                        item.id = uuid()
-                        cb3 null, null
-                    else
-                        t.getItem @req.node, item.id, (err, item) ->
-                            if err and err.constructor is errors.NotFound
-                                cb3 null, null
-                            else
-                                cb3 err, item
-                , (oldItem, cb3) =>
-                    normalizeItem @req, oldItem, item, cb3
-                , (newItem, cb3) =>
-                    t.writeItem @req.node, newItem.id, @req.actor, newItem.el, (err) ->
-                        cb3 err, newItem.id
-                ], cb2
-        ), (err, ids) ->
-            if err
-                cb err
-            else
-                cb null, ids
-        )
+        async.waterfall [ (cb2) =>
+            @checkPublishModel t, cb2
+        , (cb2) =>
+            async.series @req.items.map((item) =>
+                (cb3) =>
+                    async.waterfall [(cb4) =>
+                        unless item.id?
+                            item.id = uuid()
+                            cb4 null, null
+                        else
+                            t.getItem @req.node, item.id, (err, item) ->
+                                if err and err.constructor is errors.NotFound
+                                    cb4 null, null
+                                else
+                                    cb4 err, item
+                    , (oldItem, cb3) =>
+                        normalizeItem @req, oldItem, item, cb4
+                    , (newItem, cb3) =>
+                        t.writeItem @req.node, newItem.id, @req.actor, newItem.el, (err) ->
+                            cb4 err, newItem.id
+                    ], cb3
+            ), cb2
+        ], cb
 
     notification: ->
         [{
