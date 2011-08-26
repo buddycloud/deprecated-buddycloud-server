@@ -312,9 +312,9 @@ class Publish extends PrivilegedOperation
                                     cb4 null, null
                                 else
                                     cb4 err, item
-                    , (oldItem, cb3) =>
+                    , (oldItem, cb4) =>
                         normalizeItem @req, oldItem, item, cb4
-                    , (newItem, cb3) =>
+                    , (newItem, cb4) =>
                         t.writeItem @req.node, newItem.id, @req.actor, newItem.el, (err) ->
                             cb4 err, newItem.id
                     ], cb3
@@ -332,8 +332,9 @@ class Subscribe extends PrivilegedOperation
     requiredAffiliation: 'member'
 
     privilegedTransaction: (t, cb) ->
+        @affiliation = @req.config?.defaultAffiliation or 'member'
         t.setSubscription @req.node, @req.actor, @req.sender, 'subscribed', (err) =>
-            t.setAffiliation @req.node, @req.actor, 'member', (err) =>
+            t.setAffiliation @req.node, @req.actor, @affiliation, (err) =>
                 cb err,
                     user: @req.actor
                     subscription: 'subscribed'
@@ -344,6 +345,11 @@ class Subscribe extends PrivilegedOperation
             node: @req.node
             user: @req.actor
             subscription: 'subscribed'
+        }, {
+            type: 'affiliation'
+            node: @req.node
+            user: @req.actor
+            affiliation: @affiliation
         }]
 
 ##
