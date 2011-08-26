@@ -175,6 +175,7 @@ class Transaction
                 else if res?.rows?[0]?
                     cb null
                 else
+                    console.log "#{node} does not exist!"
                     cb new errors.NotFound("Node does not exist")
 
     nodeExists: (node, cb) ->
@@ -182,6 +183,7 @@ class Transaction
             if err
                 cb err
             else
+                console.log "#{node} does not exist"
                 cb null, res?.rows?[0]?
 
     createNode: (node, cb) ->
@@ -330,7 +332,8 @@ class Transaction
         unless user
             return cb(new Error("No user"))
 
-        @db.query "SELECT affiliation FROM affiliations WHERE node=$1 AND \"user\"=$2 ORDER BY updated DESC", [ node, user ], cb2
+        @db.query "SELECT affiliation FROM affiliations WHERE node=$1 AND \"user\"=$2 ORDER BY updated DESC"
+        , [ node, user ]
         , (err, res) ->
             cb err, (res?.rows?[0]?.affiliation or "none")
 
