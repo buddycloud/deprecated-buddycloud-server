@@ -29,31 +29,31 @@ class ServerError extends Error
 ##
 # The actual exported error classes
 
-class exports.Forbidden
+class exports.Forbidden extends ServerError
     condition: "forbidden"
     type: "auth"
 
-class exports.Conflict
+class exports.Conflict extends ServerError
     condition: "conflict"
     type: "cancel"
 
-class exports.BadRequest
+class exports.BadRequest extends ServerError
     condition: "bad-request"
     type: "modify"
 
-class exports.FeatureNotImplemented
+class exports.FeatureNotImplemented extends ServerError
     condition: "feature-not-implemented"
     type: "cancel"
 
-class exports.InternalServerError
+class exports.InternalServerError extends ServerError
     condition: "internal-server-error"
     type: "cancel"
 
-class exports.NotFound
+class exports.NotFound extends ServerError
     condition: "item-not-found"
     type: "cancel"
 
-class exports.NotAllowed
+class exports.NotAllowed extends ServerError
     condition: "not-allowed"
     type: "cancel"
 
