@@ -152,9 +152,6 @@ class PrivilegedOperation extends ModelOperation
             when 'open'
                 pass = true
             when 'members'
-                # XEP-0060 actually indicates an option 'subscribers',
-                # but we may not have fetched the actor's subscription
-                # state yet.
                 pass = (AFFILIATIONS.indexOf(@actorAffiliation) >= 'member')
             when 'publishers'
                 pass = (AFFILIATIONS.indexOf(@actorAffiliation) >= 'publishers')
@@ -164,6 +161,14 @@ class PrivilegedOperation extends ModelOperation
 
         if pass
             cb()
+        else if @nodeConfig.publishModel is 'subscribers'
+            # Special handling because subscription state must be
+            # fetched
+            t.getSubscription @req.node, @req.actor, (err, subscription) ->
+                if !err and subscription is 'subscribed'
+                    cb()
+                else
+                    cb err or new errors.Forbidden("Only subscribers may publish")
         else
             cb new errors.Forbidden("Only #{@nodeConfig.publishModel} may publish")
 
