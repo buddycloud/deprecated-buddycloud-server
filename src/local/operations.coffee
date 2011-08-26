@@ -86,20 +86,13 @@ class PrivilegedOperation extends ModelOperation
 
     transaction: (t, cb) ->
         async.waterfall [ (cb2) =>
-            console.log 'fetchActorAffiliation'
             @fetchActorAffiliation t, cb2
         , (cb2) =>
-            console.log 'fetchNodeConfig'
             @fetchNodeConfig t, cb2
         , (cb2) =>
-            console.log 'checkRequiredAffiliation'
             @checkRequiredAffiliation t, cb2
         , (cb2) =>
-            console.log 'checkAccessModel'
             @checkAccessModel t, cb2
-        , (cb2) =>
-            console.log 'checkAccess'
-            @checkAccess t, cb2
         ], (err) =>
             if err
                 return cb err
@@ -112,7 +105,6 @@ class PrivilegedOperation extends ModelOperation
 
         # TODO: actor no user? check if listener!
         t.getAffiliation @req.node, @req.actor, (err, affiliation) =>
-            console.log 'getAffiliation ->', err, affiliation
             if err
                 return cb err
 
@@ -124,7 +116,7 @@ class PrivilegedOperation extends ModelOperation
         unless @req.node
             return cb()
 
-        t.getConfig @req.node, (err, config) ->
+        t.getConfig @req.node, (err, config) =>
             if err
                 return cb err
 
@@ -253,7 +245,6 @@ class Register extends ModelOperation
     # TODO: overwrite @run() and check if this component is
     # authoritative for the requesting user's domain
     transaction: (t, cb) ->
-        console.log 'Register cb': cb
         user = @req.actor
         listener = @req.sender
         async.parallel(for own nodeType, config of defaultConfiguration(user)
@@ -298,7 +289,7 @@ class CreateNode extends ModelOperation
 
 
 class Publish extends PrivilegedOperation
-    requiredAffiliation: 'publisher'
+    # checks affiliation with @checkPublishModel below
 
     privilegedTransaction: (t, cb) ->
         async.waterfall [ (cb2) =>
