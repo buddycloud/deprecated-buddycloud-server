@@ -103,14 +103,25 @@ class PrivilegedOperation extends ModelOperation
         unless @req.node
             return cb()
 
-        # TODO: actor no user? check if listener!
-        t.getAffiliation @req.node, @req.actor, (err, affiliation) =>
-            if err
-                return cb err
+        if @req.actor.indexOf('@') >= 0
+            t.getAffiliation @req.node, @req.actor, (err, affiliation) =>
+                if err
+                    return cb err
 
-            @actorAffiliation = affiliation or @none
-            console.log 'actorAffiliation', @actorAffiliation
-            cb()
+                @actorAffiliation = affiliation or 'none'
+                cb()
+
+        else
+            # actor no user? check if listener!
+            t.getListenerAffiliations @req.node, @req.actor, (err, affiliations) =>
+                if err
+                    return cb err
+
+                @actorAffiliation = 'none'
+                for affiliation in affiliations
+                    if AFFILIATIONS.indexOf(affiliation) > AFFILIATIONS.indexOf(@actorAffiliation)
+                        @actorAffiliation = affiliation
+                cb()
 
     fetchNodeConfig: (t, cb) ->
         unless @req.node

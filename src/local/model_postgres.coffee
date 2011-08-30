@@ -330,10 +330,21 @@ class Transaction
         unless user
             return cb(new Error("No user"))
 
-        @db.query "SELECT affiliation FROM affiliations WHERE node=$1 AND \"user\"=$2 ORDER BY updated DESC"
+        @db.query "SELECT affiliation FROM affiliations WHERE node=$1 AND \"user\"=$2"
         , [ node, user ]
         , (err, res) ->
             cb err, (res?.rows?[0]?.affiliation or "none")
+
+    getListenerAffiliations: (node, listener, cb) ->
+        unless node
+            return cb(new Error("No node"))
+        unless listener
+            return cb(new Error("No user"))
+
+        @db.query "SELECT DISTINCT affiliation FROM affiliations WHERE node=$1 AND listener=$2"
+        , [ node, listener ]
+        , (err, res) ->
+            cb err, res?.rows?.map((row) -> row.affiliation or "none")
 
     setAffiliation: (node, user, affiliation, cb) ->
         unless node
