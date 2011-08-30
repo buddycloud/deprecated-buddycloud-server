@@ -42,4 +42,15 @@ class exports.Notification
                         c('configuration',
                             node: update.node
                         ).cnode(forms.configToForm(update.config, 'result', NS.PUBSUB_NODE_CONFIG).toXml())
-        eventEl.up()
+        if @opts.replay
+            # For the MAM case the stanza is packaged up into
+            # <forwarded/>
+            new xmpp.Element('message',
+                type: 'headline'
+                from: fromJid
+                to: toJid
+                ).c('forwarded', xmlns: NS.FORWARD).
+                cnode(eventEl.up())
+        else
+            # Just the stanza
+            eventEl.up()
