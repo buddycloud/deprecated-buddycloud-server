@@ -71,7 +71,6 @@ class exports.PubsubBackend extends EventEmitter
             @conn.send notification.toStanza(@conn.jid, listener)
 
     # <message from='pubsub.shakespeare.lit' to='francisco@denmark.lit' id='foo'>
-    #   <event xmlns='http://jabber.org/protocol/pubsub#event'>
     #
     # TODO: encapsulate XMPP protocol cruft
     onMessage_: (message) ->
@@ -81,8 +80,10 @@ class exports.PubsubBackend extends EventEmitter
 
         for child in message.children
             unless child.is
+                # Ignore any text child
                 continue
 
+            # <event xmlns='http://jabber.org/protocol/pubsub#event'>
             if child.is("event", NS.PUBSUB_EVENT)
                 child.children.forEach (child) ->
                 unless child.is
@@ -131,6 +132,9 @@ class exports.PubsubBackend extends EventEmitter
                             type: 'config'
                             node: node
                             config: config
+
+            if child.is("you-missed-something", NS.BUDDYCLOUD_V1)
+                missedSomething = true
 
         # Which nodes' updates pertain our local cache?
         async.filter(updates, (update, cb) =>
