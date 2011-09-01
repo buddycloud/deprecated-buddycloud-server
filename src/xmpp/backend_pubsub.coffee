@@ -4,6 +4,7 @@ async = require('async')
 pubsubClient = require('./pubsub_client')
 errors = require('../errors')
 NS = require('./ns')
+forms = require('./forms')
 
 ##
 # Initialize with XMPP connection
@@ -76,7 +77,6 @@ class exports.PubsubBackend extends EventEmitter
     onMessage_: (message) ->
         sender = message.attrs.from
         updates = []
-        missedSomething = false
 
         for child in message.children
             unless child.is
@@ -133,8 +133,26 @@ class exports.PubsubBackend extends EventEmitter
                             node: node
                             config: config
 
+            # <you-missed-something/>
             if child.is("you-missed-something", NS.BUDDYCLOUD_V1)
-                missedSomething = true
+                @emit 'syncNeeded', sender
+
+            # data form
+            if child.is("x", NS.DATA)
+                form = forms.fromXml(child)
+                if form.type is 'form' and
+                   form.getFormType() is NS.PUBSUB_SUBSCRIBE_AUTHORIZATION
+                    # authorization prompt
+                    node = form.get('pubsub#node')
+                    user = form.get('pubsub#subscriber_jid')
+                    @emit 'authorizationPrompt', { node, user }
+                else if form.type is 'submit' and
+                        form.getFormType() is NS.PUBSUB_SUBSCRIBE_AUTHORIZATION
+                        # authorization confirm
+                    node = form.get('pubsub#node')
+                    user = form.get('pubsub#subscriber_jid')
+                    allow = form.get('pubsub#allow')
+                    @emit 'authorizationConfirm', { node, user, allow }
 
         # Which nodes' updates pertain our local cache?
         async.filter(updates, (update, cb) =>
@@ -149,10 +167,6 @@ class exports.PubsubBackend extends EventEmitter
                 # Apply pushed updates
                 @emit 'notificationPush', updates
         )
-
-        if missedSomething
-            # <you-missed-something/>
-            @emit 'syncNeeded', sender
 
 
 class BuddycloudDiscovery

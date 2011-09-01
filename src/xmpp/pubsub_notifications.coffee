@@ -80,7 +80,29 @@ class exports.Notification
 #     </field>
 #   </x>
 # </message>
-class exports.AuthorizationNotification
+class exports.AuthorizationPromptNotification
+    constructor: (@opts) ->
+
+    toStanza: (fromJid, toJid) ->
+        form = new forms.Form('form', NS.PUBSUB_SUBSCRIBE_AUTHORIZATION)
+        form.title = 'Confirm channel subscription'
+        form.instructions = "Allow #{@opts.user} to subscribe to node #{@opts.node}?"
+        form.addField 'pubsub#node', 'text-single',
+            'Node', @opts.node
+        form.addField 'pubsub#subscriber_jid', 'jid-single',
+            'Subscriber Address', @opts.user
+        form.addField 'pubsub#allow', 'boolean',
+            'Allow?', 'false'
+
+        xEl = new xmpp.Element('message',
+                type: 'headline'
+                from: fromJid
+                to: toJid
+            ).c('x', xmlns: NS.DATA, type: 'form')
+        xEl.cnode form.toXml()
+        xEl
+
+class exports.AuthorizationConfirmNotification
     constructor: (@opts) ->
 
     toStanza: (fromJid, toJid) ->
@@ -104,7 +126,7 @@ class exports.AuthorizationNotification
 
 exports.make = (opts) ->
     switch opts.type
-        when 'authorize'
+        when 'authorizationPrompt'
             new AuthorizationNotification(opts)
         else
             new Notification(opts)

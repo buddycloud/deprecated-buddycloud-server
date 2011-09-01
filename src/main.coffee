@@ -51,6 +51,10 @@ pubsubBackend.on 'notificationPush', (opts) ->
 pubsubBackend.on 'syncNeeded', (server) ->
     router.syncServer server, ->
 
+pubsubBackend.on 'authorizationPrompt', (opts) ->
+    opts.type = 'authorizationPrompt'
+    router.notify opts
+
 
 xmppConn.on 'online', ->
     model.forListeners (listener) ->
