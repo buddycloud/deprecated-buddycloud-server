@@ -18,7 +18,7 @@
         }]
 ,"scripts": {
     "start": "node src/main.js config.js",
-    "preinstall": "coffee -c `find src -name *.coffee`"
+    "install": "coffee -c `find src -name *.coffee`"
 }
 ,"homepage": "http://github.com/astro/channel-server"
 ,"bugs": "http://github.com/astro/channel-server/issues"
