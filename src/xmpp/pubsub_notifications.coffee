@@ -46,11 +46,65 @@ class exports.Notification
             # For the MAM case the stanza is packaged up into
             # <forwarded/>
             new xmpp.Element('message',
-                type: 'headline'
-                from: fromJid
-                to: toJid
+                    type: 'headline'
+                    from: fromJid
+                    to: toJid
                 ).c('forwarded', xmlns: NS.FORWARD).
                 cnode(eventEl.up())
         else
             # Just the stanza
             eventEl.up()
+
+##
+# <message to='hamlet@denmark.lit' from='pubsub.shakespeare.lit' id='approve1'>
+#   <x xmlns='jabber:x:data' type='form'>
+#     <title>PubSub subscriber request</title>
+#     <instructions>
+#       To approve this entity&apos;s subscription request,
+#       click the OK button. To deny the request, click the
+#       cancel button.
+#     </instructions>
+#     <field var='FORM_TYPE' type='hidden'>
+#       <value>http://jabber.org/protocol/pubsub#subscribe_authorization</value>
+#     </field>
+#     <field var='pubsub#subid' type='hidden'><value>123-abc</value></field>
+#     <field var='pubsub#node' type='text-single' label='Node ID'>
+#       <value>princely_musings</value>
+#     </field>
+#     <field var='pusub#subscriber_jid' type='jid-single' label='Subscriber Address'# >
+#       <value>horatio@denmark.lit</value>
+#     </field>
+#     <field var='pubsub#allow' type='boolean'
+#            label='Allow this JID to subscribe to this pubsub node?'>
+#       <value>false</value>
+#     </field>
+#   </x>
+# </message>
+class exports.AuthorizationNotification
+    constructor: (@opts) ->
+
+    toStanza: (fromJid, toJid) ->
+        form = new forms.Form('form', NS.PUBSUB_SUBSCRIBE_AUTHORIZATION)
+        form.title = 'Confirm channel subscription'
+        form.instructions = "Allow #{@opts.user} to subscribe to node #{@opts.node}?"
+        form.addField 'pubsub#node', 'text-single',
+            'Node', @opts.node
+        form.addField 'pubsub#subscriber_jid', 'jid-single',
+            'Subscriber Address', @opts.user
+        form.addField 'pubsub#allow', 'boolean',
+            'Allow?', 'false'
+
+        xEl = new xmpp.Element('message',
+                type: 'headline'
+                from: fromJid
+                to: toJid
+            ).c('x', xmlns: NS.DATA, type: 'form')
+        xEl.cnode form.toXml()
+        xEl
+
+exports.make = (opts) ->
+    switch opts.type
+        when 'authorize'
+            new AuthorizationNotification(opts)
+        else
+            new Notification(opts)

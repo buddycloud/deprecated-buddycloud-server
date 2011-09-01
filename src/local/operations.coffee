@@ -340,28 +340,61 @@ class Publish extends PrivilegedOperation
         }]
 
 class Subscribe extends PrivilegedOperation
-    requiredAffiliation: 'member'
+    ##
+    # Overwrites PrivilegedOperation#transaction() to use a different
+    # permissions checking model, but still uses its methods.
+    transaction: (t, cb) ->
+        async.waterfall [ (cb2) =>
+            @fetchActorAffiliation t, cb2
+        , (cb2) =>
+            @fetchNodeConfig t, cb2
+        , (cb2) =>
+            if @nodeConfig.accessModel is 'authorize'
+                @subscription = 'pending'
+                cb2()
+            else
+                @subscription = 'subscribed'
+                @affiliation = @nodeConfig.defaultAffiliation or 'member'
+                @checkAccessModel t, cb2
+        ], (err) =>
+            if err
+                return cb err
+
+            @privilegedTransaction t, cb
 
     privilegedTransaction: (t, cb) ->
-        @affiliation = @req.config?.defaultAffiliation or 'member'
-        t.setSubscription @req.node, @req.actor, @req.sender, 'subscribed', (err) =>
-            t.setAffiliation @req.node, @req.actor, @affiliation, (err) =>
-                cb err,
-                    user: @req.actor
-                    subscription: 'subscribed'
+        async.waterfall [ (cb2) =>
+            t.setSubscription @req.node, @req.actor, @req.sender, @subscription, cb2
+        , (cb2) =>
+            if @affiliation
+                t.setAffiliation @req.node, @req.actor, @affiliation, cb2
+            else
+                cb2()
+        ], (err) =>
+            cb err,
+                user: @req.actor
+                subscription: @subscription
 
     notification: ->
-        [{
-            type: 'subscription'
+        ns = [{
+                type: 'subscription'
+                node: @req.node
+                user: @req.actor
+                subscription: @subscription
+            }]
+        if @affiliation
+            ns.push
+                type: 'affiliation'
+                node: @req.node
+                user: @req.actor
+                affiliation: @affiliation
+        ns
+
+    moderatorNotification: ->
+        if @subscription is 'pending'
+            type: 'authorize'
             node: @req.node
             user: @req.actor
-            subscription: 'subscribed'
-        }, {
-            type: 'affiliation'
-            node: @req.node
-            user: @req.actor
-            affiliation: @affiliation
-        }]
 
 ##
 # Not privileged as anybody should be able to unsubscribe him/herself
@@ -370,6 +403,7 @@ class Unsubscribe extends ModelOperation
         t.setSubscription @req.node, @req.actor, @req.sender, 'none', (err) =>
             t.getAffiliation @req.node, @req.actor, (err, affiliation) =>
                 if not err and affiliation is 'member'
+                    # TODO: only decrease if == defaultAffiliation
                     t.setAffiliation @req.node, @req.actor, 'none', cb
                 else
                     cb err
@@ -567,6 +601,7 @@ class PushInbox extends ModelOperation
         , (updates, cb2) =>
             console.log filteredUpdates: updates
             async.forEach updates, (update, cb3) ->
+                console.log {update}
                 switch update.type
                     when 'items'
                         {node, items} = update
@@ -607,6 +642,20 @@ class Notify extends ModelOperation
         # TODO: walk in batches
         console.log notifyNotification: @req
         t.getNodeListeners @req.node, (err, listeners) =>
+            if err
+                return cb err
+            for listener in listeners
+                console.log "listener: #{listener}"
+                notification = Object.create(@req)
+                notification.listener = listener
+                @router.notify notification
+            cb()
+
+class ModeratorNotification extends ModelOperation
+    transaction: (t, cb) ->
+        # TODO: walk in batches
+        console.log notifyNotification: @req
+        t.getNodeModeratorListeners @req.node, (err, listeners) =>
             if err
                 return cb err
             for listener in listeners
@@ -667,15 +716,18 @@ exports.run = (router, request, cb) ->
                 console.error e.stack or e
 
             # Run notifications
-            notification = op.notification?()
-            if notification
-                console.log "notifying for #{opName}"
-
+            notifications = []
+            if (notification = op.notification?())
                 for own node, notifications of groupByNode(notification)
                     notification.node = node
                     new Notify(router, notification).run (err) ->
                         if err
                             console.error("Error running notifications: #{err}")
+            if (notification = op.moderatorNotification?())
+                new ModeratorNotify(router, notification).run (err) ->
+                    if err
+                        console.error("Error running notifications: #{err}")
+
 
 groupByNode = (updates) ->
     result = {}

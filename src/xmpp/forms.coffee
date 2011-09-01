@@ -46,11 +46,20 @@ class exports.Form
         console.log "get #{fieldVar} = null"
         null
 
+    addField: (var_, type, label, value) ->
+        @fields.push new exports.Field(var_, type, label, value)
+
     toXml: ->
         formEl = new xmpp.Element('x',
             xmlns: NS.DATA
             type: @type
         )
+        if @title?
+            formEl.c('title').
+                t(@title)
+        if @instructions?
+            formEl.c('instructions').
+                t(@instructions)
         @fields.forEach (field) ->
             formEl.cnode field.toXml()
         formEl

@@ -58,7 +58,7 @@ class exports.PubsubBackend extends EventEmitter
                     @run router, opts2, cb
 
     notify: (opts) ->
-        notification = new Notification(opts)
+        notification = Notifications.make(opts)
         listener = opts.listener
         if listener.indexOf("@") >= 0
             # is user? send to all resources...
