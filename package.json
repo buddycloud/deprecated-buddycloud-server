@@ -1,6 +1,6 @@
 { "name": "channel-server"
 ,"version": "0.0.1"
-,"bin": { "channel-server": "./src/main.js" }
+,"bin": { "channel-server": "./bin/channel-server" }
 ,"description": "buddycloud channels service for XMPP"
 ,"author": "Stephan Maka"
 ,"dependencies": {"coffee-script": ">=1.1.1",
@@ -8,6 +8,7 @@
         "node-stringprep": ">=0.0.3",
         "node-expat": ">=1.2.0",
         "ltx": ">=0.0.4",
+        "cli": ">=0.3.7",
         "async": ">=0.1.9",
         "node-uuid": ">=1.1.0",
         "cradle": "0.3.1",
@@ -17,8 +18,9 @@
         ,"path": "git://github.com/astro/channel-server.git"
         }]
 ,"scripts": {
-    "start": "node src/main.js config.js",
-    "install": "./node_modules/coffee-script/bin/coffee -c `find src -name *.coffee`"
+    "start": "./bin/channel-server --nobuild",
+    "install": "node-waf configure build",
+    "build": "node-waf configure build"
 }
 ,"homepage": "http://github.com/astro/channel-server"
 ,"bugs": "http://github.com/astro/channel-server/issues"

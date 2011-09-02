@@ -1,0 +1,13 @@
+#!/bin/sh
+for arg in $@; do
+    case $arg in
+        '--nobuild') nobuild=1 ;;
+        '--help') help=1 ;;
+    esac
+done
+if [ ! $nobuild ] && [ ! $help ]; then
+    env node-waf build || exit 1
+fi
+cd build/default
+exec env node main.js $@
+
