@@ -1,6 +1,6 @@
 { "name": "channel-server"
 ,"version": "0.0.1"
-,"bin": { "channel-server": "./main.js" }
+,"bin": { "channel-server": "./src/main.js" }
 ,"description": "buddycloud channels service for XMPP"
 ,"author": "Stephan Maka"
 ,"dependencies": {"coffee-script": ">=1.1.1",
