@@ -213,6 +213,7 @@ class BuddycloudDiscovery
                             cb null, item.jid
                     done()
                 pending++
+            # `pending' initialized with 1, to not miss the items=[] case
             done()
 
 class RequestCache

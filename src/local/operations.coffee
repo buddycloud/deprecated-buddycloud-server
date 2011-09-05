@@ -499,10 +499,10 @@ class RetrieveNodeAffiliations extends PrivilegedOperation
             cb null, affiliations
 
 class RetrieveNodeConfiguration extends PrivilegedOperation
-    requiredAffiliation: 'member'
-
     privilegedTransaction: (t, cb) ->
-        t.getConfig @req.node, cb
+        t.getConfig @req.node, (err, config) ->
+            # wrap into { config: ...} result
+            cb err, { config }
 
 
 class ManageNodeSubscriptions extends PrivilegedOperation
@@ -591,11 +591,11 @@ class PushInbox extends ModelOperation
                 if update.type is 'subscription' and update.listener?
                     # Was successful remote subscription attempt
                     t.createNode update.node, (err, created) ->
-                        cb3 not err
+                        cb3 err, true
                 else
                     # Just an update, to be cached locally?
                     t.nodeExists update.node, (err, exists) ->
-                        cb3 (not err) and exists
+                        cb3 err, exists
             , (updates) ->
                 cb2 null, updates
         , (updates, cb2) =>

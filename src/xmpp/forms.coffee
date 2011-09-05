@@ -38,12 +38,9 @@ class exports.Form
         null
 
     get: (fieldVar) ->
-        console.log "get #{fieldVar}"
         for field in @fields
             if field.var is fieldVar
-                console.log "get #{fieldVar} = #{field.values[0]}"
                 return field.values[0]
-        console.log "get #{fieldVar} = null"
         null
 
     addField: (var_, type, label, value) ->
