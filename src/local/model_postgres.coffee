@@ -125,7 +125,7 @@ exports.getListenerNodes = (listener, cb) ->
         cb err, res?.rows?.map (row) -> row.node
 
 
-LOST_TRANSACTION_TIMEOUT = 10 * 1000
+LOST_TRANSACTION_TIMEOUT = 60 * 1000
 
 ##
 # Wraps the postgres-js transaction with our model operations.
@@ -294,16 +294,6 @@ class Transaction
         @db.query "SELECT \"user\", node, subscription FROM subscriptions WHERE \"user\"=$1 OR listener=$1 ORDER BY updated DESC", [ actor ], (err, res) ->
             cb err, res?.rows
 
-    getPingNodes: (user, cb) ->
-        db = @db
-        async.waterfall [(cb2) ->
-            db.query "SELECT node FROM affiliations WHERE affiliation = 'owner' AND \"user\" = $1 AND EXISTS (SELECT \"user\" FROM subscriptions WHERE subscription = 'pending' AND node = affiliations.node) ORDER BY updated DESC", [ user ], cb2
-        , (res, cb2) ->
-            cb2 null, res.rows.map((row) ->
-                row.node
-            )
-        ], cb
-
     getPending: (node, cb) ->
         db = @db
         async.waterfall [(cb2) ->
@@ -315,7 +305,11 @@ class Transaction
         ], cb
 
     getNodeListeners: (node, cb) ->
-        @db.query "SELECT DISTINCT listener FROM subscriptions WHERE node = $1 AND listener IS NOT NULL"
+        @db.query """SELECT DISTINCT listener
+                     FROM subscriptions
+                     WHERE node=$1
+                     AND subscription='subscribed'
+                     AND listener IS NOT NULL"""
         , [node]
         , (err, res) ->
             cb err, res?.rows?.map((row) -> row.listener)
@@ -328,7 +322,7 @@ class Transaction
                      AND EXISTS (SELECT affiliation
                                  FROM affiliations
                                  WHERE node=$1
-                                 AND (affiliation='owner' OR affiliation='moderator')"""
+                                 AND (affiliation='owner' OR affiliation='moderator'))"""
         , [node]
         , (err, res) ->
             cb err, res?.rows?.map((row) -> row.listener)
