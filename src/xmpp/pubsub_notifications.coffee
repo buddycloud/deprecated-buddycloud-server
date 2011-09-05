@@ -6,7 +6,7 @@ forms = require('./forms')
 # All notifications are per-node, so listeners can be fetched once
 #
 # TODO: enforce MAX_STANZA_LIMIT
-class exports.Notification
+class Notification
     constructor: (@opts) ->
 
     toStanza: (fromJid, toJid) ->
@@ -80,7 +80,7 @@ class exports.Notification
 #     </field>
 #   </x>
 # </message>
-class exports.AuthorizationPromptNotification
+class AuthorizationPromptNotification
     constructor: (@opts) ->
 
     toStanza: (fromJid, toJid) ->
@@ -94,39 +94,15 @@ class exports.AuthorizationPromptNotification
         form.addField 'pubsub#allow', 'boolean',
             'Allow?', 'false'
 
-        xEl = new xmpp.Element('message',
+        new xmpp.Element('message',
                 type: 'headline'
                 from: fromJid
                 to: toJid
-            ).c('x', xmlns: NS.DATA, type: 'form')
-        xEl.cnode form.toXml()
-        xEl
-
-class exports.AuthorizationConfirmNotification
-    constructor: (@opts) ->
-
-    toStanza: (fromJid, toJid) ->
-        form = new forms.Form('form', NS.PUBSUB_SUBSCRIBE_AUTHORIZATION)
-        form.title = 'Confirm channel subscription'
-        form.instructions = "Allow #{@opts.user} to subscribe to node #{@opts.node}?"
-        form.addField 'pubsub#node', 'text-single',
-            'Node', @opts.node
-        form.addField 'pubsub#subscriber_jid', 'jid-single',
-            'Subscriber Address', @opts.user
-        form.addField 'pubsub#allow', 'boolean',
-            'Allow?', 'false'
-
-        xEl = new xmpp.Element('message',
-                type: 'headline'
-                from: fromJid
-                to: toJid
-            ).c('x', xmlns: NS.DATA, type: 'form')
-        xEl.cnode form.toXml()
-        xEl
+            ).cnode form.toXml()
 
 exports.make = (opts) ->
     switch opts.type
         when 'authorizationPrompt'
-            new AuthorizationNotification(opts)
+            new AuthorizationPromptNotification(opts)
         else
             new Notification(opts)

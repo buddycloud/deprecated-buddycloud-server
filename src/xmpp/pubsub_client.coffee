@@ -301,6 +301,29 @@ class ManageNodeConfiguration extends PubsubOwnerRequest
             cnode(forms.configToForm(@opts.config, 'submit', NS.PUBSUB_NODE_CONFIG).toXml())
 
 
+# No <iq/> but a <message/> without expected reply
+class AuthorizeSubscriber
+    constructor: (conn, @opts, cb) ->
+        conn.send @makeStanza()
+        cb()
+
+    makeStanza: ->
+        form = new forms.Form('submit', NS.PUBSUB_SUBSCRIBE_AUTHORIZATION)
+        form.addField 'pubsub#node', 'text-single',
+            'Node', @opts.node
+        form.addField 'pubsub#subscriber_jid', 'jid-single',
+            'Subscriber Address', @opts.user
+        form.addField 'pubsub#allow', 'boolean',
+            'Allow?', (if @opts.allow then 'true' else 'false')
+        form.addField 'x-buddycloud#actor', 'jid-single',
+            'Authorizing actor', @opts.actor
+
+        new xmpp.Element('message',
+                type: 'headline'
+                to: @opts.jid
+            ).cnode form.toXml()
+
+
 REQUESTS =
     'browse-node-info': exports.DiscoverInfo
     'browse-info': exports.DiscoverInfo
@@ -317,6 +340,7 @@ REQUESTS =
     'manage-node-affiliations': ManageNodeAffiliations
     'retrieve-node-configuration': RetrieveNodeConfiguration
     'manage-node-configuration': ManageNodeConfiguration
+    'confirm-subscriber-authorization': AuthorizeSubscriber
 
 exports.byOperation = (opName) ->
     REQUESTS[opName]

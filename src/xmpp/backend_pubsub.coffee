@@ -1,6 +1,7 @@
 {EventEmitter} = require('events')
 async = require('async')
-{Notification} = require('./pubsub_notifications')
+xmpp = require('node-xmpp')
+Notifications = require('./pubsub_notifications')
 pubsubClient = require('./pubsub_client')
 errors = require('../errors')
 NS = require('./ns')
@@ -75,7 +76,7 @@ class exports.PubsubBackend extends EventEmitter
     #
     # TODO: encapsulate XMPP protocol cruft
     onMessage_: (message) ->
-        sender = message.attrs.from
+        sender = new xmpp.JID(message.attrs.from).bare().toString()
         updates = []
 
         for child in message.children
@@ -145,14 +146,15 @@ class exports.PubsubBackend extends EventEmitter
                     # authorization prompt
                     node = form.get('pubsub#node')
                     user = form.get('pubsub#subscriber_jid')
-                    @emit 'authorizationPrompt', { node, user }
+                    @emit 'authorizationPrompt', { node, user, sender }
                 else if form.type is 'submit' and
                         form.getFormType() is NS.PUBSUB_SUBSCRIBE_AUTHORIZATION
-                        # authorization confirm
+                    # authorization confirm
                     node = form.get('pubsub#node')
                     user = form.get('pubsub#subscriber_jid')
-                    allow = form.get('pubsub#allow')
-                    @emit 'authorizationConfirm', { node, user, allow }
+                    allow = (form.get('pubsub#allow') is 'true')
+                    actor = form.get('x-buddycloud#actor') or sender
+                    @emit 'authorizationConfirm', { node, user, allow, actor, sender }
 
         # Which nodes' updates pertain our local cache?
         async.filter(updates, (update, cb) =>

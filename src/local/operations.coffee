@@ -392,7 +392,7 @@ class Subscribe extends PrivilegedOperation
 
     moderatorNotification: ->
         if @subscription is 'pending'
-            type: 'authorize'
+            type: 'authorizationPrompt'
             node: @req.node
             user: @req.actor
 
@@ -570,6 +570,44 @@ class ManageNodeConfiguration extends PrivilegedOperation
             config: @req.config
         }]
 
+class AuthorizeSubscriber extends PrivilegedOperation
+    requiredAffiliation: 'moderator'
+
+    privilegedTransaction: (t, cb) ->
+        if @req.allow
+            @subscription = 'subscribed'
+            # TODO: don't decrease affiliation
+            @affiliation = @nodeConfig.defaultAffiliation or 'member'
+        else
+            @subscription = 'none'
+            # TODO: @affiliation either none or preserve outcast
+
+        async.waterfall [ (cb2) =>
+            t.setSubscription @req.node, @req.user, @req.sender, @subscription, cb2
+        , (cb2) =>
+            if @affiliation
+                t.setAffiliation @req.node, @req.user, @affiliation, cb2
+            else
+                cb2()
+        ], (err) ->
+            cb err
+
+    notification: ->
+        ns = [{
+                type: 'subscription'
+                node: @req.node
+                user: @req.user
+                subscription: @subscription
+            }]
+        if @affiliation
+            ns.push
+                type: 'affiliation'
+                node: @req.node
+                user: @req.user
+                affiliation: @affiliation
+        ns
+
+# TODO: also authorization prompts
 class ReplayArchive extends ModelOperation
     transaction: (t, cb) ->
         t.walkListenerArchive @req.sender, @req.start, @req.end, (results) =>
@@ -651,7 +689,7 @@ class Notify extends ModelOperation
                 @router.notify notification
             cb()
 
-class ModeratorNotification extends ModelOperation
+class ModeratorNotify extends ModelOperation
     transaction: (t, cb) ->
         # TODO: walk in batches
         console.log notifyNotification: @req
@@ -685,6 +723,7 @@ OPERATIONS =
     'manage-node-subscriptions': ManageNodeSubscriptions
     'manage-node-affiliations': ManageNodeAffiliations
     'manage-node-configuration': ManageNodeConfiguration
+    'confirm-subscriber-authorization': AuthorizeSubscriber
     'replay-archive': ReplayArchive
     'push-inbox': PushInbox
 
@@ -722,11 +761,12 @@ exports.run = (router, request, cb) ->
                     notification.node = node
                     new Notify(router, notification).run (err) ->
                         if err
-                            console.error("Error running notifications: #{err}")
+                            console.error("Error running notifications: #{err.stack or err.message or err}")
             if (notification = op.moderatorNotification?())
+                console.log moderatorNotification: notification
                 new ModeratorNotify(router, notification).run (err) ->
                     if err
-                        console.error("Error running notifications: #{err}")
+                        console.error("Error running notifications: #{err.stack or err.message or err}")
 
 
 groupByNode = (updates) ->

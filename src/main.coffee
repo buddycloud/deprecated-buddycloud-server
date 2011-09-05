@@ -74,8 +74,12 @@ cli.main (args, opts) ->
         router.syncServer server, ->
 
     pubsubBackend.on 'authorizationPrompt', (opts) ->
+        # Just relay
         opts.type = 'authorizationPrompt'
         router.notify opts
+    pubsubBackend.on 'authorizationConfirm', (opts) ->
+        opts.operation = 'confirm-subscriber-authorization'
+        router.run opts, ->
 
 
     xmppConn.on 'online', ->
