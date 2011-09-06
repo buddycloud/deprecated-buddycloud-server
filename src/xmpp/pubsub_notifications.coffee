@@ -10,11 +10,27 @@ class Notification
     constructor: (@opts) ->
 
     toStanza: (fromJid, toJid) ->
-        eventEl = new xmpp.Element('message',
+        message = new xmpp.Element('message',
                 type: 'headline'
                 from: fromJid
                 to: toJid
-            ).c('event', xmlns: NS.PUBSUB_EVENT)
+            )
+
+        if @opts.replay
+            # For the MAM case the stanza is packaged up into
+            # <forwarded/>
+            message.c('forwarded', xmlns: NS.FORWARD).
+                c('message',
+                        type: 'headline'
+                        from: fromJid
+                        to: toJid
+                    )
+        else
+            message
+
+class EventNotification extends Notification
+    toStanza: (fromJid, toJid) ->
+        eventEl = super.c('event', xmlns: NS.PUBSUB_EVENT)
         for update in @opts
             switch update.type
                 when 'items'
@@ -42,18 +58,7 @@ class Notification
                         c('configuration',
                             node: update.node
                         ).cnode(forms.configToForm(update.config, 'result', NS.PUBSUB_NODE_CONFIG).toXml())
-        if @opts.replay
-            # For the MAM case the stanza is packaged up into
-            # <forwarded/>
-            new xmpp.Element('message',
-                    type: 'headline'
-                    from: fromJid
-                    to: toJid
-                ).c('forwarded', xmlns: NS.FORWARD).
-                cnode(eventEl.up())
-        else
-            # Just the stanza
-            eventEl.up()
+        eventEl
 
 ##
 # <message to='hamlet@denmark.lit' from='pubsub.shakespeare.lit' id='approve1'>
@@ -80,9 +85,7 @@ class Notification
 #     </field>
 #   </x>
 # </message>
-class AuthorizationPromptNotification
-    constructor: (@opts) ->
-
+class AuthorizationPromptNotification extends Notification
     toStanza: (fromJid, toJid) ->
         form = new forms.Form('form', NS.PUBSUB_SUBSCRIBE_AUTHORIZATION)
         form.title = 'Confirm channel subscription'
@@ -94,15 +97,11 @@ class AuthorizationPromptNotification
         form.addField 'pubsub#allow', 'boolean',
             'Allow?', 'false'
 
-        new xmpp.Element('message',
-                type: 'headline'
-                from: fromJid
-                to: toJid
-            ).cnode form.toXml()
+        super.cnode form.toXml()
 
 exports.make = (opts) ->
     switch opts.type
         when 'authorizationPrompt'
             new AuthorizationPromptNotification(opts)
         else
-            new Notification(opts)
+            new EventNotification(opts)

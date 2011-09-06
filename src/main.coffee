@@ -76,6 +76,7 @@ cli.main (args, opts) ->
     pubsubBackend.on 'authorizationPrompt', (opts) ->
         # Just relay
         opts.type = 'authorizationPrompt'
+        # TODO: verify node authorization
         router.notify opts
     pubsubBackend.on 'authorizationConfirm', (opts) ->
         opts.operation = 'confirm-subscriber-authorization'

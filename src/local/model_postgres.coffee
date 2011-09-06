@@ -315,6 +315,7 @@ class Transaction
             cb err, res?.rows?.map((row) -> row.listener)
 
     getNodeModeratorListeners: (node, cb) ->
+        # TODO: on subscriptions.listener=affiliations.listener
         @db.query """SELECT DISTINCT listener
                      FROM subscriptions
                      WHERE node=$1
@@ -326,6 +327,20 @@ class Transaction
         , [node]
         , (err, res) ->
             cb err, res?.rows?.map((row) -> row.listener)
+
+    walkModeratorAuthorizationRequests: (user, iter, cb) ->
+        # TODO: make batched
+        @db.query """SELECT "user", node
+                     FROM subscriptions
+                     WHERE subscription='pending'
+                     AND node IN (SELECT node
+                                  FROM affiliations
+                                  WHERE "user"=$1
+                                  AND (affiliation='owner' OR affiliation='moderator'))"""
+        , [user]
+        , (err, res) ->
+            res?.rows?.forEach (row) -> iter(row)
+            cb err
 
     ##
     # Affiliation management

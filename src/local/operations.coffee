@@ -610,10 +610,16 @@ class AuthorizeSubscriber extends PrivilegedOperation
 # TODO: also authorization prompts
 class ReplayArchive extends ModelOperation
     transaction: (t, cb) ->
-        t.walkListenerArchive @req.sender, @req.start, @req.end, (results) =>
-            console.log iter: results
-            @sendNotification results
-        , cb
+        async.waterfall [ (cb2) =>
+            t.walkListenerArchive @req.sender, @req.start, @req.end, (results) =>
+                @sendNotification results
+            , cb2
+        , (cb2) =>
+            t.walkModeratorAuthorizationRequests @req.sender, (req) =>
+                req.type = 'authorizationPrompt'
+                @sendNotification req
+            , cb2
+        ], cb
 
     sendNotification: (results) ->
         notification = Object.create(results)
