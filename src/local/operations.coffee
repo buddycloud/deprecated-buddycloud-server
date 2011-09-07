@@ -3,6 +3,7 @@ uuid = require('node-uuid')
 errors = require('../errors')
 NS = require('../xmpp/ns')
 {normalizeItem} = require('../normalize')
+{Element} = require('node-xmpp')
 
 runTransaction = null
 exports.setModel = (model) ->
@@ -46,12 +47,19 @@ defaultConfiguration = (user) ->
         publishModel: "publishers"
         defaultAffiliation: "member"
 
+NODE_OWNER_TYPE_REGEXP = /^\/user\/([^\/]+)\/?(.*)/
+
 ##
 # Is created with options from the request
 #
 # Implementations set result
 class Operation
     constructor: (@router, @req) ->
+        if @req.node? and
+           (m = @req.node.match(NODE_OWNER_TYPE_REGEXP)) and
+           m[2] is 'subscriptions'
+            # Affords for specialized items handling in RetrieveItems and Publish
+            @subscriptionsNodeOwner = m[1]
 
     run: (cb) ->
         cb new errorsFeature.NotImplemented("Operation defined but not yet implemented")
@@ -154,7 +162,7 @@ class PrivilegedOperation extends ModelOperation
         if AFFILIATIONS.indexOf(@actorAffiliation) >= AFFILIATIONS.indexOf(@requiredAffiliation)
             cb()
         else
-            cb new errors.Forbidden("Requires affiliation #{@requiredAffiliation}")
+            cb new errors.Forbidden("Requires affiliation #{@requiredAffiliation} (you are #{@actorAffiliation})")
 
     # Used by Publish operation
     checkPublishModel: (t, cb) ->
@@ -308,6 +316,9 @@ class Publish extends PrivilegedOperation
     # checks affiliation with @checkPublishModel below
 
     privilegedTransaction: (t, cb) ->
+        if @subscriptionsNode?
+            return cb new errors.NotAllowed("The subscriptions node is automagically populated")
+
         async.waterfall [ (cb2) =>
             @checkPublishModel t, cb2
         , (cb2) =>
@@ -418,9 +429,14 @@ class Unsubscribe extends ModelOperation
 
 
 class RetrieveItems extends PrivilegedOperation
-    requiredAffiliation: 'member'
-
     privilegedTransaction: (t, cb) ->
+        if @subscriptionsNodeOwner?
+            # Deviate from standard handling path for
+            # virtual items of /user/.../subscriptions
+            #
+            # TODO: ONLY IF LOCAL; SYNC IF CACHED REMOTE!
+            return @retrieveSubscriptionsItems(t, cb)
+
         node = @req.node
         rsm = @req.rsm
         t.getItemIds node, (err, ids) ->
@@ -445,6 +461,72 @@ class RetrieveItems extends PrivilegedOperation
                     results.node = node
                     results.rsm = rsm
                     cb null, results
+
+    ##
+    # For /user/.../subscriptions
+    #
+    # <item id="koski@buddycloud.com">
+    #    <query xmlns="http://jabber.org/protocol/disco#items" xmlns:pubsub="http://jabber.org/protocol/pubsub" xmlns:atom="http://www.w3.org/2005/Atom">
+    #       <item jid="sandbox.buddycloud.com"
+    #             node="/user/koski@buddycloud.com/posts"
+    #             pubsub:affiliation="publisher">
+    #         <atom:updated>2010-12-26T17:30:00Z</atom:updated>
+    #       </item>
+    #       <item jid="sandbox.buddycloud.com"
+    #             node="/user/koski@buddycloud.com/geo/future"/>
+    #       <item jid="sandbox.buddycloud.com"
+    #             node="/user/koski@buddycloud.com/geo/current"/>
+    #       <item jid="sandbox.buddycloud.com"
+    #             node="/user/koski@buddycloud.com/geo/previous"/>
+    #       <item jid="sandbox.buddycloud.com"
+    #             node="/user/koski@buddycloud.com/mood"
+    #             pubsub:affiliation="member"/>
+    #    </query>
+    #  </item>
+    retrieveSubscriptionsItems: (t, cb) ->
+        async.waterfall [ (cb2) =>
+            t.getSubscriptions @subscriptionsNodeOwner, cb2
+        , (subscriptions, cb2) =>
+            console.log {subscriptions}
+            # Group for item ids by followee:
+            subscriptionsByFollowee = {}
+            for subscription in subscriptions
+                if (m = subscription.node.match(NODE_OWNER_TYPE_REGEXP))
+                    followee = m[1]
+                    unless subscriptionsByFollowee[followee]?
+                        subscriptionsByFollowee[followee] = []
+                    subscriptionsByFollowee[followee].push subscription
+            # Prepare RSM suitable result set
+            results = []
+            for own followee, followeeSubscriptions of subscriptionsByFollowee
+                results.push
+                    id: followee
+                    subscriptions: followeeSubscriptions
+            console.log {results}
+            # Apply RSM
+            results = @req.rsm.cropResults results, 'id'
+            # TODO: get affiliations per node
+            cb2 null, results
+        , (results, cb2) =>
+            # Transform to specified items format
+            for item in results
+                item.el = new Element('query',
+                        xmlns: NS.DISCO_ITEMS
+                        'xmlns:pubsub': NS.PUBSUB
+                    )
+                for subscription in item.subscriptions
+                    item.el.c('item',
+                        jid: @req.me
+                        node: subscription.node
+                        'pubsub:subscription': subscription.subscription
+                    )
+                delete item.subscriptions
+
+            results.rsm = @req.rsm
+            results.node = @req.node
+            cb2 null, results
+        ], cb
+
 
 class RetractItems extends PrivilegedOperation
     # TODO: let users remove their own posts
