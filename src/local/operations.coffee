@@ -502,11 +502,26 @@ class RetrieveItems extends PrivilegedOperation
                 results.push
                     id: followee
                     subscriptions: followeeSubscriptions
-            console.log {results}
+            # Sort for a stable traversal with multiple RSM'ed queries
+            results.sort (result1, result2) ->
+                if result1.id < result2.id
+                    -1
+                else if result1.id > result2.id
+                    1
+                else
+                    0
             # Apply RSM
             results = @req.rsm.cropResults results, 'id'
-            # TODO: get affiliations per node
-            cb2 null, results
+
+            # get affiliations per node
+            async.forEachSeries results, (result, cb3) =>
+                async.forEach result.subscriptions, (subscription, cb4) =>
+                    t.getAffiliation subscription.node, @subscriptionsNodeOwner, (err, affiliation) ->
+                        subscription.affiliation ?= affiliation
+                        cb4 err
+                , cb3
+            , (err) ->
+                cb2 err, results
         , (results, cb2) =>
             # Transform to specified items format
             for item in results
@@ -515,11 +530,12 @@ class RetrieveItems extends PrivilegedOperation
                         'xmlns:pubsub': NS.PUBSUB
                     )
                 for subscription in item.subscriptions
-                    item.el.c('item',
+                    itemAttrs =
                         jid: @req.me
                         node: subscription.node
-                        'pubsub:subscription': subscription.subscription
-                    )
+                    itemAttrs['pubsub:subscription'] ?= subscription.subscription
+                    itemAttrs['pubsub:affiliation'] ?= subscription.affiliation
+                    item.el.c('item', itemAttrs)
                 delete item.subscriptions
 
             results.rsm = @req.rsm
