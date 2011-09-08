@@ -47,4 +47,5 @@ rm -r "$TMPDIR"
 echo "Now create the PG database, import the schema and"
 echo "update config.js accordingly."
 echo "Then run buddycloud-server like this:"
-echo `which node` $SRCDIR/bin/channel-server
+echo "export PATH=$(dirname $(which node)):\$PATH"
+echo "$SRCDIR/bin/channel-server"
