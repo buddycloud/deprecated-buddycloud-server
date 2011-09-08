@@ -429,14 +429,24 @@ class Unsubscribe extends ModelOperation
 
 
 class RetrieveItems extends PrivilegedOperation
-    privilegedTransaction: (t, cb) ->
+    run: (cb) ->
         if @subscriptionsNodeOwner?
-            # Deviate from standard handling path for
-            # virtual items of /user/.../subscriptions
-            #
-            # TODO: ONLY IF LOCAL; SYNC IF CACHED REMOTE!
-            return @retrieveSubscriptionsItems(t, cb)
+            # Special case: only handle virtually when local server is
+            # authoritative
+            @router.authorizeFor @req.me, @subscriptionsNodeOwner, (err, valid) =>
+                if err
+                    return cb err
 
+                if valid
+                    # Patch in virtual items
+                    @privilegedTransaction = @retrieveSubscriptionsItems
+
+                # asynchronous super:
+                PrivilegedOperation::run.call @, cb
+        else
+            super
+
+    privilegedTransaction: (t, cb) ->
         node = @req.node
         rsm = @req.rsm
         t.getItemIds node, (err, ids) ->
