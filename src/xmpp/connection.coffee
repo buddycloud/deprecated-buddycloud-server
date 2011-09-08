@@ -164,7 +164,7 @@ class exports.Connection extends EventEmitter
                     from: presence.attrs.to
                     to: presence.attrs.from
                     id: presence.attrs.id
-                ).c("status").t("buddycloud channel-server")
+                ).c("status").t("buddycloud-server")
 
             when "subscribed" then
                 # User allowed us subscription

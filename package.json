@@ -1,6 +1,6 @@
-{ "name": "channel-server"
+{ "name": "buddycloud-server"
 ,"version": "0.0.1"
-,"bin": { "channel-server": "./bin/channel-server" }
+,"bin": { "buddycloud-server": "./bin/buddycloud-server" }
 ,"description": "buddycloud channels service for XMPP"
 ,"author": "Stephan Maka"
 ,"dependencies": {"coffee-script": ">=1.1.1",
@@ -15,15 +15,15 @@
         "pg": ">=0.2.6"
         }
 ,"repositories": [{"type": "git"
-        ,"path": "git://github.com/astro/channel-server.git"
+        ,"path": "git://github.com/buddycloud/buddycloud-server.git"
         }]
 ,"scripts": {
-    "start": "./bin/channel-server --nobuild",
+    "start": "./bin/buddycloud-server --nobuild",
     "install": "node-waf configure build",
     "build": "node-waf configure build"
 }
-,"homepage": "http://github.com/astro/channel-server"
-,"bugs": "http://github.com/astro/channel-server/issues"
+,"homepage": "http://buddycloud.org"
+,"bugs": "http://github.com/buddycloud/buddycloud-server/issues"
 ,"maintainers": [{"name": "Astro"
         ,"email": "astro@spaceboyz.net"
         ,"web": "http://spaceboyz.net/~astro/"

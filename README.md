@@ -1,15 +1,15 @@
-# channel-server
+# buddycloud-server
 
 Social network users who are concerned about privacy and censorship
 want to run their own decentralized instances, yielding full control
-over own data. channel-server is a building block for a bright future:
+over own data. buddycloud-server is a building block for a bright future:
 it exposes your data to the network, featuring access control and
 real-time update notification.
 
 The primary network protocol is
 [buddycloud channels](http://buddycloud.org/).
 
-channel-server is distributed under the Apache License 2.0. See the
+buddycloud-server is distributed under the Apache License 2.0. See the
 `LICENSE` file.
 
 ## Installation
