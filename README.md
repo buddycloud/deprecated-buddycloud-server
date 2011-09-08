@@ -31,18 +31,6 @@ transactions.
 
 ### Design
 
-Network applications are proxies. In general, they provide a
-well-defined interface to databases with additional access control,
-data sanitization, and in this case, notification hooks.
-
-    Request                    subscribed
-    ------>Frontend---->Router------------>.Database.
-    <------|      |      |                 |  own & |
-           |      |      |not subscribed   |synchro-|
-      proxy|      |      |                 |  nized |
-    <------|      |<-----/                 |  data  |
-           |______|                        |________|
-
 ### Frontends
 
 #### XEP-0060 Publish-Subscribe w/ buddycloud conventions
@@ -64,9 +52,6 @@ backend is expected to yield high performance.
 ## TODO
 
 * `grep TODO *.js`
-* [Result Set Management](http://xmpp.org/extensions/xep-0059.html)
-* Outcast affiliation
-* Subscription notification messages
 * More configurability (channel presets)
 * Topic channels
 * More backends (MySQL? SQLite?)
