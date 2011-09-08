@@ -1,28 +1,26 @@
 cli = require('cli')
 path = require('path')
 async = require('async')
-default_config = require(path.join(process.cwd(),"..","..","config"))
+defaultConfigPath = path.join(__dirname,"..","..","config")
+config = require(defaultConfigPath)
 
-cli.parse
+cli.parse cli_args =
     host: ['b', "xmpp server listen address"
-        'host', process.env.HOST or default_config.xmpp.host]
+        'host', process.env.HOST or config.xmpp.host]
     port: ['p', "xmpp server listen port"
-        'number', parseInt(process.env.PORT) or default_config.xmpp.port]
-    config: ['c', "load config file", 'path', path.join(process.cwd(),"..","..","config.js")]
+        'number', parseInt(process.env.PORT) or config.xmpp.port]
+    config: ['c', "load config file", 'path', defaultConfigPath]
     debug: [off, "enable debug mode"]
     nobuild: [off, "[INTERNAL] disable build"]
 
 cli.main (args, opts) ->
-    unless opts.config is "#{process.cwd()}/../../config"
-        config = require(opts.config)
-    else
-        config = default_config
+    config = require(opts.config)
 
-    unless opts.host is (process.env.HOST or default_config.xmpp.host)
+    unless opts.host is cli_args.host[3]
         config.xmpp.host = opts.host
 
-    unless opts.host is (process.env.PORT or default_config.xmpp.port)
-        config.xmpp.host = opts.host
+    unless opts.port is cli_args.port[3]
+        config.xmpp.port = opts.port
 
     if opts.debug
         process.on 'uncaughtException', (err) ->
