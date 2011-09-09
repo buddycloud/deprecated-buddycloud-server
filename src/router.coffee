@@ -97,8 +97,13 @@ class exports.Router
                     @runLocally opts, cb
                 else
                     # run remotely
-                    @runRemotely opts, cb
-                    # TODO: need to catch SeeLocal and return 404?
+                    @runRemotely opts, (err, results) ->
+                        if err?.constructor is errors.SeeLocal
+                            # Is not locally present but discovery
+                            # returned ourselves.
+                            cb new errors.NotFound("Node does not exist here")
+                        else
+                            cb err, results
 
     pushData: (opts, cb) ->
         opts.operation = 'push-inbox'
