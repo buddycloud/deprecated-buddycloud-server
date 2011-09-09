@@ -90,6 +90,9 @@ AFFILIATIONS = [
     'outcast', 'none', 'member',
     'publisher', 'moderator', 'owner'
 ]
+isAffiliationAtLeast = (affiliation1, affiliation2) ->
+    AFFILIATIONS.indexOf(affiliation1) >= AFFILIATIONS.indexOf(affiliation2)
+
 class PrivilegedOperation extends ModelOperation
 
     transaction: (t, cb) ->
@@ -127,7 +130,7 @@ class PrivilegedOperation extends ModelOperation
 
                 @actorAffiliation = 'none'
                 for affiliation in affiliations
-                    if AFFILIATIONS.indexOf(affiliation) > AFFILIATIONS.indexOf(@actorAffiliation)
+                    if isAffiliationAtLeast affilliation, @actorAffiliation
                         @actorAffiliation = affiliation
                 cb()
 
@@ -159,7 +162,7 @@ class PrivilegedOperation extends ModelOperation
         cb()
 
     checkRequiredAffiliation: (t, cb) ->
-        if AFFILIATIONS.indexOf(@actorAffiliation) >= AFFILIATIONS.indexOf(@requiredAffiliation)
+        if isAffiliationAtLeast @actorAffiliation, @requiredAffiliation
             cb()
         else
             cb new errors.Forbidden("Requires affiliation #{@requiredAffiliation} (you are #{@actorAffiliation})")
@@ -171,9 +174,9 @@ class PrivilegedOperation extends ModelOperation
             when 'open'
                 pass = true
             when 'members'
-                pass = (AFFILIATIONS.indexOf(@actorAffiliation) >= 'member')
+                pass = isAffiliationAtLeast @actorAffiliation, 'member'
             when 'publishers'
-                pass = (AFFILIATIONS.indexOf(@actorAffiliation) >= 'publishers')
+                pass = isAffiliationAtLeast @actorAffiliation, 'publishers'
             else
                 # Owners can always post
                 pass = (@actorAffiliation is 'owner')
