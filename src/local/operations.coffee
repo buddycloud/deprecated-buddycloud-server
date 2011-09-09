@@ -374,11 +374,15 @@ class Subscribe extends PrivilegedOperation
         , (cb2) =>
             if @nodeConfig.accessModel is 'authorize'
                 @subscription = 'pending'
-                cb2()
-            else
-                @subscription = 'subscribed'
+                # Immediately return:
+                return cb2()
+
+            @subscription = 'subscribed'
+            unless isAffiliationAtLeast @actorAffiliation, @nodeConfig.defaultAffiliation
+                # Less than current affiliation? Bump up to defaultAffiliation
                 @affiliation = @nodeConfig.defaultAffiliation or 'member'
-                @checkAccessModel t, cb2
+
+            @checkAccessModel t, cb2
         ], (err) =>
             if err
                 return cb err
@@ -425,8 +429,10 @@ class Unsubscribe extends ModelOperation
     transaction: (t, cb) ->
         t.setSubscription @req.node, @req.actor, @req.sender, 'none', (err) =>
             t.getAffiliation @req.node, @req.actor, (err, affiliation) =>
-                if not err and affiliation is 'member'
-                    # TODO: only decrease if == defaultAffiliation
+                # only decrease if <= defaultAffiliation
+                if not err and
+                   isAffiliationAtLeast @config.defaultAffiliation, affiliation and
+                   affiliations isnt 'outcast'
                     t.setAffiliation @req.node, @req.actor, 'none', cb
                 else
                     cb err
@@ -696,11 +702,11 @@ class AuthorizeSubscriber extends PrivilegedOperation
     privilegedTransaction: (t, cb) ->
         if @req.allow
             @subscription = 'subscribed'
-            # TODO: don't decrease affiliation
-            @affiliation = @nodeConfig.defaultAffiliation or 'member'
+            unless isAffiliationAtLeast @actorAffiliation, @nodeConfig.defaultAffiliation
+                # Less than current affiliation? Bump up to defaultAffiliation
+                @affiliation = @nodeConfig.defaultAffiliation or 'member'
         else
             @subscription = 'none'
-            # TODO: @affiliation either none or preserve outcast
 
         async.waterfall [ (cb2) =>
             t.setSubscription @req.node, @req.user, @req.sender, @subscription, cb2
