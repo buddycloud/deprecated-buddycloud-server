@@ -266,38 +266,47 @@ class BrowseNodesItems extends PrivilegedOperation
             cb null, results
 
 class Register extends ModelOperation
-    # TODO: overwrite @run() and check if this component is
-    # authoritative for the requesting user's domain
+    run: (cb) ->
+        # check if this component is authoritative for the requesting
+        # user's domain
+        @router.authorizeFor @req.me, @req.actor, (err, valid) =>
+            if err
+                return cb err
+
+            if valid
+                # asynchronous super:
+                ModelOperation::run.call @, cb
+            else
+                cb new errors.NotAllowed("This is not the authoritative buddycloud-server for your domain")
+
     transaction: (t, cb) ->
         user = @req.actor
-        listener = @req.sender
-        async.parallel(for own nodeType, config of defaultConfiguration(user)
-            do (nodeType, config) ->
-                (cb2) ->
-                    console.log 'Register cb2': cb2
+        jobs = []
+        for own nodeType, config of defaultConfiguration(user)
+            # rescope loop variables:
+            do (nodeType, config) =>
+                jobs.push (cb2) =>
                     node = "/user/#{user}/#{nodeType}"
-                    console.log "creating #{node}"
-                    created = true
-                    async.waterfall [(cb3) ->
-                        t.createNode node, cb3
-                    , (created_, cb3) ->
-                        console.log createNode: arguments
-                        created = created_
-                        t.setAffiliation node, user, 'owner', cb3
-                    , (cb3) ->
-                        console.log setAffiliation: arguments
-                        t.setSubscription node, user, listener, 'subscribed', cb3
-                    , (cb3) ->
-                        console.log setSubscription: arguments
-                        # if already present, don't overwrite config
-                        if created
-                            t.setConfig node, config, cb3
-                        else
-                            cb3 null
-                    ], cb2
-        , (err) ->
-            cb err
-        )
+                    @createNodeWithConfig t, node, config, cb2
+        async.forEach jobs, cb
+
+    createNodeWithConfig: (t, node, config, cb) ->
+        user = @req.actor
+        async.waterfall [(cb2) ->
+            console.log "creating #{node}"
+            t.createNode node, cb2
+        , (created_, cb2) ->
+            created = created_
+            t.setAffiliation node, user, 'owner', cb2
+        , (cb2) ->
+            t.setSubscription node, user, @req.sender, 'subscribed', cb2
+        , (cb2) ->
+            # if already present, don't overwrite config
+            if created
+                t.setConfig node, config, cb2
+            else
+                cb2 null
+        ], cb
 
 
 class CreateNode extends ModelOperation
