@@ -146,7 +146,9 @@ class exports.PubsubBackend extends EventEmitter
                     # authorization prompt
                     node = form.get('pubsub#node')
                     user = form.get('pubsub#subscriber_jid')
-                    @emit 'authorizationPrompt', { node, user, sender }
+                    nodeOwner = getNodeUser node
+                    if nodeOwner
+                        @emit 'authorizationPrompt', { node, user, sender, nodeOwner }
                 else if form.type is 'submit' and
                         form.getFormType() is NS.PUBSUB_SUBSCRIBE_AUTHORIZATION
                     # authorization confirm

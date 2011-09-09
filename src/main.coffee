@@ -72,10 +72,13 @@ cli.main (args, opts) ->
         router.syncServer server, ->
 
     pubsubBackend.on 'authorizationPrompt', (opts) ->
-        # Just relay
-        opts.type = 'authorizationPrompt'
-        # TODO: verify node authorization
-        router.notify opts
+        # verify node authority
+        pubsubBackend.authorizeFor opts.sender, opts.nodeOwner, (err, valid) ->
+            if valid
+                # Just relay
+                opts.type = 'authorizationPrompt'
+                router.notify opts
+
     pubsubBackend.on 'authorizationConfirm', (opts) ->
         opts.operation = 'confirm-subscriber-authorization'
         router.run opts, ->
