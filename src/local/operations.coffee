@@ -337,7 +337,7 @@ class Publish extends PrivilegedOperation
                     , (oldItem, cb4) =>
                         normalizeItem @req, oldItem, item, cb4
                     , (newItem, cb4) =>
-                        t.writeItem @req.node, newItem.id, @req.actor, newItem.el, (err) ->
+                        t.writeItem @req.node, newItem.id, newItem.el, (err) ->
                             cb4 err, newItem.id
                     ], cb3
             ), cb2
@@ -759,12 +759,7 @@ class PushInbox extends ModelOperation
                         {node, items} = update
                         async.forEach items, (item, cb4) ->
                             {id, el} = item
-                            # FIXME: refactor out
-                            author = el?.is('entry') and
-                                el.getChild('author')?.getChild('uri')?.getText()
-                            if author and (m = /^acct:(.+)/.exec(author))
-                                author = m[1]
-                            t.writeItem node, id, author, el, cb4
+                            t.writeItem node, id, el, cb4
                         , cb3
 
                     when 'subscription'

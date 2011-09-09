@@ -426,7 +426,7 @@ class Transaction
             )
         ], cb
 
-    writeItem: (node, id, author, el, cb) ->
+    writeItem: (node, id, el, cb) ->
         db = @db
         async.waterfall [ @validateNode(node), (cb2) ->
             db.query "SELECT id FROM items WHERE node=$1 AND id=$2", [ node, id ], cb2
@@ -434,12 +434,12 @@ class Transaction
             isSet = res and res.rows and res.rows[0]
             xml = el.toString()
             if isSet
-                db.query "UPDATE items SET xml=$1, author=$2, updated=CURRENT_TIMESTAMP WHERE node=$3 AND id=$4"
-                , [ xml, author, node, id ]
+                db.query "UPDATE items SET xml=$1, updated=CURRENT_TIMESTAMP WHERE node=$2 AND id=$3"
+                , [ xml, node, id ]
                 , cb2
             else unless isSet
-                db.query "INSERT INTO items (node, id, author, xml, updated) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)"
-                , [ node, id, author, xml ]
+                db.query "INSERT INTO items (node, id, xml, updated) VALUES ($1, $2, $3, CURRENT_TIMESTAMP)"
+                , [ node, id, xml ]
                 , cb2
         ], cb
 
