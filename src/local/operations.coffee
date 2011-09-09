@@ -724,7 +724,6 @@ class AuthorizeSubscriber extends PrivilegedOperation
                 affiliation: @affiliation
         ns
 
-# TODO: also authorization prompts
 class ReplayArchive extends ModelOperation
     transaction: (t, cb) ->
         async.waterfall [ (cb2) =>
