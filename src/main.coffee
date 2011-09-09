@@ -1,26 +1,22 @@
-cli = require('cli')
 path = require('path')
 async = require('async')
+config = require('jsconfig')
 defaultConfigPath = path.join(__dirname,"..","..","config")
-config = require(defaultConfigPath)
+config.defaults(require(defaultConfigPath))
 
-cli.parse cli_args =
-    host: ['b', "xmpp server listen address"
-        'host', process.env.HOST or config.xmpp.host]
-    port: ['p', "xmpp server listen port"
-        'number', parseInt(process.env.PORT) or config.xmpp.port]
+config.set 'env',
+    HOST: 'xmpp.host'
+    PORT: ['xmpp.port', parseInt]
+
+config.cli
+    host: ['xmpp.host', ['b', "xmpp server listen address", 'host']]
+    port: ['xmpp.port', ['p', "xmpp server listen port",  'number']]
     config: ['c', "load config file", 'path', defaultConfigPath]
     debug: [off, "enable debug mode"]
     nobuild: [off, "[INTERNAL] disable build"]
 
-cli.main (args, opts) ->
-    config = require(opts.config)
-
-    unless opts.host is cli_args.host[3]
-        config.xmpp.host = opts.host
-
-    unless opts.port is cli_args.port[3]
-        config.xmpp.port = opts.port
+config.load (args, opts) ->
+    config.merge(require(opts.config))
 
     if opts.debug
         process.on 'uncaughtException', (err) ->
