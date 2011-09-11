@@ -446,14 +446,9 @@ class Transaction
     deleteItem: (node, itemId, cb) ->
         # TODO: tombstone
         db = @db
-        async.waterfall [(cb2) ->
-            db.query "DELETE FROM items WHERE node=$1 AND id=$2", [ node, itemId ], cb2
-        , (res, cb2) ->
-            if res?.rows?[0]
-                cb2 null
-            else
-                cb2 new errors.NotFound("No such item")
-        ], cb
+        @db.query "DELETE FROM items WHERE node=$1 AND id=$2", [ node, itemId ], (err) ->
+            # Don't eval result, ignore deleting non-existant items
+            cb err
 
     ##
     # sorted by time

@@ -573,16 +573,39 @@ class RetrieveItems extends PrivilegedOperation
 
 
 class RetractItems extends PrivilegedOperation
-    # TODO: let users remove their own posts
-    requiredAffiliation: 'moderator'
-
     privilegedTransaction: (t, cb) ->
-        node = @req.node
-        async.series @req.items.map((id) ->
-            (cb2) ->
-                t.deleteItem node, id, cb2
-        ), (err) ->
-            cb err
+        async.waterfall [ (cb2) =>
+            if isAffiliationAtLeast @actorAffiliation, 'moderator'
+                # Owners and moderators may remove any post
+                cb2()
+            else
+                # Anyone may remove only their own posts
+                @checkItemsAuthor t, cb2
+        , (cb2) =>
+            async.forEach @req.items, (id, cb3) =>
+                    t.deleteItem @req.node, id, cb3
+            , cb2
+        ], cb
+
+    checkItemsAuthor: (t, cb) ->
+        async.forEachSeries @req.items, (id, cb2) =>
+            t.getItem @req.node, id, (err, el) =>
+                if err?.constructor is errors.NotFound
+                    # Ignore non-existant item
+                    return cb2()
+                else if err
+                    return cb2(err)
+
+                # Check for post authorship
+                author = el?.is('entry') and
+                    el.getChild('author')?.getChild('uri')?.getText()
+                console.log {author,actor:@req.actor,el:el.toString()}
+                if author is "acct:#{@req.actor}"
+                    # Authenticated!
+                    cb2()
+                else
+                    cb2 new errors.NotAllowed("You may not retract other people's posts")
+        , cb
 
 class RetrieveUserSubscriptions extends ModelOperation
     transaction: (t, cb) ->
