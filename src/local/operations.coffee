@@ -70,6 +70,7 @@ class ModelOperation extends Operation
             if err
                 return cb err
 
+            opName = @req.operation or "?"
             @transaction t, (err, results) ->
                 if err
                     console.error "Transaction rollback: #{err}"
@@ -77,7 +78,7 @@ class ModelOperation extends Operation
                         cb err
                 else
                     t.commit ->
-                        console.log "committed"
+                        console.log "Operation #{opName} committed"
                         cb null, results
 
 
@@ -599,7 +600,6 @@ class RetractItems extends PrivilegedOperation
                 # Check for post authorship
                 author = el?.is('entry') and
                     el.getChild('author')?.getChild('uri')?.getText()
-                console.log {author,actor:@req.actor,el:el.toString()}
                 if author is "acct:#{@req.actor}"
                     # Authenticated!
                     cb2()
