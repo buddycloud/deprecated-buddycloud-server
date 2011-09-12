@@ -2,7 +2,7 @@ path = require('path')
 async = require('async')
 config = require('jsconfig')
 defaultConfigPath = path.join(__dirname,"..","..","config")
-config.defaults(require(defaultConfigPath))
+config.defaults(defaultConfigPath)
 
 config.set 'env',
     HOST: 'xmpp.host'
