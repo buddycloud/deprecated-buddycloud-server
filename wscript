@@ -17,13 +17,14 @@ def configure(ctx):
 
 def build(ctx):
     env = Dummy()
-    env.variant = lambda: ""
+    env.variant = lambda: ctx.env.variant()
 
     for file in ctx.path.find_dir("src").ant_glob("**/*.coffee", flat=False):
         tgtpath = file.change_ext(".js").bldpath(env)[5:]
         ctx.path.exclusive_build_node(tgtpath)
         ctx(name   = "coffee",
-            rule   = "${COFFEE} ${COFFEE_ARGS} default/%s ${SRC}" % dirname(tgtpath),
+            rule   = "${COFFEE} ${COFFEE_ARGS} %s/%s ${SRC}" % (
+                     env.variant(),dirname(tgtpath)),
             source = file.srcpath()[3:],
             target = tgtpath)
 
