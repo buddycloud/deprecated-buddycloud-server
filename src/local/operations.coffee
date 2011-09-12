@@ -292,17 +292,19 @@ class Register extends ModelOperation
                 jobs.push (cb2) =>
                     node = "/user/#{user}/#{nodeType}"
                     @createNodeWithConfig t, node, config, cb2
-        async.forEach jobs, cb
+        async.series jobs, (err) ->
+            cb err
 
     createNodeWithConfig: (t, node, config, cb) ->
         user = @req.actor
+        created = no
         async.waterfall [(cb2) ->
             console.log "creating #{node}"
             t.createNode node, cb2
         , (created_, cb2) ->
             created = created_
             t.setAffiliation node, user, 'owner', cb2
-        , (cb2) ->
+        , (cb2) =>
             t.setSubscription node, user, @req.sender, 'subscribed', cb2
         , (cb2) ->
             # if already present, don't overwrite config
