@@ -428,17 +428,21 @@ class Subscribe extends PrivilegedOperation
 
 ##
 # Not privileged as anybody should be able to unsubscribe him/herself
-class Unsubscribe extends ModelOperation
-    transaction: (t, cb) ->
-        t.setSubscription @req.node, @req.actor, @req.sender, 'none', (err) =>
-            t.getAffiliation @req.node, @req.actor, (err, affiliation) =>
-                # only decrease if <= defaultAffiliation
-                if not err and
-                   isAffiliationAtLeast @config.defaultAffiliation, affiliation and
-                   affiliations isnt 'outcast'
-                    t.setAffiliation @req.node, @req.actor, 'none', cb
-                else
-                    cb err
+class Unsubscribe extends PrivilegedOperation
+    privilegedTransaction: (t, cb) ->
+        async.waterfall [ (cb2) =>
+            t.setSubscription @req.node, @req.actor, @req.sender, 'none', cb2
+        , (cb2) =>
+            t.getAffiliation @req.node, @req.actor, cb2
+        , (affiliation, cb2) =>
+            # only decrease if <= defaultAffiliation
+            if isAffiliationAtLeast @nodeConfig.defaultAffiliation, affiliation and
+               @actorAffiliation isnt 'outcast'
+                @actorAffiliation = 'none'
+                t.setAffiliation @req.node, @req.actor, 'none', cb2
+            else
+                cb2()
+        ], cb
 
     notification: ->
         [{
@@ -446,6 +450,11 @@ class Unsubscribe extends ModelOperation
             node: @req.node
             user: @req.actor
             subscription: 'unsubscribed'
+        }, {
+            type: 'affiliation'
+            node: @req.node
+            user: @req.actor
+            affiliation: @actorAffiliation
         }]
 
 
