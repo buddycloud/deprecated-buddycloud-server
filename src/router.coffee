@@ -42,7 +42,7 @@ class RemoteRouter
         tryBackend = =>
             backend = backends.shift()
             backend.authorizeFor sender, actor, (err, valid) ->
-                if err && !valid
+                if (err or !valid) and backends.length > 0
                     # Retry with next backend
                     tryBackend()
                 else
