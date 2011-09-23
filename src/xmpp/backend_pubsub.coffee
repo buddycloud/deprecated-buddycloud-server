@@ -155,7 +155,7 @@ class exports.PubsubBackend extends EventEmitter
                     node = form.get('pubsub#node')
                     user = form.get('pubsub#subscriber_jid')
                     allow = (form.get('pubsub#allow') is 'true')
-                    actor = form.get('x-buddycloud#actor') or sender
+                    actor = form.get('buddycloud#actor') or sender
                     @emit 'authorizationConfirm', { node, user, allow, actor, sender }
 
         # Which nodes' updates pertain our local cache?

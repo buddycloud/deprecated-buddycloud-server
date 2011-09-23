@@ -90,7 +90,7 @@ exports.configToForm = (config, type, formType) ->
         'Who may subscribe and retrieve items'
     addField 'publishModel', 'pubsub#publish_model',
         'Who may publish items'
-    addField 'defaultAffiliation', 'pubsub#default_affiliation',
+    addField 'defaultAffiliation', 'buddycloud#default_affiliation',
         'What role do new subscribers have?'
     addField 'creationTime', 'pubsub#creation_date',
         'Creation date'
@@ -106,6 +106,6 @@ exports.formToConfig = (form) ->
         config.description ?= form.get('pubsub#description')
         config.accessModel ?= form.get('pubsub#access_model')
         config.publishModel ?= form.get('pubsub#publish_model')
-        config.defaultAffiliation ?= form.get('pubsub#default_affiliation')
+        config.defaultAffiliation ?= form.get('buddycloud#default_affiliation')
         config.creationDate ?= form.get('pubsub#creation_date')
     config

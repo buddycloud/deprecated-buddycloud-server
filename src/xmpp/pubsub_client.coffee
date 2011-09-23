@@ -315,7 +315,7 @@ class AuthorizeSubscriber
             'Subscriber Address', @opts.user
         form.addField 'pubsub#allow', 'boolean',
             'Allow?', (if @opts.allow then 'true' else 'false')
-        form.addField 'x-buddycloud#actor', 'jid-single',
+        form.addField 'buddycloud#actor', 'jid-single',
             'Authorizing actor', @opts.actor
 
         new xmpp.Element('message',
