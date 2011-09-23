@@ -94,6 +94,8 @@ exports.configToForm = (config, type, formType) ->
         'What role do new subscribers have?'
     addField 'creationTime', 'pubsub#creation_date',
         'Creation date'
+    addField 'channelType', 'buddycloud#channel_type',
+        'Type of channel'
     form
 
 exports.formToConfig = (form) ->
@@ -108,4 +110,5 @@ exports.formToConfig = (form) ->
         config.publishModel ?= form.get('pubsub#publish_model')
         config.defaultAffiliation ?= form.get('buddycloud#default_affiliation')
         config.creationDate ?= form.get('pubsub#creation_date')
+        config.channelType ?= form.get('buddycloud#channel_type')
     config

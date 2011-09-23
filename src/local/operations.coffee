@@ -13,6 +13,7 @@ defaultConfiguration = (user) ->
     posts:
         title: "#{user} Channel Posts"
         description: "A buddycloud channel"
+        channelType: "personal"
         accessModel: "open"
         publishModel: "subscribers"
         defaultAffiliation: "member"
