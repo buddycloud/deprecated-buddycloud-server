@@ -92,6 +92,8 @@ exports.configToForm = (config, type, formType) ->
         'Who may publish items'
     addField 'defaultAffiliation', 'pubsub#default_affiliation',
         'What role do new subscribers have?'
+    addField 'creationTime', 'pubsub#creation_date',
+        'Creation date'
     form
 
 exports.formToConfig = (form) ->
@@ -105,4 +107,5 @@ exports.formToConfig = (form) ->
         config.accessModel ?= form.get('pubsub#access_model')
         config.publishModel ?= form.get('pubsub#publish_model')
         config.defaultAffiliation ?= form.get('pubsub#default_affiliation')
+        config.creationDate ?= form.get('pubsub#creation_date')
     config

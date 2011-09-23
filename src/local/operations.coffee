@@ -291,6 +291,7 @@ class Register extends ModelOperation
             do (nodeType, config) =>
                 jobs.push (cb2) =>
                     node = "/user/#{user}/#{nodeType}"
+                    config.creationDate = new Date().toISOString()
                     @createNodeWithConfig t, node, config, cb2
         async.series jobs, (err) ->
             cb err
@@ -324,6 +325,7 @@ class CreateNode extends ModelOperation
             cb new errors.Forbidden("You can only create nodes under #{nodePrefix}")
 
     transaction: (t, cb) ->
+        # TODO: config?
         t.createNode @req.node, cb
 
 
@@ -716,6 +718,8 @@ class ManageNodeConfiguration extends PrivilegedOperation
         else if @req.config.publishModel? and
            ALLOWED_PUBLISH_MODELS.indexOf(@req.config.publishModel) < 0
             cb new errors.BadRequest("Invalid publish model")
+        else if @req.config.creationDate?
+            cb new errors.BadRequest("Cannot set creation date")
         else
             # All is well, actually run
             super(cb)
