@@ -899,11 +899,11 @@ exports.run = (router, request, cb) ->
         console.log request: request
         return cb(new errors.FeatureNotImplemented("Unimplemented operation #{opName}"))
 
-    console.log "Creating operation #{opName}, cb=#{cb}"
+    console.log "Creating operation #{opName} for #{request.actor}/#{request.actor}"
     console.log request: request
     op = new opClass(router, request)
     op.run (error, result) ->
-        console.log "operation ran: #{error}, #{result}"
+        console.log "Operation #{opName} ran: #{error}, #{result}"
         if error
             cb error
         else
