@@ -574,7 +574,7 @@ class RetrieveItems extends PrivilegedOperation
                     )
                 for subscription in item.subscriptions
                     itemAttrs =
-                        jid: @req.me
+                        jid: @subscriptionsNodeOwner
                         node: subscription.node
                     itemAttrs['pubsub:subscription'] ?= subscription.subscription
                     itemAttrs['pubsub:affiliation'] ?= subscription.affiliation
