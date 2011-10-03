@@ -23,19 +23,19 @@ defaultConfiguration = (user) ->
         accessModel: "open"
         publishModel: "publishers"
         defaultAffiliation: "member"
-    'geoloc/previous':
+    'geo/previous':
         title: "#{user} Previous Location"
         description: "Where #{user} has been before"
         accessModel: "open"
         publishModel: "publishers"
         defaultAffiliation: "member"
-    'geoloc/current':
+    'geo/current':
         title: "#{user} Current Location"
         description: "Where #{user} is at now"
         accessModel: "open"
         publishModel: "publishers"
         defaultAffiliation: "member"
-    'geoloc/next':
+    'geo/next':
         title: "#{user} Next Location"
         description: "Where #{user} intends to go"
         accessModel: "open"
