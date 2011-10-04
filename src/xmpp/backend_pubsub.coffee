@@ -60,17 +60,41 @@ class exports.PubsubBackend extends EventEmitter
                     @run router, opts2, cb
 
     notify: (opts) ->
+        if opts.length < 1
+            # Avoid empty notifications
+            return
+
         notification = Notifications.make(opts)
         listener = opts.listener
-        if listener.indexOf("@") >= 0
-            # is user? send to all resources...
-            for onlineJid in @conn.getOnlineResources listener
-                console.log "notifying client #{onlineJid} for #{opts.node}"
-                @conn.send notification.toStanza(@conn.jid, onlineJid)
-        else
-            # other component (inbox)? just send out
-            console.log "notifying service #{listener} for #{opts.node}"
-            @conn.send notification.toStanza(@conn.jid, listener)
+        try
+            if listener.indexOf("@") >= 0
+                # is user? send to all resources...
+                for onlineJid in @conn.getOnlineResources listener
+                    console.log "notifying client #{onlineJid} for #{opts.node}"
+                    @conn.send notification.toStanza(@conn.jid, onlineJid)
+            else
+                # other component (inbox)? just send out
+                console.log "notifying service #{listener} for #{opts.node}"
+                @conn.send notification.toStanza(@conn.jid, listener)
+        catch e
+            if e.constructor is errors.MaxStanzaSizeExceeded and opts.length > 1
+                # FIXME: a notification may have been sent already
+                pivot = Math.floor(opts.length / 2)
+                opts1 = opts.slice(0, pivot)
+                opts1.type = opts.type
+                opts1.node = opts.node
+                opts1.user = opts.user
+                opts1.listener = opts.listener
+                opts2 = opts.slice(pivot, opts.length)
+                opts2.type = opts.type
+                opts2.node = opts.node
+                opts2.user = opts.user
+                opts2.listener = opts.listener
+                console.warn "MaxStanzaSizeExceeded: split notification from #{opts.length} into #{opts1.length}+#{opts2.length}"
+                @notify opts1
+                @notify opts2
+            else
+                throw e
 
     # <message from='pubsub.shakespeare.lit' to='francisco@denmark.lit' id='foo'>
     #
