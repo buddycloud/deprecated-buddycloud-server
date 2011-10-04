@@ -16,8 +16,8 @@ class exports.PubsubBackend extends EventEmitter
             @onMessage_(args...)
 
         @disco = new BuddycloudDiscovery(@conn)
-        @authorizeFor = (args...) =>
-            @disco.authorizeFor(args...)
+        @authorizeFor = @disco.authorizeFor
+        @detectAnonymousUser = @disco.detectAnonymousUser
 
     getMyJids: ->
         [@conn.jid]
@@ -205,7 +205,7 @@ class BuddycloudDiscovery
             console.log "discover items of #{id}"
             new pubsubClient.DiscoverItems(@conn, { jid: id }, cb)
 
-    authorizeFor: (sender, actor, cb) ->
+    authorizeFor: (sender, actor, cb) =>
         @itemsCache.get getUserDomain(actor), (err, items) ->
             if err
                 return cb err
@@ -214,7 +214,7 @@ class BuddycloudDiscovery
             console.log "authorizing #{sender} for #{actor}: #{valid}"
             cb null, valid
 
-    findService: (user, cb) ->
+    findService: (user, cb) =>
         domain = getUserDomain(user)
         @itemsCache.get domain, (err, items) =>
             if err
@@ -243,6 +243,18 @@ class BuddycloudDiscovery
                 pending++
             # `pending' initialized with 1, to not miss the items=[] case
             done()
+
+    ##
+    # @param user {String} Bare JID
+    # @param cb {Function} callback(error, isAnonymous)
+    detectAnonymousUser: (user, cb) =>
+        @infoCache.get user, (err, result) ->
+            isAnonymous = false
+            results?.identities?.forEach (identity) ->
+                isAnonymous ||=
+                    identity.category is "account" and
+                    identity.type is "anonymous"
+            cb err, isAnonymous
 
 class RequestCache
     cacheTimeout: 30 * 1000

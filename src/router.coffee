@@ -10,7 +10,7 @@ class RemoteRouter
     constructor: (@router) ->
         @backends = []
 
-    addBackend: (backend) ->
+    addBackend: (backend) =>
         @backends.push backend
 
     getMyJids: ->
@@ -50,6 +50,19 @@ class RemoteRouter
                     cb err, valid
         tryBackend()
 
+    detectAnonymousUser: (user, cb) ->
+        backends = new Array(@backends...)
+        tryBackend = =>
+            backend = backends.shift()
+            backend.detectAnonymousUser user, (err, isAnonymous) ->
+                if err and backends.length > 0
+                    # Retry with next backend
+                    tryBackend()
+                else
+                    # Was valid or last backend
+                    cb err, isAnonymous
+        tryBackend()
+
 ##
 # Decides whether operations can be served from the local DB by an
 # Operation, or to go remote
@@ -60,11 +73,9 @@ class exports.Router
         @operations = require('./local/operations')
         @operations.setModel model
 
-    addBackend: (backend) ->
-        @remote.addBackend backend
-
-    authorizeFor: (args...) ->
-        @remote.authorizeFor(args...)
+        @addBackend = @remote.addBackend
+        @authorizeFor = @remote.authorizeFor
+        @detectAnonymousUser = @remote.detectAnonymousUser
 
     ##
     # If not, we may still find ourselves through disco
