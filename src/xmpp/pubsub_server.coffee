@@ -42,7 +42,10 @@ class Request
                 if e.constructor is errors.MaxStanzaSizeExceeded and
                    results.length > 0
                     # Retry with smaller result set
-                    @callback err, results?.slice(0, results.length - 1)
+                    console.warn "MaxStanzaSizeExceeded: #{results.length} items"
+                    smallerResults = results?.slice(0, results.length - 1)
+                    smallerResults.rsm ?= results?.rsm
+                    @callback err, smallerResults
                 else
                     throw e
 

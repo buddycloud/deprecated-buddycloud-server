@@ -194,7 +194,6 @@ class exports.Connection extends EventEmitter
         replying = () ->
             if replied
                 throw 'Sending additional iq reply'
-            replied = true
 
         # Interface for <iq type='result'/>
         stanza.reply = (child) =>
@@ -209,6 +208,7 @@ class exports.Connection extends EventEmitter
             reply.cnode(child.root()) if child?.children?
 
             @send reply
+            replied = true
         # Interface for <iq type='error'/>
         stanza.replyError = (err) =>
             replying()
