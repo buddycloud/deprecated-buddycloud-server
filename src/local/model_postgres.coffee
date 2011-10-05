@@ -586,7 +586,7 @@ class Transaction
     ##
     # MAM
     #
-    # @param cb: Function(err, results, next)
+    # @param cb: Function(err, results)
     walkListenerArchive: (listener, start, end, iter, cb) ->
         db = @db
         params = [listener]
@@ -617,8 +617,9 @@ class Transaction
                 if err
                     return cb2 err
 
-                async.map res.rows, (row, cb3) ->
-                    db.query "SELECT key, value FROM node_config WHERE node=$1", [row.node]
+                async.forEach res.rows, (row, cb3) ->
+                    node = row.node
+                    db.query "SELECT key, value FROM node_config WHERE node=$1", [node]
                     , (err, res) ->
                         if err
                             return cb3 err
@@ -626,7 +627,7 @@ class Transaction
                         config = {}
                         for row in res.rows
                             config[row.key] = row.value
-                        iter [{ type: 'config', node: row.node, config }]
+                        iter [{ type: 'config', node, config }]
 
                         cb3()
                 , cb2
