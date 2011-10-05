@@ -37,7 +37,7 @@ class RemoteRouter
         for backend in @backends
             backend.notify notification
 
-    authorizeFor: (sender, actor, cb) ->
+    authorizeFor: (sender, actor, cb) =>
         backends = new Array(@backends...)
         tryBackend = =>
             backend = backends.shift()
@@ -50,7 +50,7 @@ class RemoteRouter
                     cb err, valid
         tryBackend()
 
-    detectAnonymousUser: (user, cb) ->
+    detectAnonymousUser: (user, cb) =>
         backends = new Array(@backends...)
         tryBackend = =>
             backend = backends.shift()
