@@ -20,6 +20,10 @@ class RemoteRouter
                 jids.push(backend.getMyJids()...)
         jids
 
+    isUserOnline: (user) =>
+        @backends.some (backend) ->
+            backend.isUserOnline user
+
     run: (opts, cb) ->
         backends = new Array(@backends...)
         tryBackend = =>
@@ -74,6 +78,7 @@ class exports.Router
         @operations.setModel model
 
         @addBackend = @remote.addBackend
+        @isUserOnline = @remote.isUserOnline
         @authorizeFor = @remote.authorizeFor
 
         # Keep them for clean-up upon unavailable presence
@@ -99,7 +104,7 @@ class exports.Router
     run: (opts, cb) ->
         console.log 'Router.run': opts, cb: cb
 
-        runCheckAnonymous opts, (err) ->
+        @runCheckAnonymous opts, (err) =>
             if err
                 return cb err
 
@@ -135,8 +140,8 @@ class exports.Router
         else
             @detectAnonymousUser opts.actor, (err, isAnonymous) =>
                 if err
-                    # Can't make sure?
-                    isAnonymous = true
+                    # Can't make sure? Fall back to stupid heuristics:
+                    isAnonymous = (opts.actor.indexOf('@anon') >= 0)
 
                 # Disallow any writing requests except
                 # (un)subscribing, for which we do explicit clean-up
@@ -144,10 +149,12 @@ class exports.Router
                 if isAnonymous and opts.writes
                     if opts.operation is 'subscribe-node' or
                        opts.operation is 'unsubscribe-node'
-                        # Allow but track
-                        @anonymousUsers[opts.actor] = true
-                        # TODO: only allow if presence!
-                        cb()
+                        if @isUserOnline opts.actor
+                            # Allow but track
+                            @anonymousUsers[opts.actor] = true
+                            cb()
+                        else
+                            cb new errors.Forbidden("Send presence to be able to temporarily subscribe.")
                     else
                         # Disallow
                         cb new errors.NotAllowed("You are anonymous. You are legion.")
@@ -178,6 +185,7 @@ class exports.Router
     # * If missing from anonymousUsers no clean-up is needed
     onUserOffline: (user) ->
         if @anonymousUsers.hasOwnProperty(user) and @anonymousUsers[user]
+            delete @anonymousUsers[user]
             req =
                 operation: 'remove-user'
                 actor: user

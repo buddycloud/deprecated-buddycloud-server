@@ -22,6 +22,9 @@ class exports.PubsubBackend extends EventEmitter
     getMyJids: ->
         [@conn.jid]
 
+    isUserOnline: (user) ->
+        @conn.getOnlineResources(user).length > 0
+
     run: (router, opts, cb) ->
         if opts.jid?
             # Target server already known

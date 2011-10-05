@@ -183,7 +183,9 @@ class exports.Connection extends EventEmitter
             when "unavailable"
                 rmUserResource()
             else # available
-                @onlineResources[bareJid] = [] unless bareJid of @onlineResources
+                unless bareJid of @onlineResources
+                    @onlineResources[bareJid] = []
+                    @emit 'userOnline', bareJid
                 if @onlineResources[bareJid].indexOf(resource) < 0
                     @onlineResources[bareJid].push resource
 
