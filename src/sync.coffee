@@ -8,7 +8,7 @@ class Synchronization
         @request = {
             operation: @operation
             node: @node
-            dontCache: true
+            writes: true
         }
 
     run: (t, cb) ->

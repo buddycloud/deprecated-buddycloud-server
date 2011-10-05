@@ -75,7 +75,15 @@ class exports.Router
 
         @addBackend = @remote.addBackend
         @authorizeFor = @remote.authorizeFor
-        @detectAnonymousUser = @remote.detectAnonymousUser
+
+        # Keep them for clean-up upon unavailable presence
+        @anonymousUsers = {}
+        # Proxy to @remote.detectAnonymousUser, but uses above cache
+        @detectAnonymousUser = (user, cb) =>
+            if @anonymousUsers.hasOwnProperty(user) and @anonymousUsers[user]
+                cb null, true
+            else
+                @remote.detectAnonymousUser user, cb
 
     ##
     # If not, we may still find ourselves through disco
@@ -91,30 +99,61 @@ class exports.Router
     run: (opts, cb) ->
         console.log 'Router.run': opts, cb: cb
 
-        unless opts.node?
-            @runLocally opts, cb
-        else if opts.dontCache
-            # Request to mess with data, run remotely
-            @runRemotely opts, (err, results) =>
-                if err and err.constructor is errors.SeeLocal
-                    # Remote discovered ourselves
-                    @runLocally opts, cb
-                else
-                    # result/error from remote
-                    cb err, results
+        runCheckAnonymous opts, (err) ->
+            if err
+                return cb err
+
+            unless opts.node?
+                @runLocally opts, cb
+            else if opts.writes
+                # Request to mess with data, run remotely
+                @runRemotely opts, (err, results) =>
+                    if err and err.constructor is errors.SeeLocal
+                        # Remote discovered ourselves
+                        @runLocally opts, cb
+                    else
+                        # result/error from remote
+                        cb err, results
+            else
+                @isLocallySubscribed opts.node, (err, locallySubscribed) =>
+                    if locallySubscribed
+                        @runLocally opts, cb
+                    else
+                        # run remotely
+                        @runRemotely opts, (err, results) ->
+                            if err?.constructor is errors.SeeLocal
+                                # Is not locally present but discovery
+                                # returned ourselves.
+                                cb new errors.NotFound("Node does not exist here")
+                            else
+                                cb err, results
+
+    runCheckAnonymous: (opts, cb) ->
+        unless opts.writes
+            # No writing request, no need to check...
+            cb()
         else
-            @isLocallySubscribed opts.node, (err, locallySubscribed) =>
-                if locallySubscribed
-                    @runLocally opts, cb
+            @detectAnonymousUser opts.actor, (err, isAnonymous) =>
+                if err
+                    # Can't make sure?
+                    isAnonymous = true
+
+                # Disallow any writing requests except
+                # (un)subscribing, for which we do explicit clean-up
+                # upon unavailable presence.
+                if isAnonymous and opts.writes
+                    if opts.operation is 'subscribe-node' or
+                       opts.operation is 'unsubscribe-node'
+                        # Allow but track
+                        @anonymousUsers[opts.actor] = true
+                        # TODO: only allow if presence!
+                        cb()
+                    else
+                        # Disallow
+                        cb new errors.NotAllowed("You are anonymous. You are legion.")
                 else
-                    # run remotely
-                    @runRemotely opts, (err, results) ->
-                        if err?.constructor is errors.SeeLocal
-                            # Is not locally present but discovery
-                            # returned ourselves.
-                            cb new errors.NotFound("Node does not exist here")
-                        else
-                            cb err, results
+                    cb()
+
 
     pushData: (opts, cb) ->
         opts.operation = 'push-inbox'
@@ -133,3 +172,14 @@ class exports.Router
 
     syncServer: (server, cb) ->
         sync.syncServer @, @model, server, cb
+
+    # No need to @detectAnonymousUser() again:
+    # * Disco info may not be available anymore
+    # * If missing from anonymousUsers no clean-up is needed
+    onUserOffline: (user) ->
+        if @anonymousUsers.hasOwnProperty(user) and @anonymousUsers[user]
+            req =
+                operation: 'remove-user'
+                actor: user
+                sender: user
+            runLocally req, ->

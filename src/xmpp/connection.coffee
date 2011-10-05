@@ -141,6 +141,7 @@ class exports.Connection extends EventEmitter
                 # No resources left?
                 if @onlineResources[bareJid].length < 1
                     delete @onlineResources[bareJid]
+                    @emit 'userOffline', bareJid
 
         switch presence.attrs.type
             when "subscribe"

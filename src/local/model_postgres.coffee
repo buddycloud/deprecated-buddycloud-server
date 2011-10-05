@@ -1,3 +1,10 @@
+##
+# PostgreSQL backend
+#
+# For table subscriptions:
+# * "user"  = "listener" means subscription to a local node
+# * "user" != "listener" means subscription to a remote node
+
 pg = require("pg")
 ltx = require("ltx")  # for item XML parsing & serialization
 async = require("async")

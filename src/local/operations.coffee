@@ -906,6 +906,7 @@ OPERATIONS =
     'manage-node-subscriptions': ManageNodeSubscriptions
     'manage-node-affiliations': ManageNodeAffiliations
     'manage-node-configuration': ManageNodeConfiguration
+    'remove-user': RemoveUser
     'confirm-subscriber-authorization': AuthorizeSubscriber
     'replay-archive': ReplayArchive
     'push-inbox': PushInbox

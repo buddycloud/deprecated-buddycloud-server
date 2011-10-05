@@ -196,7 +196,7 @@ class RegisterSetRequest extends RegisterRequest
 
     subscriptionRequired: true
 
-    dontCache: true
+    writes: true
 
 ###
 # XEP-0060: Publish-Subscribe
@@ -257,7 +257,7 @@ class PubsubCreateRequest extends PubsubRequest
 
     operation: 'create-node'
 
-    dontCache: true
+    writes: true
 
 # <iq type='set'
 #     from='francisco@denmark.lit/barracks'
@@ -288,7 +288,7 @@ class PubsubSubscribeRequest extends PubsubRequest
 
     operation: 'subscribe-node'
 
-    dontCache: true
+    writes: true
 
 # <iq type='set'
 #     from='francisco@denmark.lit/barracks'
@@ -313,7 +313,7 @@ class PubsubUnsubscribeRequest extends PubsubRequest
 
     operation: 'unsubscribe-node'
 
-    dontCache: true
+    writes: true
 
 # <iq type='set'
 #     from='hamlet@denmark.lit/blogbot'
@@ -357,7 +357,7 @@ class PubsubPublishRequest extends PubsubRequest
         else
             super()
 
-    dontCache: true
+    writes: true
 
 # <iq type='set'
 #     from='hamlet@denmark.lit/elsinore'
@@ -388,7 +388,7 @@ class PubsubRetractRequest extends PubsubRequest
 
     operation: 'retract-node-items'
 
-    dontCache: true
+    writes: true
 
 # <iq type='get'
 #     from='francisco@denmark.lit/barracks'
@@ -558,7 +558,7 @@ class PubsubOwnerSetSubscriptionsRequest extends PubsubOwnerRequest
 
     operation: 'manage-node-subscriptions'
 
-    dontCache: true
+    writes: true
 
 # <iq type='get'
 #     from='hamlet@denmark.lit/elsinore'
@@ -624,7 +624,7 @@ class PubsubOwnerSetAffiliationsRequest extends PubsubOwnerRequest
 
     operation: 'manage-node-affiliations'
 
-    dontCache: true
+    writes: true
 
 class PubsubOwnerGetConfigurationRequest extends PubsubOwnerRequest
     constructor: (stanza) ->
@@ -667,7 +667,7 @@ class PubsubOwnerSetConfigurationRequest extends PubsubOwnerRequest
 
     operation: 'manage-node-configuration'
 
-    dontCache: true
+    writes: true
 
 
 class MessageArchiveRequest extends Request
