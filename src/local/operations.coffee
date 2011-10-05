@@ -735,6 +735,24 @@ class ManageNodeConfiguration extends PrivilegedOperation
             config: @req.config
         }]
 
+##
+# Removes all subscriptions of the actor, call back with all remote
+# subscriptions that the backends must then unsubscribe for.
+#
+# Two uses:
+#
+# * Rm subscriptions of an anonymous (temporary) user
+# * TODO: Completely clear out a user account
+class RemoveUser extends ModelOperation
+    transaction: (t, cb) ->
+        t.getUserRemoteSubscriptions @req.actor, (err, subscriptions) =>
+            if err
+                return cb(err)
+
+            t.clearUserSubscriptions @req.actor, (err) =>
+                cb err, subscriptions
+
+
 class AuthorizeSubscriber extends PrivilegedOperation
     requiredAffiliation: 'moderator'
 

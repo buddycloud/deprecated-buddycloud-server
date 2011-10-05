@@ -342,6 +342,14 @@ class Transaction
             res?.rows?.forEach (row) -> iter(row)
             cb err
 
+    getUserRemoteSubscriptions: (user, cb) ->
+        @db.query "SELECT node, listener, subscription FROM subscriptions WHERE \"user\"=$1 AND listener!=$1", [user], (err, res) ->
+            cb err, res?.rows
+
+    clearUserSubscriptions: (user, cb) ->
+        @db.query "DELETE FROM subscriptions WHERE \"user\"=$1", [user], (err) ->
+            cb err
+
     ##
     # Affiliation management
     ##
