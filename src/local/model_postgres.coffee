@@ -626,7 +626,7 @@ class Transaction
                         config = {}
                         for row in res.rows
                             config[row.key] = row.value
-                        iter [{ type: 'config', config }]
+                        iter [{ type: 'config', node: row.node, config }]
 
                         cb3()
                 , cb2
