@@ -92,7 +92,7 @@ exports.configToForm = (config, type, formType) ->
         'Who may publish items'
     addField 'defaultAffiliation', 'buddycloud#default_affiliation',
         'What role do new subscribers have?'
-    addField 'creationTime', 'pubsub#creation_date',
+    addField 'creationDate', 'pubsub#creation_date',
         'Creation date'
     addField 'channelType', 'buddycloud#channel_type',
         'Type of channel'
