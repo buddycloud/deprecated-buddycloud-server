@@ -83,7 +83,7 @@ class ItemsSynchronization extends PaginatedSynchronization
     writeResults: (t, results, cb) ->
         async.forEach results, (item, cb2) =>
             # TODO: author?
-            t.writeItem @node, item.id, null, item.el, cb2
+            t.writeItem @node, item.id, item.el, cb2
         , cb
 
 class SubscriptionsSynchronization extends PaginatedSynchronization
