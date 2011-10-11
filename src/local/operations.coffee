@@ -132,7 +132,7 @@ class PrivilegedOperation extends ModelOperation
 
                 @actorAffiliation = 'none'
                 for affiliation in affiliations
-                    if isAffiliationAtLeast affilliation, @actorAffiliation
+                    if isAffiliationAtLeast affiliation, @actorAffiliation
                         @actorAffiliation = affiliation
                 cb()
 
