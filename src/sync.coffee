@@ -165,7 +165,7 @@ exports.syncServer = (router, model, server, cb) ->
                     # Weird, skip;
                     cb3()
 
-                router.authorizeFor user, server, (err, valid) ->
+                router.authorizeFor server, user, (err, valid) ->
                     if err or !valid
                         console.error((err and err.stack) or err or
                             "Cannot sync #{subscription.node} from unauthorized server #{server}"
