@@ -378,7 +378,7 @@ class Transaction
         unless listener
             return cb(new Error("No user"))
 
-        @db.query "SELECT DISTINCT affiliation FROM affiliations WHERE node=$1 AND listener=$2"
+        @db.query "SELECT DISTINCT affiliation FROM affiliations WHERE node=$1 AND \"user\" IN (SELECT \"user\" FROM subscriptions WHERE listener=$2)"
         , [ node, listener ]
         , (err, res) ->
             cb err, res?.rows?.map((row) -> row.affiliation or "none")
