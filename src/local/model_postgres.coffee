@@ -182,7 +182,7 @@ class Transaction
                 else if res?.rows?[0]?
                     cb null
                 else
-                    console.log "#{node} does not exist!"
+                    console.warn "#{node} does not exist!"
                     cb new errors.NotFound("Node does not exist")
 
     nodeExists: (node, cb) ->
@@ -190,8 +190,10 @@ class Transaction
             if err
                 cb err
             else
-                console.log "#{node} does not exist"
-                cb null, res?.rows?[0]?
+                exists = res?.rows?[0]?
+                unless exists
+                    console.warn "#{node} does not exist"
+                cb null, exists
 
     createNode: (node, cb) ->
         db = @db
