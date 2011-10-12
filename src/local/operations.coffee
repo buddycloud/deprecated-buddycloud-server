@@ -817,11 +817,11 @@ class PushInbox extends ModelOperation
                 if update.type is 'subscription' and update.listener?
                     # Was successful remote subscription attempt
                     t.createNode update.node, (err, created) ->
-                        cb3 err, true
+                        cb3 not err
                 else
                     # Just an update, to be cached locally?
                     t.nodeExists update.node, (err, exists) ->
-                        cb3 err, exists
+                        cb3 not err and exists
             , (updates) ->
                 cb2 null, updates
         , (updates, cb2) =>

@@ -189,10 +189,10 @@ class exports.PubsubBackend extends EventEmitter
         async.filter(updates, (update, cb) =>
             user = getNodeUser(update.node)
             unless user
-                return cb(false)
+                return cb false
             # Security: authorize
             @authorizeFor sender, user, (err, valid) ->
-                cb(!err && valid)
+                cb not err and valid
         , (updates) =>
             if updates? and updates.length > 0
                 # Apply pushed updates
