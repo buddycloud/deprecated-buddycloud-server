@@ -114,52 +114,52 @@ class exports.PubsubBackend extends EventEmitter
             # <event xmlns='http://jabber.org/protocol/pubsub#event'>
             if child.is("event", NS.PUBSUB_EVENT)
                 child.children.forEach (child) ->
-                unless child.is
-                    # No element, but text
-                    return
-                node = child.attrs.node
-                unless node
-                    return
+                    unless child.is
+                        # No element, but text
+                        return
+                    node = child.attrs.node
+                    unless node
+                        return
 
-                if child.is('items')
-                    items = []
-                    for itemEl in child.getChildren('item')
-                        item =
-                            el: itemEl.children.filter((itemEl) ->
-                                itemEl.hasOwnProperty('children')
-                            )[0]
-                        if itemEl.attrs.id
-                            item.id = itemEl.attrs.id
-                        if item.el
-                            items.push item
-                    updates.push
-                        type: 'items'
-                        node: node
-                        items: items
-
-                if child.is('subscription')
-                    updates.push
-                        type: 'subscription'
-                        node: node
-                        user: child.attrs.jid
-                        subscription: child.attrs.subscription
-
-                if child.is('affiliation')
-                    updates.push
-                        type: 'affiliation'
-                        node: node
-                        user: child.attrs.jid
-                        affiliation: child.attrs.affiliation
-
-                if child.is('configuration')
-                    xEl = child.getChild('x', NS.DATA)
-                    form = xEl and forms.fromXml(xEl)
-                    config = form and forms.formToConfig(form)
-                    if config
+                    if child.is('items')
+                        items = []
+                        for itemEl in child.getChildren('item')
+                            item =
+                                el: itemEl.children.filter((itemEl) ->
+                                    itemEl.hasOwnProperty('children')
+                                )[0]
+                            if itemEl.attrs.id
+                                item.id = itemEl.attrs.id
+                            if item.el
+                                items.push item
                         updates.push
-                            type: 'config'
+                            type: 'items'
                             node: node
-                            config: config
+                            items: items
+
+                    if child.is('subscription')
+                        updates.push
+                            type: 'subscription'
+                            node: node
+                            user: child.attrs.jid
+                            subscription: child.attrs.subscription
+
+                    if child.is('affiliation')
+                        updates.push
+                            type: 'affiliation'
+                            node: node
+                            user: child.attrs.jid
+                            affiliation: child.attrs.affiliation
+
+                    if child.is('configuration')
+                        xEl = child.getChild('x', NS.DATA)
+                        form = xEl and forms.fromXml(xEl)
+                        config = form and forms.formToConfig(form)
+                        if config
+                            updates.push
+                                type: 'config'
+                                node: node
+                                config: config
 
             # <you-missed-something/>
             if child.is("you-missed-something", NS.BUDDYCLOUD_V1)
