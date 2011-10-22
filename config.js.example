@@ -1,7 +1,12 @@
 /**
  * XMPP Component connection
+ * 
+ * change EXAMPLE.COM to match your domain
+ * jid referrs to your component address. Not a user JID
+ * 
  */
-exports.xmpp = { jid: 'buddycloud.example.com',
+
+exports.xmpp = { jid: 'buddycloud.EXAMPLE.COM',
 		 password: 'tellnoone',
 		 host: 'localhost',
 		 port: 5347
