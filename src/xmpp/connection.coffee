@@ -87,7 +87,7 @@ class exports.Connection extends EventEmitter
         stanza.root().write (s) ->
             bytes += Buffer.byteLength(s)
         if bytes > MAX_STANZA_SIZE
-            logger.warn "Stanza with #{bytes} bytes: #{stanza.toString().substr(0, 127)}..."
+            logger.warn "Stanza with #{bytes} bytes: #{stanza.toString().substr(0, 1024)}..."
             throw new errors.MaxStanzaSizeExceeded(bytes)
 
         logger.trace ">> #{stanza.toString()}"
