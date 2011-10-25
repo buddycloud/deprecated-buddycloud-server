@@ -15,6 +15,7 @@ class Request
     constructor: (stanza) ->
         @iq = stanza
         @sender = new xmpp.JID(stanza.attrs.from).bare().toString()
+        @fullSender = stanza.attrs.from
         # can be overwritten by <actor xmlns="#{NS.BUDDYCLOUD_V1}"/>:
         @actor = @sender
         @me = stanza.attrs.to

@@ -71,14 +71,17 @@ class exports.PubsubBackend extends EventEmitter
         notification = Notifications.make(opts)
         listener = opts.listener
         try
-            if listener.indexOf("@") >= 0
+            if not opts.replay and listener.indexOf("@") >= 0
                 # is user? send to all resources...
+                #
+                # except for replays, which are requested by a certain
+                # fullJID
                 for onlineJid in @conn.getOnlineResources listener
                     logger.info "notifying client #{onlineJid} for #{opts.node}"
                     @conn.send notification.toStanza(@conn.jid, onlineJid)
             else
                 # other component (inbox)? just send out
-                logger.info "notifying service #{listener} for #{opts.node}"
+                logger.info "notifying #{listener} for #{opts.node}"
                 @conn.send notification.toStanza(@conn.jid, listener)
         catch e
             if e.constructor is errors.MaxStanzaSizeExceeded and opts.length > 1

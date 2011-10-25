@@ -805,7 +805,7 @@ class ReplayArchive extends ModelOperation
 
     sendNotification: (results) ->
         notification = Object.create(results)
-        notification.listener = @req.sender
+        notification.listener = @req.fullSender
         notification.replay = true
         @router.notify notification
 
