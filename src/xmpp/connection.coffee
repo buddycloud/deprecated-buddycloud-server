@@ -40,7 +40,7 @@ class exports.Connection extends EventEmitter
             @emit "online"
         @conn.on "stanza", (stanza) =>
             # Just debug output:
-            logger.data "<< #{stanza.toString()}"
+            logger.trace "<< #{stanza.toString()}"
             from = stanza.attrs.from
 
             switch stanza.name
@@ -90,7 +90,7 @@ class exports.Connection extends EventEmitter
             logger.warn "Stanza with #{bytes} bytes: #{stanza.toString().substr(0, 127)}..."
             throw new errors.MaxStanzaSizeExceeded(bytes)
 
-        logger.data ">> #{stanza.toString()}"
+        logger.trace ">> #{stanza.toString()}"
         @conn.send stanza
 
     ##

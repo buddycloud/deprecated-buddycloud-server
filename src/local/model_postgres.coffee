@@ -19,7 +19,7 @@ queue = []
 debugDB = (db) ->
     oldQuery = db.query
     db.query = (sql, params) ->
-        logger.data "query #{sql} #{JSON.stringify(params)}"
+        logger.trace "query #{sql} #{JSON.stringify(params)}"
         oldQuery.apply(@, arguments)
 
 # at start and when connection died
