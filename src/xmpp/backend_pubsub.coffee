@@ -1,3 +1,4 @@
+logger = require('../logger').makeLogger 'xmpp/backend_pubsub'
 {EventEmitter} = require('events')
 async = require('async')
 xmpp = require('node-xmpp')
@@ -48,7 +49,7 @@ class exports.PubsubBackend extends EventEmitter
             unless user
                 return cb new errors.NotFound("Unrecognized node form")
 
-            console.log 'PubsubBackend.run': opts, user: user
+            logger.debug 'PubsubBackend.run': opts, user: user
             @disco.findService user, (err, service) =>
                 if err
                     return cb err
@@ -73,11 +74,11 @@ class exports.PubsubBackend extends EventEmitter
             if listener.indexOf("@") >= 0
                 # is user? send to all resources...
                 for onlineJid in @conn.getOnlineResources listener
-                    console.log "notifying client #{onlineJid} for #{opts.node}"
+                    logger.info "notifying client #{onlineJid} for #{opts.node}"
                     @conn.send notification.toStanza(@conn.jid, onlineJid)
             else
                 # other component (inbox)? just send out
-                console.log "notifying service #{listener} for #{opts.node}"
+                logger.info "notifying service #{listener} for #{opts.node}"
                 @conn.send notification.toStanza(@conn.jid, listener)
         catch e
             if e.constructor is errors.MaxStanzaSizeExceeded and opts.length > 1
@@ -93,7 +94,7 @@ class exports.PubsubBackend extends EventEmitter
                 opts2.node = opts.node
                 opts2.user = opts.user
                 opts2.listener = opts.listener
-                console.warn "MaxStanzaSizeExceeded: split notification from #{opts.length} into #{opts1.length}+#{opts2.length}"
+                logger.warn "MaxStanzaSizeExceeded: split notification from #{opts.length} into #{opts1.length}+#{opts2.length}"
                 @notify opts1
                 @notify opts2
             else
@@ -205,7 +206,7 @@ class BuddycloudDiscovery
         @infoCache = new RequestCache (id, cb) =>
             new pubsubClient.DiscoverInfo(@conn, { jid: id }, cb)
         @itemsCache = new RequestCache (id, cb) =>
-            console.log "discover items of #{id}"
+            logger.debug "discover items of #{id}"
             new pubsubClient.DiscoverItems(@conn, { jid: id }, cb)
 
     authorizeFor: (sender, actor, cb) =>
@@ -214,7 +215,7 @@ class BuddycloudDiscovery
                 return cb err
             valid = items?.some (item) ->
                 item.jid is sender
-            console.log "authorizing #{sender} for #{actor}: #{valid}"
+            logger.debug "authorizing #{sender} for #{actor}: #{valid}"
             cb null, valid
 
     findService: (user, cb) =>
@@ -240,7 +241,7 @@ class BuddycloudDiscovery
                            not resultSent
                             # Found one!
                             resultSent = true
-                            console.log "found service for #{user}: #{item.jid}"
+                            logger.debug "found service for #{user}: #{item.jid}"
                             cb null, item.jid
                     done()
                 pending++

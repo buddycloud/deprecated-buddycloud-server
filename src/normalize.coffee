@@ -1,3 +1,4 @@
+logger = require('./logger').makeLogger 'normalize'
 errors = require('./errors')
 
 NS_ATOM = "http://www.w3.org/2005/Atom"
@@ -42,7 +43,7 @@ normalizeEntry = (req, cb) ->
         normalizeActivityStream req
         cb null, req
     catch e
-        console.error e.stack
+        logger.error e.stack
         cb e
 
 # <author>

@@ -4,6 +4,8 @@
 # * Provide <iq/> RPC interface
 # * Track presence
 ###
+
+logger = require('../logger').makeLogger 'xmpp/connection'
 xmpp = require("node-xmpp")
 {EventEmitter} = require('events')
 errors = require("../errors")
@@ -32,11 +34,13 @@ class exports.Connection extends EventEmitter
         # Anyone wants reconnecting, regardless of the config file:
         config.reconnect = true
         @conn = new xmpp.Component(config)
+        @conn.on "error", (e) ->
+            logger.error e
         @conn.on "online", =>
             @emit "online"
         @conn.on "stanza", (stanza) =>
             # Just debug output:
-            console.log "<< #{stanza.toString()}"
+            logger.data "<< #{stanza.toString()}"
             from = stanza.attrs.from
 
             switch stanza.name
@@ -83,10 +87,10 @@ class exports.Connection extends EventEmitter
         stanza.root().write (s) ->
             bytes += Buffer.byteLength(s)
         if bytes > MAX_STANZA_SIZE
-            console.warn "Stanza with #{bytes} bytes: #{stanza.toString().substr(0, 127)}..."
+            logger.warn "Stanza with #{bytes} bytes: #{stanza.toString().substr(0, 127)}..."
             throw new errors.MaxStanzaSizeExceeded(bytes)
 
-        console.log ">> #{stanza.toString()}"
+        logger.data ">> #{stanza.toString()}"
         @conn.send stanza
 
     ##

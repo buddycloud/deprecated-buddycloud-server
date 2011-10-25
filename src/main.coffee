@@ -1,3 +1,4 @@
+logger = require('./logger').makeLogger 'main'
 path = require('path')
 async = require('async')
 config = require('jsconfig')
@@ -20,7 +21,7 @@ config.load (args, opts) ->
 
     if opts.debug
         process.on 'uncaughtException', (err) ->
-            console.error "uncaughtException: #{err.stack || err.message || err.toString()}"
+            logger.error "uncaughtException: #{err.stack || err.message || err.toString()}"
 
 
 
@@ -39,7 +40,7 @@ config.load (args, opts) ->
 
     # Handle XEP-0060 Publish-Subscribe and related requests:
     pubsubServer.on 'request', (request) ->
-        console.log request: request, operation: request.operation
+        logger.debug request: request, operation: request.operation
         if request.sender isnt request.actor
             # Validate if sender is authorized to act on behalf of the
             # actor
@@ -59,7 +60,7 @@ config.load (args, opts) ->
 
     # Handle incoming XEP-0060 Publish-Subscribe notifications
     pubsubBackend.on 'notificationPush', (opts) ->
-        console.log notificationPush: opts
+        logger.debug notificationPush: opts
         # Sender is already authenticated at this point
         opts.operation = 'push-inbox'
         router.run opts, ->
@@ -84,6 +85,7 @@ config.load (args, opts) ->
         router.onUserOffline user
 
     xmppConn.on 'online', ->
+        logger.info "XMPP connection established"
         model.forListeners (listener) ->
             xmppConn.probePresence(listener)
 

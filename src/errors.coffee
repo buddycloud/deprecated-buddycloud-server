@@ -22,7 +22,6 @@ class ServerError extends Error
         errorEl = new xmpp.Element("error", type: @type)
         errorEl.c @condition, xmlns: NS_XMPP_STANZAS
         if @message
-            console.log message: @message
             errorEl.c("text", xmlns: NS_XMPP_STANZAS).t @message
         errorEl
 

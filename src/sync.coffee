@@ -1,3 +1,4 @@
+logger = require('./logger').makeLogger 'sync'
 async = require('async')
 RSM = require('./xmpp/rsm')
 NS = require('./xmpp/ns')
@@ -33,7 +34,7 @@ class ConfigSynchronization extends Synchronization
         t.resetConfig(@node, cb)
 
     writeResults: (t, results, cb) ->
-        console.log 'configResults': results
+        logger.debug 'configResults': results
         if results.config
             t.setConfig(@node, results.config, cb)
         else
@@ -48,10 +49,10 @@ class PaginatedSynchronization extends Synchronization
 
     run: (t, cb) ->
         rsmWalk (offset, cb2) =>
-            console.log "walk", offset
+            logger.debug "walk", offset
             @request.rsm.after = offset
             @runRequest (err, results) =>
-                console.log "ranRequest", err, results
+                logger.debug "ranRequest", err, results
                 if err
                     return cb2 err
 
@@ -117,12 +118,12 @@ syncQueue = async.queue (task, cb) ->
     synchronization = new syncClass(router, node)
     model.transaction (err, t) ->
         if err
-            console.error err.stack or err
+            logger.error err.stack or err
             return cb err
 
         synchronization.run t, (err) ->
             if err
-                console.error err.stack or err
+                logger.error err.stack or err
                 t.rollback ->
                     return cb err
 
@@ -132,7 +133,7 @@ syncQueue = async.queue (task, cb) ->
 
 # TODO: emit notifications for all changed things?
 exports.syncNode = (router, model, node, cb) ->
-    console.log "syncNode #{node}"
+    logger.info "syncNode #{node}"
     async.forEachSeries [
         ConfigSynchronization, ItemsSynchronization,
         SubscriptionsSynchronization, AffiliationsSynchronization
@@ -167,7 +168,7 @@ exports.syncServer = (router, model, server, cb) ->
 
                 router.authorizeFor server, user, (err, valid) ->
                     if err or !valid
-                        console.error((err and err.stack) or err or
+                        logger.warn((err and err.stack) or err or
                             "Cannot sync #{subscription.node} from unauthorized server #{server}"
                         )
                         cb3()
@@ -182,13 +183,13 @@ exports.setup = (router, model, jobs) ->
     syncQueue.concurrency = jobs
     model.getAllNodes (err, nodes) ->
         if err
-            console.error err.stack or err
+            logger.error err.stack or err
             return
 
         for node in nodes
             exports.syncNode router, model, node, (err) ->
                 if err
-                    console.error err
+                    logger.error err
         # TODO: once batchified, syncQueue.drain = ...
 
 

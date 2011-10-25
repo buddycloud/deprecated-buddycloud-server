@@ -1,3 +1,4 @@
+logger = require('../logger').makeLogger 'xmpp/pubsub_client'
 xmpp = require('node-xmpp')
 async = require('async')
 NS = require('./ns')
@@ -20,7 +21,7 @@ class Request
                 try
                     result = @decodeReply replyStanza
                 catch e
-                    console.error e.stack
+                    logger.error e.stack
                     err = e
                 cb err, result
 
@@ -38,7 +39,6 @@ class DiscoverRequest extends Request
     xmlns: undefined
 
     requestIq: ->
-        console.log 'DiscoverRequest.requestIq': @opts
         queryAttrs =
             xmlns: @xmlns
         if @opts.node?
@@ -85,7 +85,7 @@ class exports.DiscoverInfo extends DiscoverRequest
             @results.features.push el.attrs.var
         else if el.is('x', NS.DATA)
             form = forms.fromXml(el)
-            console.log form: form, formType: form.getFormType(), is: (form.getFormType() is NS.PUBSUB_META_DATA)
+            logger.debug form: form, formType: form.getFormType(), is: (form.getFormType() is NS.PUBSUB_META_DATA)
             if form.getFormType() is NS.PUBSUB_META_DATA
                 @results.config = forms.formToConfig(form)
 

@@ -1,3 +1,4 @@
+logger = require('./logger').makeLogger 'router'
 errors = require('./errors')
 sync = require('./sync')
 async = require('async')
@@ -102,7 +103,7 @@ class exports.Router
         @remote.run opts, cb
 
     run: (opts, cb) ->
-        console.log 'Router.run': opts, cb: cb
+        logger.debug 'Router.run': opts, cb: cb
 
         @runCheckAnonymous opts, (err) =>
             if err

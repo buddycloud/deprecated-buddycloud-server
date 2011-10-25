@@ -1,3 +1,4 @@
+logger = require('../logger').makeLogger 'local/operations'
 async = require('async')
 uuid = require('node-uuid')
 errors = require('../errors')
@@ -74,12 +75,12 @@ class ModelOperation extends Operation
             opName = @req.operation or "?"
             @transaction t, (err, results) ->
                 if err
-                    console.error "Transaction rollback: #{err}"
+                    logger.warn "Transaction rollback: #{err}"
                     t.rollback ->
                         cb err
                 else
                     t.commit ->
-                        console.log "Operation #{opName} committed"
+                        logger.info "Operation #{opName} committed"
                         cb null, results
 
 
@@ -301,7 +302,7 @@ class Register extends ModelOperation
         user = @req.actor
         created = no
         async.waterfall [(cb2) ->
-            console.log "creating #{node}"
+            logger.info "creating #{node}"
             t.createNode node, cb2
         , (created_, cb2) ->
             created = created_
@@ -530,7 +531,6 @@ class RetrieveItems extends PrivilegedOperation
         async.waterfall [ (cb2) =>
             t.getSubscriptions @subscriptionsNodeOwner, cb2
         , (subscriptions, cb2) =>
-            console.log {subscriptions}
             # Group for item ids by followee:
             subscriptionsByFollowee = {}
             for subscription in subscriptions
@@ -812,7 +812,7 @@ class ReplayArchive extends ModelOperation
 class PushInbox extends ModelOperation
     transaction: (t, cb) ->
         async.waterfall [(cb2) =>
-            console.log updates: @req
+            logger.debug pushUpdates: @req
             async.filter @req, (update, cb3) ->
                 if update.type is 'subscription' and update.listener?
                     # Was successful remote subscription attempt
@@ -825,9 +825,8 @@ class PushInbox extends ModelOperation
             , (updates) ->
                 cb2 null, updates
         , (updates, cb2) =>
-            console.log filteredUpdates: updates
+            logger.debug pushFilteredUpdates: updates
             async.forEach updates, (update, cb3) ->
-                console.log {update}
                 switch update.type
                     when 'items'
                         {node, items} = update
@@ -861,12 +860,11 @@ class PushInbox extends ModelOperation
 class Notify extends ModelOperation
     transaction: (t, cb) ->
         # TODO: walk in batches
-        console.log notifyNotification: @req
+        logger.debug notifyNotification: @req
         t.getNodeListeners @req.node, (err, listeners) =>
             if err
                 return cb err
             for listener in listeners
-                console.log "listener: #{listener}"
                 notification = Object.create(@req)
                 notification.listener = listener
                 @router.notify notification
@@ -875,12 +873,11 @@ class Notify extends ModelOperation
 class ModeratorNotify extends ModelOperation
     transaction: (t, cb) ->
         # TODO: walk in batches
-        console.log notifyNotification: @req
+        logger.debug moderatorNotifyNotification: @req
         t.getNodeModeratorListeners @req.node, (err, listeners) =>
             if err
                 return cb err
             for listener in listeners
-                console.log "listener: #{listener}"
                 notification = Object.create(@req)
                 notification.listener = listener
                 @router.notify notification
@@ -919,24 +916,24 @@ exports.run = (router, request, cb) ->
 
     opClass = OPERATIONS[opName]
     unless opClass
-        console.error "Unimplemented operation #{opName}"
-        console.log request: request
+        logger.error "Unimplemented operation #{opName}"
+        logger.debug request: request
         return cb(new errors.FeatureNotImplemented("Unimplemented operation #{opName}"))
 
-    console.log "Creating operation #{opName} for #{request.actor}/#{request.actor}"
-    console.log request: request
+    logger.info "Creating operation #{opName} for #{request.actor}/#{request.actor}"
+    logger.debug request: request
     op = new opClass(router, request)
     op.run (error, result) ->
-        console.log "Operation #{opName} ran: #{error}, #{result}"
+        logger.info "Operation #{opName} ran: #{error}, #{result}"
         if error
             cb error
         else
             # Successfully done
-            console.log "replying for #{opName}"
+            logger.debug "replying for #{opName}"
             try
                 cb null, result
             catch e
-                console.error e.stack or e
+                logger.error e.stack or e
 
             # Run notifications
             notifications = []
@@ -945,12 +942,11 @@ exports.run = (router, request, cb) ->
                     notification.node = node
                     new Notify(router, notification).run (err) ->
                         if err
-                            console.error("Error running notifications: #{err.stack or err.message or err}")
+                            logger.error("Error running notifications: #{err.stack or err.message or err}")
             if (notification = op.moderatorNotification?())
-                console.log moderatorNotification: notification
                 new ModeratorNotify(router, notification).run (err) ->
                     if err
-                        console.error("Error running notifications: #{err.stack or err.message or err}")
+                        logger.error("Error running notifications: #{err.stack or err.message or err}")
 
 
 groupByNode = (updates) ->

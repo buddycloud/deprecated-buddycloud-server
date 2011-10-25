@@ -5,6 +5,7 @@
 # * "user"  = "listener" means subscription to a local node
 # * "user" != "listener" means subscription to a remote node
 
+logger = require('../logger').makeLogger 'local/model_postgres'
 pg = require("pg")
 ltx = require("ltx")  # for item XML parsing & serialization
 async = require("async")
@@ -18,7 +19,7 @@ queue = []
 debugDB = (db) ->
     oldQuery = db.query
     db.query = (sql, params) ->
-        console.log "query #{sql} #{JSON.stringify(params)}"
+        logger.data "query #{sql} #{JSON.stringify(params)}"
         oldQuery.apply(@, arguments)
 
 # at start and when connection died
@@ -28,7 +29,7 @@ connectDB = (config) ->
     db.connect()
     # Reconnect in up to 5s
     db.on "error", (err) ->
-        console.error "Postgres: " + err.message
+        logger.error "Postgres: " + err.message
         setTimeout ->
             connectDB config
         , Math.ceil(Math.random() * 5000)
@@ -107,11 +108,10 @@ exports.forListeners = (iter) ->
             process.nextTick ->
                 dbIsAvailable(db)
             if err
-                console.error err
+                logger.error err
                 return
 
             res?.rows?.forEach (row) ->
-                console.log listener: row.listener
                 iter row.listener
 
 # TODO: batchify
@@ -143,7 +143,7 @@ class Transaction
             cb err, @
 
         timeout = setTimeout =>
-            console.error "Danger: lost transaction, rolling back!"
+            logger.error "Danger: lost transaction, rolling back!"
             timeout = undefined
             @rollback
         , LOST_TRANSACTION_TIMEOUT
@@ -182,7 +182,7 @@ class Transaction
                 else if res?.rows?[0]?
                     cb null
                 else
-                    console.warn "#{node} does not exist!"
+                    logger.warn "#{node} does not exist!"
                     cb new errors.NotFound("Node does not exist")
 
     nodeExists: (node, cb) ->
@@ -192,7 +192,7 @@ class Transaction
             else
                 exists = res?.rows?[0]?
                 unless exists
-                    console.warn "#{node} does not exist"
+                    logger.warn "#{node} does not exist"
                 cb null, exists
 
     createNode: (node, cb) ->
@@ -251,7 +251,7 @@ class Transaction
             db.query "SELECT subscription FROM subscriptions WHERE node=$1 AND \"user\"=$2", [ node, user ], cb2
         , (res, cb2) ->
             isSet = res?.rows?[0]?
-            console.log "setSubscription #{node} #{user} isSet=#{isSet} toDelete=#{toDelete}"
+            logger.debug "setSubscription #{node} #{user} isSet=#{isSet} toDelete=#{toDelete}"
             if isSet and not toDelete
                 if listener
                     db.query "UPDATE subscriptions SET listener=$1, subscription=$2, updated=CURRENT_TIMESTAMP WHERE node=$3 AND \"user\"=$4"
@@ -543,7 +543,7 @@ class Transaction
 
     setConfig: (node, config, cb) ->
         db = @db
-        console.log "setConfig " + node + ": " + require("util").inspect(config)
+        logger.debug "setConfig " + node + ": " + require("util").inspect(config)
         async.waterfall [ @validateNode(node), (cb2) ->
             async.parallel(for own key, value of config
                 do (key, value) ->
@@ -651,7 +651,7 @@ class Transaction
             q "node, \"user\", affiliation, 'affiliation' as type", "affiliations"
             , cb2
         ], (err) ->
-            console.log 'walkListenerArchive done'
+            logger.debug 'walkListenerArchive done'
             cb err
 
 
@@ -659,6 +659,6 @@ parseEl = (xml) ->
     try
         return ltx.parse(xml)
     catch e
-        console.error "Parsing " + xml + ": " + e.stack
+        logger.error "Parsing " + xml + ": " + e.stack
         return undefined
 

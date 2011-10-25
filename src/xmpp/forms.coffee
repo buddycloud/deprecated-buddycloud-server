@@ -1,3 +1,4 @@
+logger = require('../logger').makeLogger 'xmpp/forms'
 xmpp = require('node-xmpp')
 NS = require('./ns')
 
@@ -63,7 +64,7 @@ class exports.Form
 
 exports.fromXml = (xEl) ->
     unless xEl.is('x', NS.DATA)
-        console.warn "Importing non-form: #{xEl.toString()}"
+        logger.warn "Importing non-form: #{xEl.toString()}"
 
     form = new exports.Form(xEl.attrs.type)
     form.fields = xEl.getChildren("field").map (fieldEl) ->

@@ -1,3 +1,4 @@
+logger = require('../logger').makeLogger 'xmpp/pubsub_server'
 xmpp = require('node-xmpp')
 {EventEmitter} = require('events')
 NS = require('./ns')
@@ -42,7 +43,7 @@ class Request
                 if e.constructor is errors.MaxStanzaSizeExceeded and
                    results.length > 0
                     # Retry with smaller result set
-                    console.warn "MaxStanzaSizeExceeded: #{results.length} items"
+                    logger.warn "MaxStanzaSizeExceeded: #{results.length} items"
                     smallerResults = results?.slice(0, results.length - 1)
                     smallerResults.rsm ?= results?.rsm
                     @callback err, smallerResults
@@ -140,7 +141,7 @@ class DiscoItemsRequest extends Request
         @discoItemsEl?
 
     reply: (results) ->
-        console.log 'DiscoItemsRequest.reply': results
+        logger.log 'DiscoItemsRequest.reply': results
         queryEl = new xmpp.Element("query", xmlns: NS.DISCO_ITEMS)
         if results?.node
             queryEl.attrs.node = results.node
@@ -658,7 +659,6 @@ class PubsubOwnerSetConfigurationRequest extends PubsubOwnerRequest
         @configureEl?.getChildren("x", NS.DATA).forEach (formEl) =>
             form = forms.fromXml formEl
             @config = forms.formToConfig(form) or @config
-        console.log config: @config
 
     matches: () ->
         super &&
@@ -732,7 +732,7 @@ class exports.PubsubServer extends EventEmitter
         for r in REQUESTS
             result = new r(stanza)
             if result.matches()
-                console.log 'found subrequest', r.name
+                logger.debug 'found subrequest', r.name
                 break
             else
                 result = null
