@@ -85,18 +85,15 @@ class exports.PubsubBackend extends EventEmitter
                 @conn.send notification.toStanza(@conn.jid, listener)
         catch e
             if e.constructor is errors.MaxStanzaSizeExceeded and opts.length > 1
-                # FIXME: a notification may have been sent already
+                # FIXME: a notification may have been sent already to a previous shorter listener jid
+                copyProps = (opts_) ->
+                    ['type', 'node', 'user', 'listener', 'replay'].forEach (prop) ->
+                        opts_[prop] = opts[prop]
                 pivot = Math.floor(opts.length / 2)
                 opts1 = opts.slice(0, pivot)
-                opts1.type = opts.type
-                opts1.node = opts.node
-                opts1.user = opts.user
-                opts1.listener = opts.listener
+                copyProps opts1
                 opts2 = opts.slice(pivot, opts.length)
-                opts2.type = opts.type
-                opts2.node = opts.node
-                opts2.user = opts.user
-                opts2.listener = opts.listener
+                copyProps opts2
                 logger.warn "MaxStanzaSizeExceeded: split notification from #{opts.length} into #{opts1.length}+#{opts2.length}"
                 @notify opts1
                 @notify opts2
