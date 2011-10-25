@@ -29,6 +29,8 @@ class exports.Connection extends EventEmitter
 
         # Setup connection:
         @jid = config.jid
+        # Anyone wants reconnecting, regardless of the config file:
+        config.reconnect = true
         @conn = new xmpp.Component(config)
         @conn.on "online", =>
             @emit "online"
