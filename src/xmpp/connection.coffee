@@ -56,7 +56,7 @@ class exports.Connection extends EventEmitter
                             delete @iqCallbacks[stanza.attrs.id]
                             if stanza.attrs.type is 'error'
                                 # TODO: wrap into new Error(...)
-                                cb and cb(stanza)
+                                cb and cb(new errors.StanzaError(stanza))
                             else
                                 cb and cb(null, stanza)
                 when "presence"

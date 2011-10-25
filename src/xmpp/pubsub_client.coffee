@@ -14,16 +14,16 @@ class Request
         conn.sendIq iq, (err, replyStanza) =>
             if err
                 # wrap <error/> child
-                cb(err or new errors.StanzaError(err))
-            else
-                result = null
-                err = null
-                try
-                    result = @decodeReply replyStanza
-                catch e
-                    logger.error e.stack
-                    err = e
-                cb err, result
+                return cb err
+
+            result = null
+            err = null
+            try
+                result = @decodeReply replyStanza
+            catch e
+                logger.error e.stack
+                err = e
+            cb err, result
 
     requestIq: ->
         throw new TypeError("Unimplemented request")
