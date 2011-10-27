@@ -20,9 +20,9 @@ export PATH="$PREFIX/bin:$PATH"
 # Build node
 if [ ! -x "$PREFIX/bin/node" ]; then
     cd "$TMPDIR"
-    wget -c http://nodejs.org/dist/node-v0.4.11.tar.gz
-    [ -f node-v0.4.11 ] || tar xvfz node-v0.4.11.tar.gz
-    cd node-v0.4.11
+    wget -c http://nodejs.org/dist/node-v0.4.12.tar.gz
+    [ -f node-v0.4.12 ] || tar xvfz node-v0.4.12.tar.gz
+    cd node-v0.4.12
     ./configure --prefix="$PREFIX"
     make JOBS="$JOBS"
     make install
@@ -31,8 +31,8 @@ fi
 # npm
 if [ ! -x "$PREFIX/bin/npm" ]; then
     cd "$TMPDIR"
-    wget -c http://registry.npmjs.org/npm/-/npm-1.0.27.tgz
-    tar xvfz npm-1.0.27.tgz
+    wget -c http://registry.npmjs.org/npm/-/npm-1.0.103.tgz
+    tar xvfz npm-1.0.103.tgz
     mv package npm
     cd npm
     # Should go into $PREFIX along node
