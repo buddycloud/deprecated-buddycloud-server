@@ -1,0 +1,6 @@
+#!/bin/sh -e
+
+export PATH=`pwd`/`dirname $0`:$PATH
+cd `dirname $0`/../lib/node_modules/buddycloud-server/
+exec ./bin/buddycloud-server --nobuild $@
+

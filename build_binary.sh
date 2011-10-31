@@ -1,6 +1,6 @@
 #!/bin/bash -e
 
-PREFIX=/tmp/buddycloud-server
+PREFIX=/opt/buddycloud-server
 TMPDIR=/tmp/buddycloud-server-build
 JOBS=3
 
@@ -42,6 +42,9 @@ fi
 # deps & coffeescript build
 cd $SRCDIR
 npm i .
+
+rm $PREFIX/bin/buddycloud-server
+cp _opt_buddycloud-server_bin_buddycloud-server $PREFIX/bin/buddycloud-server
 
 rm -r "$TMPDIR"
 echo "Now create the PG database, import the schema and"
