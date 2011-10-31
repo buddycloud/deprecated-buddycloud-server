@@ -2,8 +2,11 @@ logger = require('./logger').makeLogger 'main'
 path = require('path')
 async = require('async')
 config = require('jsconfig')
+{ version } = require('./version')
 defaultConfigPath = path.join(__dirname,"..","..","config")
 config.defaults(defaultConfigPath)
+
+process.title = "buddycloud-server #{version}"
 
 config.set 'env',
     HOST: 'xmpp.host'
@@ -41,7 +44,12 @@ config.load (args, opts) ->
     # Handle XEP-0060 Publish-Subscribe and related requests:
     pubsubServer.on 'request', (request) ->
         logger.debug request: request, operation: request.operation
-        if request.sender isnt request.actor
+        if request.operation is 'get-version'
+            request.callback null,
+                name: "buddycloud-server"
+                version: version
+                os: process.platform
+        else if request.sender isnt request.actor
             # Validate if sender is authorized to act on behalf of the
             # actor
             pubsubBackend.authorizeFor request.sender, request.actor, (err, valid) ->
@@ -86,6 +94,7 @@ config.load (args, opts) ->
 
     xmppConn.on 'online', ->
         logger.info "XMPP connection established"
+        process.title "buddycloud-server #{version}: #{xmppConn.jid}"
         model.forListeners (listener) ->
             xmppConn.probePresence(listener)
 

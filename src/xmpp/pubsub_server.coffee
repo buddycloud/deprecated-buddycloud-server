@@ -73,6 +73,35 @@ class NotImplemented extends Request
         @replyError new errors.FeatureNotImplemented("Feature not implemented")
 
 ###
+# XEP-0092: Software Version
+###
+
+# <iq type='get'
+#     from='romeo@montague.net/orchard'
+#     to='plays.shakespeare.lit'
+#     id='info1'>
+#   <query xmlns='jabber:iq:version'/>
+# </iq>
+class VersionGetRequest extends Request
+    matches: () ->
+        @iq.attrs.type is 'get' &&
+        @iq.getChild("query", NS.VERSION)?
+
+    reply: (result) ->
+        queryEl = new xmpp.Element("query", xmlns: NS.VERSION)
+        if result.name
+            queryEl.c('name').t result.name
+        if result.version
+            queryEl.c('version').t result.version
+        if result.os
+            queryEl.c('os').t result.os
+
+        super queryEl
+
+    operation: 'get-version'
+
+
+###
 # XEP-0030: Service Discovery
 ###
 
@@ -687,6 +716,7 @@ class MessageArchiveRequest extends Request
 
 
 REQUESTS = [
+    VersionGetRequest,
     DiscoInfoRequest,
     DiscoItemsRequest,
     RegisterGetRequest,

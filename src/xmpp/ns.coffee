@@ -15,3 +15,4 @@ module.exports =
     BUDDYCLOUD_V1: "http://buddycloud.org/v1"
     MAM: "urn:xmpp:archive#management"
     FORWARD: "urn:xmpp:forward:tmp"
+    VERSION: "jabber:iq:version"
