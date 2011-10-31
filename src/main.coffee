@@ -94,7 +94,7 @@ config.load (args, opts) ->
 
     xmppConn.on 'online', ->
         logger.info "XMPP connection established"
-        process.title "buddycloud-server #{version}: #{xmppConn.jid}"
+        process.title = "buddycloud-server #{version}: #{xmppConn.jid}"
         model.forListeners (listener) ->
             xmppConn.probePresence(listener)
 
