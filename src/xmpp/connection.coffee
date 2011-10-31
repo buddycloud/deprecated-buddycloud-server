@@ -249,5 +249,4 @@ class exports.Connection extends EventEmitter
                 from: @conn.jid
                 to: user
             )
-        sendPresence 'subscribe'
         sendPresence 'probe'
