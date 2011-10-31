@@ -43,7 +43,7 @@ fi
 
 # deps & coffeescript build
 cd $SRCDIR
-npm i .
+npm i . -g
 
 rm $PREFIX/bin/buddycloud-server
 cp _opt_buddycloud-server_bin_buddycloud-server $PREFIX/bin/buddycloud-server
