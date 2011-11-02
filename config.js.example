@@ -34,6 +34,8 @@ exports.logging = {
      */
     level: "INFO",
     /* stdout: true, */
-    /* syslog: { hostname: "orwell.local", port: 514 }, */
+    syslog: {
+	/* hostname: "orwell.local", port: 514 */
+    },
     file: "/var/log/buddycloud-server.log"
 };
