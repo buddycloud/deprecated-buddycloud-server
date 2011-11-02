@@ -20,7 +20,7 @@ exports.setConfig = (config_) ->
 class Logger extends CommonLogger
     constructor: (@module) ->
         # Translate user-passed string to level index
-        config.level = CommonLogger.levels.indexOf config.level
+        config.level = Math.max(0, CommonLogger.levels.indexOf config.level)
         super(config)
 
     # + @module output
