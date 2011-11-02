@@ -1,10 +1,12 @@
-logger = require('./logger').makeLogger 'main'
+# 3rd-party libs
 path = require('path')
 async = require('async')
+# Config
 config = require('jsconfig')
-{ version } = require('./version')
 defaultConfigPath = path.join(__dirname,"..","..","config")
 config.defaults(defaultConfigPath)
+# Included
+{ version } = require('./version')
 
 process.title = "buddycloud-server #{version}"
 
@@ -22,10 +24,14 @@ config.cli
 config.load (args, opts) ->
     config.merge(require(opts.config))
 
+    # Logger
+    logger_ = require('./logger')
+    logger_.setConfig config.logging
+    logger = logger_.makeLogger 'main'
+
     if opts.debug
         process.on 'uncaughtException', (err) ->
             logger.error "uncaughtException: #{err.stack || err.message || err.toString()}"
-
 
 
     errors = require('./errors')
