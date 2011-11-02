@@ -434,6 +434,9 @@ class Subscribe extends PrivilegedOperation
 # Not privileged as anybody should be able to unsubscribe him/herself
 class Unsubscribe extends PrivilegedOperation
     privilegedTransaction: (t, cb) ->
+        if @req.node.indexOf("/user/#{@req.actor}/") == 0
+            return cb new errors.Forbidden("You may not unsubscribe from your own nodes")
+
         async.waterfall [ (cb2) =>
             t.setSubscription @req.node, @req.actor, @req.sender, 'none', cb2
         , (cb2) =>
