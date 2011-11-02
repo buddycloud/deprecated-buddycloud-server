@@ -26,7 +26,8 @@ config.load (args, opts) ->
     config.merge(require(opts.config))
 
     # Kludge:
-    config.logging.stdout ?= opts.stdout
+    if opts.stdout
+        config.logging.stdout = true
     # Logger
     logger_ = require('./logger')
     logger_.setConfig config.logging
