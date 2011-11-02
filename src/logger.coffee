@@ -31,7 +31,7 @@ class Logger extends CommonLogger
     log: (level, args) ->
         if level <= @level
             i       = 0
-            message = args[0].replace /%s/g, -> args[i++]
+            message = "#{args[0]}".replace /%s/g, -> args[i++]
             message = @format(new Date(), level, message)
             message = @colorize(message, @colors[level]) if @colorized
             @out message, level
@@ -44,7 +44,6 @@ class Logger extends CommonLogger
             logFile.write "#{message}\n"
         if config.syslog?
             levelName = CommonLogger.levels[level]?.toLowerCase()
-            console.log {levelName,level}
             if levelName and ain2[levelName]
                 ain2[levelName] message
 
