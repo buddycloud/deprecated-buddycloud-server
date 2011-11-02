@@ -20,10 +20,13 @@ config.cli
     config: ['c', "load config file", 'path', defaultConfigPath]
     debug: [off, "enable debug mode"]
     nobuild: [off, "[INTERNAL] disable build"]
+    stdout: ['logging.stdout', [off, "Log to stdout"]]
 
 config.load (args, opts) ->
     config.merge(require(opts.config))
 
+    # Kludge:
+    config.logging.stdout ?= opts.stdout
     # Logger
     logger_ = require('./logger')
     logger_.setConfig config.logging
