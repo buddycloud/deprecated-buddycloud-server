@@ -12,8 +12,11 @@ exports.setConfig = (config_) ->
         ain2.set
             tag: 'buddycloud'
             facility: 'daemon'
+            transport: 'file'
         if config_.syslog.hostname
-            ain2.set hostname: config_.syslog.hostname
+            ain2.set
+                transport: 'udp'
+                hostname: config_.syslog.hostname
         if config_.syslog.port
             ain2.set port: config_.syslog.port
 
