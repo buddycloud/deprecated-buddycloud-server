@@ -1,9 +1,8 @@
 /**
  * XMPP Component connection
- * 
+ *
  * change EXAMPLE.COM to match your domain
  * jid referrs to your component address. Not a user JID
- * 
  */
 
 exports.xmpp = { jid: 'buddycloud.EXAMPLE.COM',
@@ -12,7 +11,9 @@ exports.xmpp = { jid: 'buddycloud.EXAMPLE.COM',
 		 port: 5347
 	       };
 
-// PostgreSQL backend
+/**
+ * PostgreSQL backend
+ */
 exports.modelBackend = 'postgres';
 exports.modelConfig = {
     host: 'localhost',
@@ -21,4 +22,18 @@ exports.modelConfig = {
     user: 'buddycloud-server',
     password: 'tellnoone',
     poolSize: 4
+};
+
+/**
+ * Logging
+ */
+exports.logging = {
+    colorized: true,
+    /**
+     * one of "FATAL", "ERROR", "WARN", "INFO", "DEBUG", "TRACE"
+     */
+    level: "INFO",
+    /* stdout: true, */
+    /* syslog: { hostname: "orwell.local", port: 514 }, */
+    file: "/var/log/buddycloud-server.log"
 };
