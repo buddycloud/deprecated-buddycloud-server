@@ -143,7 +143,12 @@ exports.syncNode = (router, model, node, cb) ->
     ]
     , (syncClass, cb2) ->
         syncQueue.push { router, model, node, syncClass }, cb2
-    , cb
+    , (err) ->
+        if err
+            logger.error "syncNode #{node}", err
+        else
+            logger.info "synced #{node}"
+        cb(err)
 
 ##
 # Setup synchronization queue
