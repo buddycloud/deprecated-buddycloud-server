@@ -701,7 +701,21 @@ class ManageNodeAffiliations extends PrivilegedOperation
     privilegedTransaction: (t, cb) ->
         async.series @req.affiliations.map(({user, affiliation}) =>
             (cb2) =>
-                t.setAffiliation @req.node, user, affiliation, cb2
+                async.series [ (cb3) =>
+                    t.getAffiliation @req.node, user, cb3
+                , (oldAffiliation, cb3) =>
+                    if oldAffiliation is affiliation
+                        # No change
+                        cb3()
+                    else
+                        if oldAffiliation isnt 'owner' and
+                           affiliation is 'owner' and
+                           @actorAffiliation isnt 'owner'
+                            # Non-owner tries to elect a new owner!
+                            cb3 new errors.Forbidden("You may not elect a new owner")
+                        else
+                            t.setAffiliation @req.node, user, affiliation, cb3
+                ], cb2
         ), cb
 
 
