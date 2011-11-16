@@ -44,7 +44,7 @@ defaultConfiguration = (user) ->
         defaultAffiliation: "member"
     subscriptions:
         title: "#{user} Subscriptions"
-        description: ""
+        description: "Browse my interests"
         accessModel: "open"
         publishModel: "publishers"
         defaultAffiliation: "member"
@@ -222,9 +222,9 @@ class BrowseInfo extends Operation
 
 
 class BrowseNodeInfo extends PrivilegedOperation
-    requiredAffiliation: 'member'
-
-    privilegedTransaction: (t, cb) ->
+    ##
+    # See access control notice of RetrieveNodeConfiguration
+    transaction: (t, cb) ->
         t.getConfig @req.node, (err, config) =>
             cb err,
                 node: @req.node
@@ -665,7 +665,13 @@ class RetrieveNodeAffiliations extends PrivilegedOperation
             cb null, affiliations
 
 class RetrieveNodeConfiguration extends PrivilegedOperation
-    privilegedTransaction: (t, cb) ->
+    ##
+    # Allowed for anyone. We do not have hidden channels yet.
+    #
+    # * Even closed channels should be browsable so that subscription
+    #   can be requested at all
+    # * outcast shall not receive too much punishment (or glorification)
+    transaction: (t, cb) ->
         t.getConfig @req.node, (err, config) ->
             # wrap into { config: ...} result
             cb err, { config }
