@@ -2,6 +2,7 @@ logger = require('./logger').makeLogger 'router'
 errors = require('./errors')
 sync = require('./sync')
 async = require('async')
+rsmWalk = require('./rsm_walk')
 
 CACHE_TIMEOUT = 60 * 1000
 
@@ -91,13 +92,23 @@ class exports.Router
             else
                 @remote.detectAnonymousUser user, cb
 
+        ##
+        # Block any requests on a node that has sync pending. The
+        # alternative was: push notifications after sync, but that may
+        # be unnecessary in many cases.
+        @perNodeQueue = {}
+
     ##
     # If not, we may still find ourselves through disco
     isLocallySubscribed: (node, cb) ->
         @model.nodeExists node, cb
 
     runLocally: (opts, cb) ->
-        @operations.run @, opts, cb
+        if opts.node and @perNodeQueue.hasOwnProperty(opts.node)
+            @perNodeQueue[opts.node].push =>
+                @runLocally opts, cb
+        else
+            @operations.run @, opts, cb
 
     runRemotely: (opts, cb) ->
         @remote.run opts, cb
@@ -165,21 +176,77 @@ class exports.Router
 
     pushData: (opts, cb) ->
         opts.operation = 'push-inbox'
-        @operations.run @, opts, cb
+        @runLocally opts, cb
 
     notify: (notification) ->
         @remote.notify notification
 
     ##
-    # Synchronize node from remote
+    #
+    # Also goes to the backend to sync all nodes
     setupSync: (jobs) ->
-        sync.setup @, @model, jobs
+        sync.setup jobs
 
+        @model.getAllNodes (err, nodes) ->
+            if err
+                logger.error err.stack or err
+                return
+
+            for node in nodes
+                @syncNode node, (err) ->
+                    if err
+                        logger.error err
+            # TODO: once batchified, syncQueue.drain = ...
+
+    ##
+    # Synchronize node from remote
     syncNode: (node, cb) ->
-        sync.syncNode @, @model, node, cb
+        unless @perNodeQueue.hasOwnProperty(node)
+            @perNodeQueue[node] = []
+        sync.syncNode @, @model, node, (err) =>
+            blocked = @perNodeQueue[node] or []
+            delete @perNodeQueue[node]
+            blocked.forEach (cb1) ->
+                cb1()
 
+            cb(err)
+
+    ##
+    # Batchified by walking RSM: the next result set page will be
+    # requested after all nodes have been processed.
     syncServer: (server, cb) ->
-        sync.syncServer @, @model, server, cb
+        opts =
+            operation: 'retrieve-user-subscriptions'
+            jid: server
+        opts.rsm = new RSM.RSM()
+        rsmWalk (nextOffset, cb2) =>
+            opts.rsm.after = nextOffset
+            router.runRemotely opts, (err, results) =>
+                if err
+                    return cb2 err
+
+                async.forEach results, (subscription, cb3) =>
+                    unless subscription.node
+                        # Weird, skip;
+                        return cb3()
+
+                    user = getNodeUser(subscription.node)
+                    unless user
+                        # Weird, skip;
+                        return cb3()
+
+                    @authorizeFor server, user, (err, valid) =>
+                        if err or !valid
+                            logger.warn((err and err.stack) or err or
+                                "Cannot sync #{subscription.node} from unauthorized server #{server}"
+                            )
+                            cb3()
+                        else
+                            @syncNode subscription.node, (err) ->
+                                # Ignore err, a single node may fail
+                                cb3()
+                , cb2
+        , cb
 
     # No need to @detectAnonymousUser() again:
     # * Disco info may not be available anymore

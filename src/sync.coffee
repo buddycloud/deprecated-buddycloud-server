@@ -1,3 +1,6 @@
+##
+# Called by router to ensure per-node locking
+
 logger = require('./logger').makeLogger 'sync'
 async = require('async')
 RSM = require('./xmpp/rsm')
@@ -143,54 +146,9 @@ exports.syncNode = (router, model, node, cb) ->
     , cb
 
 ##
-# Batchified by walking RSM: the next result set page will be
-# requested after all nodes have been processed.
-exports.syncServer = (router, model, server, cb) ->
-    opts =
-        operation: 'retrieve-user-subscriptions'
-        jid: server
-    opts.rsm = new RSM.RSM()
-    rsmWalk (nextOffset, cb2) ->
-        opts.rsm.after = nextOffset
-        router.runRemotely opts, (err, results) ->
-            if err
-                return cb2 err
-
-            async.forEach results, (subscription, cb3) ->
-                unless subscription.node
-                    # Weird, skip;
-                    cb3()
-
-                user = getNodeUser(subscription.node)
-                unless user
-                    # Weird, skip;
-                    cb3()
-
-                router.authorizeFor server, user, (err, valid) ->
-                    if err or !valid
-                        logger.warn((err and err.stack) or err or
-                            "Cannot sync #{subscription.node} from unauthorized server #{server}"
-                        )
-                        cb3()
-                    else
-                        exports.syncNode router, model, subscription.node, (err) ->
-                            # Ignore err, a single node may fail
-                            cb3()
-            , cb2
-    , cb
-
-exports.setup = (router, model, jobs) ->
+# Setup synchronization queue
+exports.setup = (jobs) ->
     syncQueue.concurrency = jobs
-    model.getAllNodes (err, nodes) ->
-        if err
-            logger.error err.stack or err
-            return
-
-        for node in nodes
-            exports.syncNode router, model, node, (err) ->
-                if err
-                    logger.error err
-        # TODO: once batchified, syncQueue.drain = ...
 
 
 nodeRegexp = /^\/user\/([^\/]+)\/?(.*)/
