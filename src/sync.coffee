@@ -128,10 +128,10 @@ syncQueue = async.queue (task, cb) ->
             if err
                 logger.error err.stack or err
                 t.rollback ->
-                    return cb err
-
-            t.commit (err) ->
-                cb err
+                    cb err
+            else
+                t.commit (err) ->
+                    cb err
 , 1
 
 # TODO: emit notifications for all changed things?
