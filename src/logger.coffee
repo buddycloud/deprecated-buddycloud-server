@@ -5,7 +5,7 @@ fs = require 'fs'
 config = {}
 logFile = undefined
 exports.setConfig = (config_) ->
-    config = Object.clone(config_)
+    config = Object.create(config_)
     # Translate user-passed string to level index
     config.level = Math.max(0, CommonLogger.levels.indexOf config_.level)
 
