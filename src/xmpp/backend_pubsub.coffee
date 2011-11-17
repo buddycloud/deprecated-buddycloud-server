@@ -268,24 +268,27 @@ class RequestCache
 
     get: (id, cb) ->
         unless @entries.hasOwnProperty(id)
+            logger.trace "Cache miss for #{id}"
             @entries[id] =
                 queued: [cb]
             # Go fetch
             @getter id, (err, results) =>
                 queued = @entries[id].queued
-                @entries[id] = if err then { err } else { results }
+                @entries[id] = { err, results }
                 # flush after timeout
                 setTimeout =>
                     delete @entries[id]
                 , @cacheTimeout
                 # respond to requests
-                for cb in queued
-                    cb err, results
+                for cb1 in queued
+                    cb1 err, results
         else if @entries[id].queued?
             # Already fetching
+            logger.trace "Queued for #{id}"
             @entries[id].queued.push cb
         else
             # Result already present
+            logger.trace "Cache hit for #{id}"
             process.nextTick =>
                 cb @entries[id].err, @entries[id].results
 

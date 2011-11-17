@@ -1,6 +1,7 @@
 # 3rd-party libs
 path = require('path')
 async = require('async')
+{inspect} = require('util')
 # Config
 config = require('jsconfig')
 defaultConfigPath = path.join(__dirname,"..","..","config")
@@ -53,7 +54,7 @@ config.load (args, opts) ->
 
     # Handle XEP-0060 Publish-Subscribe and related requests:
     pubsubServer.on 'request', (request) ->
-        logger.debug request: request, operation: request.operation
+        logger.trace "request: %s", inspect(request)
         if request.operation is 'get-version'
             request.callback null,
                 name: "buddycloud-server"
@@ -78,7 +79,7 @@ config.load (args, opts) ->
 
     # Handle incoming XEP-0060 Publish-Subscribe notifications
     pubsubBackend.on 'notificationPush', (opts) ->
-        logger.debug notificationPush: opts
+        logger.trace "notificationPush: %s", inspect(opts)
         # Sender is already authenticated at this point
         opts.operation = 'push-inbox'
         router.run opts, ->
