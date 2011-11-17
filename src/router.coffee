@@ -1,4 +1,5 @@
 logger = require('./logger').makeLogger 'router'
+{inspect} = require('util')
 errors = require('./errors')
 sync = require('./sync')
 async = require('async')
