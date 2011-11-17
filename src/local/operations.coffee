@@ -814,16 +814,29 @@ class AuthorizeSubscriber extends PrivilegedOperation
                 affiliation: @affiliation
         ns
 
+##
+# MAM replay
+# and authorization form query
+#
+# The RSM handling here respects only a <max/> value.
 class ReplayArchive extends ModelOperation
     transaction: (t, cb) ->
+        max = @req.rsm?.max or 250
+        sent = 0
+
         async.waterfall [ (cb2) =>
             t.walkListenerArchive @req.sender, @req.start, @req.end, (results) =>
-                @sendNotification results
+                if sent < max
+                    @sendNotification results
+                    sent++
             , cb2
         , (cb2) =>
+            sent = 0
             t.walkModeratorAuthorizationRequests @req.sender, (req) =>
-                req.type = 'authorizationPrompt'
-                @sendNotification req
+                if sent < max
+                    req.type = 'authorizationPrompt'
+                    @sendNotification req
+                    sent++
             , cb2
         ], cb
 
