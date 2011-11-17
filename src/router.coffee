@@ -115,6 +115,7 @@ class exports.Router
         @remote.run opts, cb
 
     run: (opts, cb) ->
+        logger.trace "Router.run %s", inspect(opts)
         @runCheckAnonymous opts, (err) =>
             if err
                 return cb err
