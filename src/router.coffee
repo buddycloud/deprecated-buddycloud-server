@@ -3,6 +3,7 @@ errors = require('./errors')
 sync = require('./sync')
 async = require('async')
 rsmWalk = require('./rsm_walk')
+{RSM} = require('./xmpp/rsm')
 
 CACHE_TIMEOUT = 60 * 1000
 
