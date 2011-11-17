@@ -5,7 +5,10 @@ fs = require 'fs'
 config = {}
 logFile = undefined
 exports.setConfig = (config_) ->
-    config = config_
+    config = Object.clone(config_)
+    # Translate user-passed string to level index
+    config.level = Math.max(0, CommonLogger.levels.indexOf config_.level)
+
     if config_.file
         logFile = fs.createWriteStream config_.file
     if config_.syslog?
@@ -22,8 +25,6 @@ exports.setConfig = (config_) ->
 
 class Logger extends CommonLogger
     constructor: (@module) ->
-        # Translate user-passed string to level index
-        config.level = Math.max(0, CommonLogger.levels.indexOf config.level)
         super(config)
 
     # + @module output
