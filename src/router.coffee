@@ -114,11 +114,11 @@ class exports.Router
         @remote.run opts, cb
 
     run: (opts, cb) ->
-        logger.debug 'Router.run': opts, cb: cb
-
         @runCheckAnonymous opts, (err) =>
             if err
                 return cb err
+
+            logger.info "Router.run #{opts.actor}(#{opts.actorType})/#{opts.sender}: #{opts.operation} #{opts.node}"
 
             unless opts.node?
                 @runLocally opts, cb
@@ -202,7 +202,7 @@ class exports.Router
 
         @model.getAllNodes (err, nodes) =>
             if err
-                logger.error err.stack or err
+                logger.error "getAllNodes %s", err.stack or err
                 return
 
             for node in nodes

@@ -37,7 +37,6 @@ class ConfigSynchronization extends Synchronization
         t.resetConfig(@node, cb)
 
     writeResults: (t, results, cb) ->
-        logger.debug 'configResults': results
         if results.config
             t.setConfig(@node, results.config, cb)
         else
@@ -52,10 +51,10 @@ class PaginatedSynchronization extends Synchronization
 
     run: (t, cb) ->
         rsmWalk (offset, cb2) =>
-            logger.debug "walk", offset
+            logger.debug "PaginatedSynchronization walk %s", offset
             @request.rsm.after = offset
             @runRequest (err, results) =>
-                logger.debug "ranRequest", err, results
+                logger.debug "ranRequest #{err or results?.length}"
                 if err
                     return cb2 err
 
@@ -121,12 +120,12 @@ syncQueue = async.queue (task, cb) ->
     synchronization = new syncClass(router, node)
     model.transaction (err, t) ->
         if err
-            logger.error err.stack or err
+            logger.error "sync transaction: #{err.stack or err}"
             return cb err
 
         synchronization.run t, (err) ->
             if err
-                logger.error err.stack or err
+                logger.error "sync run: #{err.stack or err}"
                 t.rollback ->
                     cb err
             else
@@ -136,7 +135,7 @@ syncQueue = async.queue (task, cb) ->
 
 # TODO: emit notifications for all changed things?
 exports.syncNode = (router, model, node, cb) ->
-    logger.info "syncNode #{node}"
+    logger.debug "syncNode #{node}"
     async.forEachSeries [
         ConfigSynchronization, ItemsSynchronization,
         SubscriptionsSynchronization, AffiliationsSynchronization
@@ -145,7 +144,7 @@ exports.syncNode = (router, model, node, cb) ->
         syncQueue.push { router, model, node, syncClass }, cb2
     , (err) ->
         if err
-            logger.error "syncNode #{node}", err
+            logger.error "sync #{node}: #{err}"
         else
             logger.info "synced #{node}"
         cb(err)
