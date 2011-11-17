@@ -196,6 +196,8 @@ class exports.PubsubBackend extends EventEmitter
                 cb not err and valid
         , (updates) =>
             if updates? and updates.length > 0
+                updates.sender = sender
+                updates.actor = sender
                 # Apply pushed updates
                 @emit 'notificationPush', updates
         )
