@@ -91,7 +91,11 @@ class exports.Connection extends EventEmitter
             throw new errors.MaxStanzaSizeExceeded(bytes)
 
         logger.trace ">> #{stanza.toString()}"
-        @conn.send stanza
+        if stanza.attrs.to is @jid
+            # Loopback short-cut
+            @conn.emit 'stanza', stanza
+        else
+            @conn.send stanza
 
     ##
     # @param {Function} cb: Called with (errorStanza, resultStanza)
