@@ -232,7 +232,7 @@ class BuddycloudDiscovery
                 # No items left, but no result yet?
                 if pending < 1 and not resultSent
                     resultSent = true
-                    cb new errors.NotFound("No pubsub channels service discovered")
+                    cb new errors.NotFound("No pubsub channel service discovered for #{user}")
             items.forEach (item) =>
                 @infoCache.get item.jid, (err, result) ->
                     for identity in result?.identities or []
