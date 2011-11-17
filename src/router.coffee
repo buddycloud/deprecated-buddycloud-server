@@ -87,18 +87,29 @@ class exports.Router
 
         # Keep them for clean-up upon unavailable presence
         @anonymousUsers = {}
-        # Proxy to @remote.detectAnonymousUser, but uses above cache
-        @detectAnonymousUser = (user, cb) =>
-            if @anonymousUsers.hasOwnProperty(user) and @anonymousUsers[user]
-                cb null, true
-            else
-                @remote.detectAnonymousUser user, cb
 
         ##
         # Block any requests on a node that has sync pending. The
         # alternative was: push notifications after sync, but that may
         # be unnecessary in many cases.
         @perNodeQueue = {}
+
+    detectUserType: (user, cb) ->
+        if opts.actor.indexOf("@") >= 0
+            # '@' in JID means it's a user or anonymous
+            if @anonymousUsers.hasOwnProperty(user) and @anonymousUsers[user]
+                cb null, true
+            else
+                @remote.detectAnonymousUser user, (err, isAnonymous) =>
+                    if err and opts.actor.indexOf('@anon') >= 0
+                        # Can't make sure? Fall back to stupid heuristics:
+                        opts.actorType = 'anonymous'
+                    else if isAnonymous
+                        opts.actorType = 'anonymous'
+                    else
+                        opts.actorType = 'user'
+        else
+            cb null, 'server'
 
     ##
     # If not, we may still find ourselves through disco
@@ -175,18 +186,8 @@ class exports.Router
                     # Not anonymous, allow everything
                     cb()
         else
-            @detectAnonymousUser opts.actor, (err, isAnonymous) =>
-                if err and opts.actor.indexOf('@anon') >= 0
-                    # Can't make sure? Fall back to stupid heuristics:
-                    opts.actorType = 'anonymous'
-                else if isAnonymous
-                    opts.actorType = 'anonymous'
-                else if opts.actor.indexOf('@') >= 0
-                    opts.actorType = 'user'
-                else
-                    # No "@" in JID, no known use-case
-                    opts.actorType = 'server'
-
+            @detectUserType opts.actor, (err, type) =>
+                opts.actorType = type or 'user'
                 # Finally recurse:
                 @runCheckAnonymous opts, cb
 
@@ -265,7 +266,7 @@ class exports.Router
                     cb2 err, results?.rsm?.last
         , cb
 
-    # No need to @detectAnonymousUser() again:
+    # No need to detectAnonymousUser() again:
     # * Disco info may not be available anymore
     # * If missing from anonymousUsers no clean-up is needed
     onUserOffline: (user) ->
