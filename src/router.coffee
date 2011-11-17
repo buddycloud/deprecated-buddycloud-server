@@ -95,19 +95,19 @@ class exports.Router
         @perNodeQueue = {}
 
     detectUserType: (user, cb) ->
-        if opts.actor.indexOf("@") >= 0
+        if user.indexOf("@") >= 0
             # '@' in JID means it's a user or anonymous
             if @anonymousUsers.hasOwnProperty(user) and @anonymousUsers[user]
                 cb null, true
             else
                 @remote.detectAnonymousUser user, (err, isAnonymous) =>
-                    if err and opts.actor.indexOf('@anon') >= 0
+                    if err and user.indexOf('@anon') >= 0
                         # Can't make sure? Fall back to stupid heuristics:
-                        opts.actorType = 'anonymous'
+                        cb null, 'anonymous'
                     else if isAnonymous
-                        opts.actorType = 'anonymous'
+                        cb null, 'anonymous'
                     else
-                        opts.actorType = 'user'
+                        cb null, 'user'
         else
             cb null, 'server'
 
