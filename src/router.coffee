@@ -187,7 +187,7 @@ class exports.Router
     setupSync: (jobs) ->
         sync.setup jobs
 
-        @model.getAllNodes (err, nodes) ->
+        @model.getAllNodes (err, nodes) =>
             if err
                 logger.error err.stack or err
                 return
@@ -245,7 +245,8 @@ class exports.Router
                             @syncNode subscription.node, (err) ->
                                 # Ignore err, a single node may fail
                                 cb3()
-                , cb2
+                , (err, cb2) ->
+                    cb2 err, results?.rsm?.last
         , cb
 
     # No need to @detectAnonymousUser() again:
