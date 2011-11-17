@@ -57,7 +57,8 @@ class Request
         actorEl = childEl?.getChild("actor", NS.BUDDYCLOUD_V1)
         if actorEl?
             @actor = actorEl.getText()
-        # Else @actor stays @sender (see @constructor)
+            @actorType ?= actorEl.attrs.type
+        # Elsewhile @actor stays @sender (see @constructor)
 
     setRSM: (childEl) ->
         # Even if there was no <set/> element,

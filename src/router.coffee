@@ -146,19 +146,17 @@ class exports.Router
                                 cb err, results
 
     runCheckAnonymous: (opts, cb) ->
-        unless opts.writes
-            # No writing request, no need to check...
-            cb()
-        else
-            @detectAnonymousUser opts.actor, (err, isAnonymous) =>
-                if err
-                    # Can't make sure? Fall back to stupid heuristics:
-                    isAnonymous = (opts.actor.indexOf('@anon') >= 0)
-
+        # May have been set by pubsub_server or previous recursion
+        # (see tail of this method)
+        if opts.actorType
+            unless opts.writes
+                # No writing request, no need to check further...
+                cb()
+            else
                 # Disallow any writing requests except
                 # (un)subscribing, for which we do explicit clean-up
                 # upon unavailable presence.
-                if isAnonymous and opts.writes
+                if opts.actorType is 'anonymous'
                     if opts.operation is 'subscribe-node' or
                        opts.operation is 'unsubscribe-node'
                         if @isUserOnline opts.actor
@@ -171,8 +169,23 @@ class exports.Router
                         # Disallow
                         cb new errors.NotAllowed("You are anonymous. You are legion.")
                 else
+                    # Not anonymous, allow everything
                     cb()
+        else
+            @detectAnonymousUser opts.actor, (err, isAnonymous) =>
+                if err and opts.actor.indexOf('@anon') >= 0
+                    # Can't make sure? Fall back to stupid heuristics:
+                    opts.actorType = 'anonymous'
+                else if isAnonymous
+                    opts.actorType = 'anonymous'
+                else if opts.actor.indexOf('@') >= 0
+                    opts.actorType = 'user'
+                else
+                    # No "@" in JID, no known use-case
+                    opts.actorType = 'server'
 
+                # Finally recurse:
+                @runCheckAnonymous opts, cb
 
     pushData: (opts, cb) ->
         opts.operation = 'push-inbox'
