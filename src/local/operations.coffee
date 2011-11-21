@@ -828,7 +828,7 @@ class ReplayArchive extends ModelOperation
             t.walkListenerArchive @req.sender, @req.start, @req.end, (results) =>
                 if sent < max
                     @sendNotification results
-                    sent++
+                    sent += results.length
             , cb2
         , (cb2) =>
             sent = 0
