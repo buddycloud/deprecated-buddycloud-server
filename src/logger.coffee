@@ -10,7 +10,7 @@ exports.setConfig = (config_) ->
     config.level = Math.max(0, CommonLogger.levels.indexOf config_.level)
 
     if config_.file
-        logFile = fs.createWriteStream config_.file
+        logFile = fs.createWriteStream config_.file, flags: 'a'
     if config_.syslog?
         ain2.set
             tag: 'buddycloud'
