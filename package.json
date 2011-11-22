@@ -4,7 +4,7 @@
 ,"description": "buddycloud channels service for XMPP"
 ,"author": "Stephan Maka"
 ,"dependencies": {"coffee-script": ">=1.1.1",
-        "node-xmpp": ">=0.2.5",
+        "node-xmpp": ">=0.3.0",
         "node-stringprep": ">=0.0.3",
         "node-expat": ">=1.2.0",
         "ltx": ">=0.0.4",
