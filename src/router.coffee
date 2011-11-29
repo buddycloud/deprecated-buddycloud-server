@@ -235,7 +235,7 @@ class exports.Router
         opts =
             operation: 'retrieve-user-subscriptions'
             jid: server
-        opts.rsm = new RSM.RSM()
+        opts.rsm = new RSM()
         rsmWalk (nextOffset, cb2) =>
             opts.rsm.after = nextOffset
             router.runRemotely opts, (err, results) =>
