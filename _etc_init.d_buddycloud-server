@@ -21,6 +21,7 @@
 PATH=/sbin:/usr/sbin:/bin:/usr/bin
 DESC="buddycloud server"
 NAME=buddycloud
+RUN_AS_USER=buddycloud
 DAEMON=/opt/buddycloud-server/bin/node
 RUNDIR=/opt/buddycloud-server/lib/node_modules/buddycloud-server
 DAEMON_ARGS="build/default/main.js --nobuild"
@@ -50,9 +51,9 @@ do_start()
 	#   0 if daemon has been started
 	#   1 if daemon was already running
 	#   2 if daemon could not be started
-	start-stop-daemon --start --quiet --pidfile $PIDFILE --exec $DAEMON --test > /dev/null \
+	start-stop-daemon --start --quiet --pidfile $PIDFILE --exec $DAEMON --chuid $RUN_AS_USER --test > /dev/null \
 		|| return 1
-	start-stop-daemon --start --quiet --background --pidfile $PIDFILE --chdir $RUNDIR --exec $DAEMON -- \
+	start-stop-daemon --start --quiet --background --pidfile $PIDFILE --chdir $RUNDIR --chuid $RUN_AS_USER --exec $DAEMON -- \
 		$DAEMON_ARGS \
 		|| return 2
 	# Add code here, if necessary, that waits for the process to be ready
