@@ -24,7 +24,7 @@ NAME=buddycloud
 RUN_AS_USER=buddycloud
 DAEMON=/opt/buddycloud-server/bin/node
 RUNDIR=/opt/buddycloud-server/lib/node_modules/buddycloud-server
-DAEMON_ARGS="build/default/main.js --nobuild"
+DAEMON_ARGS="build/Release/main.js --nobuild"
 PIDFILE=/var/run/$NAME.pid
 SCRIPTNAME=/etc/init.d/$NAME
 

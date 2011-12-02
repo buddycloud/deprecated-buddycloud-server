@@ -8,5 +8,5 @@ done
 if [ ! $nobuild ] && [ ! $help ]; then
     env node-waf build || exit 1
 fi
-exec env node build/default/main.js $@
+exec env node build/Release/main.js $@
 
