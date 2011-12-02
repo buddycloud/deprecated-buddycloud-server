@@ -18,26 +18,14 @@ export PATH="$PREFIX/bin:$PATH"
 [ -d "$TMPDIR" ] || mkdir "$TMPDIR"
 
 # Build node
-NODE_VER=0.4.12
+NODE_VER=0.6.4
 if [ ! -x "$PREFIX/bin/node" ]; then
     cd "$TMPDIR"
-    wget -c http://nodejs.org/dist/node-v${NODE_VER}.tar.gz
+    wget -c http://nodejs.org/dist/v${NODE_VER}/node-v${NODE_VER}.tar.gz
     [ -f node-v${NODE_VER} ] || tar xvfz node-v${NODE_VER}.tar.gz
     cd node-v${NODE_VER}
     ./configure --prefix="$PREFIX"
     make JOBS="$JOBS"
-    make install
-fi
-
-# npm
-NPM_VER=1.0.103
-if [ ! -x "$PREFIX/bin/npm" ]; then
-    cd "$TMPDIR"
-    wget -c http://registry.npmjs.org/npm/-/npm-${NPM_VER}.tgz
-    tar xvfz npm-${NPM_VER}.tgz
-    mv package npm
-    cd npm
-    # Should go into $PREFIX along node
     make install
 fi
 
