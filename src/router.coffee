@@ -238,7 +238,7 @@ class exports.Router
         opts.rsm = new RSM()
         rsmWalk (nextOffset, cb2) =>
             opts.rsm.after = nextOffset
-            router.runRemotely opts, (err, results) =>
+            @runRemotely opts, (err, results) =>
                 if err
                     return cb2 err
 
