@@ -24,7 +24,9 @@ config.cli
     stdout: ['logging.stdout', [off, "Log to stdout"]]
 
 config.load (args, opts) ->
-    config.merge(require(opts.config))
+    # dont load default config over opts and args
+    unless opts.config is defaultConfigPath
+        config.merge(require(opts.config))
 
     # Kludge:
     if opts.stdout
