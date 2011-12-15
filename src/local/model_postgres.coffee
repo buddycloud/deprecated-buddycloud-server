@@ -626,7 +626,7 @@ class Transaction
                 cb2()
 
         async.parallel [ (cb2) ->
-            db.query "SELECT DISTINCT node FROM node_config WHERE node in (SELECT node FROM subscriptions WHERE listener=$1) #{conds}", params
+            db.query "SELECT DISTINCT node FROM node_config WHERE node in (SELECT node FROM subscriptions WHERE listener=$1) #{conds} ORDER BY updated DESC #{limit}", params
             , (err, res) =>
                 if err
                     return cb2 err
