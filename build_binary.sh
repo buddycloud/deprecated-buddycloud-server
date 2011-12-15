@@ -1,6 +1,6 @@
 #!/bin/bash -e
 
-PREFIX=/opt/buddycloud-server
+[ "x$PREFIX" = "x" ] && PREFIX=/opt/buddycloud-server
 TMPDIR=/tmp/buddycloud-server-build
 JOBS=3
 
