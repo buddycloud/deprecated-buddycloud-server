@@ -821,7 +821,7 @@ class AuthorizeSubscriber extends PrivilegedOperation
 # The RSM handling here respects only a <max/> value.
 class ReplayArchive extends ModelOperation
     transaction: (t, cb) ->
-        max = @req.rsm?.max or 250
+        max = @req.rsm?.max or 50
         sent = 0
 
         async.waterfall [ (cb2) =>
