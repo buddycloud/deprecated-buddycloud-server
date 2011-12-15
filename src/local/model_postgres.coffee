@@ -596,20 +596,25 @@ class Transaction
     # MAM
     #
     # @param cb: Function(err, results)
-    walkListenerArchive: (listener, start, end, iter, cb) ->
+    walkListenerArchive: (listener, start, end, max, iter, cb) ->
         db = @db
         params = [listener]
-        cond = ""
+        conds = ""
         i = params.length
         if start
-            cond = "AND updated >= $#{i += 1}::timestamp"
+            conds += "AND updated >= $#{i += 1}::timestamp"
             params.push start
         if end
-            cond = " AND updated <= $#{i += 1}::timestamp"
+            conds += " AND updated <= $#{i += 1}::timestamp"
             params.push end
+        limit = if max
+            params.push max
+            "LIMIT $#{i += 1}"
+        else
+            ""
+
         q = (fields, table, cb2, mapper) ->
-            # TODO: ORDER BY updated
-            db.query "SELECT #{fields} FROM #{table} WHERE node in (SELECT node FROM subscriptions WHERE listener=$1) #{cond}", params
+            db.query "SELECT #{fields}, updated FROM #{table} WHERE node in (SELECT node FROM subscriptions WHERE listener=$1) #{conds} ORDER BY updated DESC #{limit}", params
             , (err, res) ->
                 if err
                     return cb2 err
@@ -621,7 +626,7 @@ class Transaction
                 cb2()
 
         async.parallel [ (cb2) ->
-            db.query "SELECT DISTINCT node FROM node_config WHERE node in (SELECT node FROM subscriptions WHERE listener=$1) #{cond}", params
+            db.query "SELECT DISTINCT node FROM node_config WHERE node in (SELECT node FROM subscriptions WHERE listener=$1) #{conds}", params
             , (err, res) =>
                 if err
                     return cb2 err

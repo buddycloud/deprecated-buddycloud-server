@@ -825,8 +825,9 @@ class ReplayArchive extends ModelOperation
         sent = 0
 
         async.waterfall [ (cb2) =>
-            t.walkListenerArchive @req.sender, @req.start, @req.end, (results) =>
+            t.walkListenerArchive @req.sender, @req.start, @req.end, max, (results) =>
                 if sent < max
+                    results = results.slice(0, max - sent)
                     @sendNotification results
                     sent += results.length
             , cb2
