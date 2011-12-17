@@ -1,4 +1,4 @@
-CommonLogger = require 'common-logger'
+{ constructor: CommonLogger } = require 'underscore.logger'
 ain2 = require 'ain2'
 fs = require 'fs'
 
@@ -27,29 +27,24 @@ class Logger extends CommonLogger
     constructor: (@module) ->
         super(config)
 
+    # Monkey patch to always convert the format string object to an actual string
+    _log: (level, args) ->
+        if args[0] and typeof args[0] isnt 'string'
+            args[0] = args[0].toString()
+        super
+
     # + @module output
     format: (date, level, message) ->
-        "[#{date.toUTCString()}] #{@constructor.levels[level]} [#{@module}] #{message}"
-
-    # Monkey patch to pass level to @out()
-    log: (level, args) ->
-        if level <= @level
-            i       = 0
-            message = "#{args[0]}".replace /%s/g, -> args[++i]
-            message = @format(new Date(), level, message)
-            message = @colorize(message, @colors[level]) if @colorized
-            @out message, level
+        "[#{date.toUTCString()}] #{CommonLogger.levels[level]} [#{@module}] #{message}"
 
     # more targets than just console.log()
-    out: (message, level) ->
+    out: (message) ->
         if config.stdout
             console.log message
         if logFile
             logFile.write "#{message}\n"
         if config.syslog?
-            levelName = CommonLogger.levels[level]?.toLowerCase()
-            if levelName and ain2[levelName]
-                ain2[levelName] message
+            ain2['info'] message
 
 
 exports.makeLogger = (module) ->
