@@ -11,7 +11,9 @@ exports.setConfig = (config_) ->
 
     if config_.file
         logFile = fs.createWriteStream config_.file, flags: 'a'
-    if config_.syslog?
+    # syslog needs a hostname as dgram_unix
+    # support has been removed from node.
+    if config_.syslog? and config_.syslog.hostname
         ain2.set
             tag: 'buddycloud'
             facility: 'daemon'
