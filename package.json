@@ -11,7 +11,6 @@
         "jsconfig": ">=0.0.1",
         "async": ">=0.1.9",
         "node-uuid": ">=1.1.0",
-        "cradle": "0.3.1",
         "pg": ">=0.2.6",
         "underscore.logger": ">=0.3.1",
 	"ain2": ">=0.2.1"
