@@ -870,7 +870,7 @@ class ReplayArchive extends ModelOperation
 class PushInbox extends ModelOperation
     transaction: (t, cb) ->
         async.waterfall [(cb2) =>
-            logger.debug "pushUpdates: %s", inspect(@req)
+            logger.debug "pushUpdates: #{inspect @req}"
             async.filter @req, (update, cb3) ->
                 if update.type is 'subscription' and update.listener?
                     # Was successful remote subscription attempt
@@ -883,7 +883,7 @@ class PushInbox extends ModelOperation
             , (updates) ->
                 cb2 null, updates
         , (updates, cb2) =>
-            logger.debug "pushFilteredUpdates: %s", inspect(updates)
+            logger.debug "pushFilteredUpdates: #{inspect updates}"
             async.forEach updates, (update, cb3) ->
                 switch update.type
                     when 'items'
@@ -918,7 +918,7 @@ class PushInbox extends ModelOperation
 class Notify extends ModelOperation
     transaction: (t, cb) ->
         # TODO: walk in batches
-        logger.debug "notifyNotification: %s", inspect(@req)
+        logger.debug "notifyNotification: #{inspect @req}"
         t.getNodeListeners @req.node, (err, listeners) =>
             if err
                 return cb err
@@ -931,7 +931,7 @@ class Notify extends ModelOperation
 class ModeratorNotify extends ModelOperation
     transaction: (t, cb) ->
         # TODO: walk in batches
-        logger.debug "moderatorNotifyNotification: %s", inspect(@req)
+        logger.debug "moderatorNotifyNotification: #{inspect(@req)}"
         t.getNodeModeratorListeners @req.node, (err, listeners) =>
             if err
                 return cb err
@@ -976,10 +976,10 @@ exports.run = (router, request, cb) ->
 
     opClass = OPERATIONS[opName]
     unless opClass
-        logger.warn "Unimplemented operation #{opName}: %s", inspect(request)
+        logger.warn "Unimplemented operation #{opName}: #{inspect request}"
         return cb(new errors.FeatureNotImplemented("Unimplemented operation #{opName}"))
 
-    logger.debug "operations.run: %s", inspect(request)
+    logger.debug "operations.run: #{inspect request}"
     op = new opClass(router, request)
     op.run (error, result) ->
         if error
@@ -987,7 +987,7 @@ exports.run = (router, request, cb) ->
             cb error
         else
             # Successfully done
-            logger.debug "Operation #{opName} ran: %s", inspect(result)
+            logger.debug "Operation #{opName} ran: #{inspect result}"
             try
                 cb null, result
             catch e
