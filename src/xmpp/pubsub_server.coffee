@@ -163,8 +163,12 @@ class DiscoItemsRequest extends Request
         @node = @discoItemsEl?.attrs.node
         unless @node?
             @operation = 'browse-nodes'
+        else if @node is "/top-followed-nodes"
+            @operation = 'browse-top-followed-nodes'
+        else if @node is "/top-published-nodes"
+            @operation = 'browse-top-published-nodes'
         else
-            @operation = 'browse-nodes-items'
+            @operation = 'browse-node-items'
         @setRSM @discoItemsEl
 
     matches: () ->
@@ -185,12 +189,10 @@ class DiscoItemsRequest extends Request
             queryEl.c "item", attrs
 
         if results.rsm
-            unless @node?
-                # browse-nodes operation
-                results.rsm.setReplyInfo results, 'node'
-            else
-                # browse-nodes-items operation, item id:
+            if @operation is 'browse-node-items'
                 results.rsm.setReplyInfo results, 'name'
+            else
+                results.rsm.setReplyInfo results, 'node'
             results.rsm.rmRequestInfo()
             queryEl.cnode results.rsm.toXml()
 

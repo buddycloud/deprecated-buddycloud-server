@@ -659,6 +659,31 @@ class Transaction
             logger.debug 'walkListenerArchive done'
             cb err
 
+    ##
+    # Stats
+    ##
+
+    getTopFollowedNodes: (count, timespan="7 days", nodePattern="/user/%@%/posts", cb) ->
+        @db.query """SELECT node,
+                            COUNT(user) AS count
+                     FROM subscriptions
+                     WHERE node LIKE $2
+                       AND updated >= CURRENT_TIMESTAMP - INTERVAL $1
+                     GROUP BY node
+                     ORDER BY count DESC
+                     LIMIT $3"""
+        , [nodePattern, timespan, count], cb
+
+    getTopPublishedNodes: (count, timespan="7 days", nodePattern="/user/%@%/posts", cb) ->
+        @db.query """SELECT node,
+                            COUNT(xml) AS count
+                     FROM items
+                     WHERE node LIKE $2
+                       AND updated >= CURRENT_TIMESTAMP - INTERVAL $1
+                     GROUP BY node
+                     ORDER BY count DESC
+                     LIMIT $3"""
+        , [nodePattern, timespan, count], cb
 
 parseEl = (xml) ->
     try

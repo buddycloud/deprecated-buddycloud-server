@@ -255,10 +255,22 @@ class BrowseNodes extends ModelOperation
             results = rsm.cropResults(results, 'node')
             results.forEach (item) =>
                 item.jid = @req.me
-                item.name ?= item.title
             cb null, results
 
-class BrowseNodesItems extends PrivilegedOperation
+    fetchNodes: (cb) ->
+        t.listNodes cb
+
+class BrowseTopFollowedNodes extends BrowseNodes
+    fetchNods: (cb) ->
+        max = @req.rsm.max or 10
+        t.getTopFollowedNodes max, cb
+
+class BrowseTopPublishedNodes extends BrowseNodes
+    fetchNods: (cb) ->
+        max = @req.rsm.max or 10
+        t.getTopPublishedNodes max, cb
+
+class BrowseNodeItems extends PrivilegedOperation
     privilegedTransaction: (t, cb) ->
         t.getItemIds @req.node, (err, ids) =>
             if err
@@ -933,7 +945,9 @@ OPERATIONS =
     'browse-info': BrowseInfo
     'browse-node-info': BrowseNodeInfo
     'browse-nodes': BrowseNodes
-    'browse-nodes-items': BrowseNodesItems
+    'browse-top-followed-nodes': BrowseTopFollowedNodes
+    'browse-top-published-nodes': BrowseTopPublishedNodes
+    'browse-node-items': BrowseNodeItems
     'register-user': Register
     'create-node': CreateNode
     'publish-node-items': Publish
