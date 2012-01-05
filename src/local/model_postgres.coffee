@@ -460,7 +460,7 @@ class Transaction
                 else
                     query_updated = "CURRENT_TIMESTAMP"
                 db.query "UPDATE items SET xml=$1, updated=#{query_updated} WHERE node=$2 AND id=$3"
-                , params,
+                , params
                 , cb2
             else unless isSet
                 db.query "INSERT INTO items (node, id, xml, updated) VALUES ($1, $2, $3, CURRENT_TIMESTAMP)"
