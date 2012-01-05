@@ -668,7 +668,7 @@ class Transaction
                             COUNT(user) AS count
                      FROM subscriptions
                      WHERE node LIKE $2
-                       AND updated >= CURRENT_TIMESTAMP - INTERVAL $1
+                       AND updated >= CURRENT_TIMESTAMP - $1 :: INTERVAL
                      GROUP BY node
                      ORDER BY count DESC
                      LIMIT $3"""
@@ -679,7 +679,7 @@ class Transaction
                             COUNT(xml) AS count
                      FROM items
                      WHERE node LIKE $2
-                       AND updated >= CURRENT_TIMESTAMP - INTERVAL $1
+                       AND updated >= CURRENT_TIMESTAMP - $1 :: INTERVAL
                      GROUP BY node
                      ORDER BY count DESC
                      LIMIT $3"""
