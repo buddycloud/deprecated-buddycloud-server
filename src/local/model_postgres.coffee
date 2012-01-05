@@ -451,16 +451,21 @@ class Transaction
             db.query "SELECT id FROM items WHERE node=$1 AND id=$2", [ node, id ], cb2
         , (res, cb2) ->
             isSet = res and res.rows and res.rows[0]
+            xml = el.toString()
+            params = [ xml, node, id ]
             updated = el.getChildText('updated') or
                 el.getChildText('published')
-            xml = el.toString()
-            params = [ xml, node, id, updated ]
+            if updated
+                params.push updated
+                updated_query = "$4"
+            else
+                updated_query = "CURRENT_TIMESTAMP"
             if isSet
-                db.query "UPDATE items SET xml=$1, updated=$4 WHERE node=$2 AND id=$3"
+                db.query "UPDATE items SET xml=$1, updated=#{updated_query} WHERE node=$2 AND id=$3"
                 , params
                 , cb2
             else unless isSet
-                db.query "INSERT INTO items (node, id, xml, updated) VALUES ($1, $2, $3, $4)"
+                db.query "INSERT INTO items (node, id, xml, updated) VALUES ($1, $2, $3, #{updated_query})"
                 , params
                 , cb2
         ], cb
