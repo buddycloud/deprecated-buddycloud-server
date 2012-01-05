@@ -248,7 +248,7 @@ class BrowseNodeInfo extends PrivilegedOperation
 class BrowseNodes extends ModelOperation
     transaction: (t, cb) ->
         rsm = @req.rsm
-        t.listNodes (err, results) =>
+        @fetchNodes (err, results) =>
             if err
                 return cb err
 
