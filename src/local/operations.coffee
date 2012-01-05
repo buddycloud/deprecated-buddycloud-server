@@ -369,7 +369,7 @@ class Publish extends PrivilegedOperation
                     , (oldItem, cb4) =>
                         normalizeItem @req, oldItem, item, cb4
                     , (newItem, cb4) =>
-                        t.writeItem @req.node, newItem.id, null, newItem.el, (err) ->
+                        t.writeItem @req.node, newItem.id, newItem.el, (err) ->
                             cb4 err, newItem.id
                     ], cb3
             ), cb2
@@ -890,9 +890,7 @@ class PushInbox extends ModelOperation
                         {node, items} = update
                         async.forEach items, (item, cb4) ->
                             {id, el} = item
-                            updated = el.getChildText('updated') or
-                                el.getChildText('published')
-                            t.writeItem node, id, updated, el, cb4
+                            t.writeItem node, id, el, cb4
                         , cb3
 
                     when 'subscription'
