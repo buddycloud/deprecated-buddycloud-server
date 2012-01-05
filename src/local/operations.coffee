@@ -248,7 +248,7 @@ class BrowseNodeInfo extends PrivilegedOperation
 class BrowseNodes extends ModelOperation
     transaction: (t, cb) ->
         rsm = @req.rsm
-        @fetchNodes (err, results) =>
+        @fetchNodes t, (err, results) =>
             if err
                 return cb err
 
@@ -257,16 +257,16 @@ class BrowseNodes extends ModelOperation
                 item.jid = @req.me
             cb null, results
 
-    fetchNodes: (cb) ->
+    fetchNodes: (t, cb) ->
         t.listNodes cb
 
 class BrowseTopFollowedNodes extends BrowseNodes
-    fetchNodes: (cb) ->
+    fetchNodes: (t, cb) ->
         max = @req.rsm.max or 10
         t.getTopFollowedNodes max, cb
 
 class BrowseTopPublishedNodes extends BrowseNodes
-    fetchNodes: (cb) ->
+    fetchNodes: (t, cb) ->
         max = @req.rsm.max or 10
         t.getTopPublishedNodes max, cb
 
