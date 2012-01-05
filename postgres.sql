@@ -24,3 +24,7 @@ CREATE TABLE affiliations (node TEXT REFERENCES nodes (node),
 			   PRIMARY KEY (node, "user"));
 CREATE INDEX affiliations_updated ON affiliations (updated);
 
+CREATE VIEW open_nodes AS
+       SELECT DISTINCT node FROM node_config
+       	      WHERE "key"='accessModel'
+	        AND "value"='open';

@@ -215,7 +215,9 @@ class Transaction
     listNodes: (cb) ->
         db = @db
         async.waterfall [(cb2) ->
-            db.query "SELECT node FROM nodes WHERE node IN (SELECT node FROM node_config WHERE \"key\"='accessModel' AND \"value\"='open') " + "ORDER BY node ASC", cb2
+            db.query """SELECT node FROM nodes
+                        WHERE node IN (SELECT node FROM open_nodes)
+                        ORDER BY node ASC""", cb2
         , (res, cb2) ->
             nodes = res.rows.map (row) ->
                 node: row.node
@@ -668,6 +670,7 @@ class Transaction
                             COUNT(user) AS count
                      FROM subscriptions
                      WHERE node LIKE $1
+                       AND node IN (SELECT nodes FROM open_nodes)
                        AND updated >= CURRENT_TIMESTAMP - $2 :: INTERVAL
                      GROUP BY node
                      ORDER BY count DESC
@@ -681,6 +684,7 @@ class Transaction
                             COUNT(xml) AS count
                      FROM items
                      WHERE node LIKE $1
+                       AND node IN (SELECT nodes FROM open_nodes)
                        AND updated >= CURRENT_TIMESTAMP - $2 :: INTERVAL
                      GROUP BY node
                      ORDER BY count DESC
