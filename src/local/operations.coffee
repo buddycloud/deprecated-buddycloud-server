@@ -263,12 +263,12 @@ class BrowseNodes extends ModelOperation
 class BrowseTopFollowedNodes extends BrowseNodes
     fetchNodes: (t, cb) ->
         max = @req.rsm.max or 10
-        t.getTopFollowedNodes max, cb
+        t.getTopFollowedNodes max, null, null, cb
 
 class BrowseTopPublishedNodes extends BrowseNodes
     fetchNodes: (t, cb) ->
         max = @req.rsm.max or 10
-        t.getTopPublishedNodes max, cb
+        t.getTopPublishedNodes max, null, null, cb
 
 class BrowseNodeItems extends PrivilegedOperation
     privilegedTransaction: (t, cb) ->

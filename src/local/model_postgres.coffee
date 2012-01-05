@@ -667,8 +667,8 @@ class Transaction
         @db.query """SELECT node,
                             COUNT(user) AS count
                      FROM subscriptions
-                     WHERE node LIKE $2
-                       AND updated >= CURRENT_TIMESTAMP - $1 :: INTERVAL
+                     WHERE node LIKE $1
+                       AND updated >= CURRENT_TIMESTAMP - $2 :: INTERVAL
                      GROUP BY node
                      ORDER BY count DESC
                      LIMIT $3"""
@@ -678,8 +678,8 @@ class Transaction
         @db.query """SELECT node,
                             COUNT(xml) AS count
                      FROM items
-                     WHERE node LIKE $2
-                       AND updated >= CURRENT_TIMESTAMP - $1 :: INTERVAL
+                     WHERE node LIKE $1
+                       AND updated >= CURRENT_TIMESTAMP - $2 :: INTERVAL
                      GROUP BY node
                      ORDER BY count DESC
                      LIMIT $3"""
