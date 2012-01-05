@@ -165,8 +165,12 @@ class DiscoItemsRequest extends Request
             @operation = 'browse-nodes'
         else if @node is "/top-followed-nodes"
             @operation = 'browse-top-followed-nodes'
+            # not requesting a particular node:
+            delete @node
         else if @node is "/top-published-nodes"
             @operation = 'browse-top-published-nodes'
+            # not requesting a particular node:
+            delete @node
         else
             @operation = 'browse-node-items'
         @setRSM @discoItemsEl
