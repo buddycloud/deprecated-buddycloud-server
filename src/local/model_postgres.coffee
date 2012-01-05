@@ -676,7 +676,7 @@ class Transaction
                             COUNT(user) AS count
                      FROM subscriptions
                      WHERE node LIKE $1
-                       AND node IN (SELECT nodes FROM open_nodes)
+                       AND node IN (SELECT node FROM open_nodes)
                        AND updated >= CURRENT_TIMESTAMP - $2 :: INTERVAL
                      GROUP BY node
                      ORDER BY count DESC
@@ -690,7 +690,7 @@ class Transaction
                             COUNT(xml) AS count
                      FROM items
                      WHERE node LIKE $1
-                       AND node IN (SELECT nodes FROM open_nodes)
+                       AND node IN (SELECT node FROM open_nodes)
                        AND updated >= CURRENT_TIMESTAMP - $2 :: INTERVAL
                      GROUP BY node
                      ORDER BY count DESC
