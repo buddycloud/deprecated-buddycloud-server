@@ -261,12 +261,12 @@ class BrowseNodes extends ModelOperation
         t.listNodes cb
 
 class BrowseTopFollowedNodes extends BrowseNodes
-    fetchNods: (cb) ->
+    fetchNodes: (cb) ->
         max = @req.rsm.max or 10
         t.getTopFollowedNodes max, cb
 
 class BrowseTopPublishedNodes extends BrowseNodes
-    fetchNods: (cb) ->
+    fetchNodes: (cb) ->
         max = @req.rsm.max or 10
         t.getTopPublishedNodes max, cb
 
