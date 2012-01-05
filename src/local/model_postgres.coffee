@@ -452,19 +452,19 @@ class Transaction
         , (res, cb2) ->
             isSet = res and res.rows and res.rows[0]
             xml = el.toString()
+            params = [ xml, node, id ]
+            if updated
+                params.push updated
+                query_updated = "$4"
+            else
+                query_updated = "CURRENT_TIMESTAMP"
             if isSet
-                params = [ xml, node, id ]
-                if updated
-                    params.push updated
-                    query_updated = "$4"
-                else
-                    query_updated = "CURRENT_TIMESTAMP"
                 db.query "UPDATE items SET xml=$1, updated=#{query_updated} WHERE node=$2 AND id=$3"
                 , params
                 , cb2
             else unless isSet
-                db.query "INSERT INTO items (node, id, xml, updated) VALUES ($1, $2, $3, CURRENT_TIMESTAMP)"
-                , [ node, id, xml ]
+                db.query "INSERT INTO items (node, id, xml, updated) VALUES ($1, $2, $3, #{query_updated})"
+                , params
                 , cb2
         ], cb
 
