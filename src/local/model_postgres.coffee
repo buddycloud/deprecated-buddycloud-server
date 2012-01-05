@@ -672,7 +672,9 @@ class Transaction
                      GROUP BY node
                      ORDER BY count DESC
                      LIMIT $3"""
-        , [nodePattern, timespan, count], cb
+        , [nodePattern, timespan, count]
+        , (err, res) ->
+            cb err, res?.rows
 
     getTopPublishedNodes: (count, timespan="7 days", nodePattern="/user/%@%/posts", cb) ->
         @db.query """SELECT node,
@@ -683,7 +685,9 @@ class Transaction
                      GROUP BY node
                      ORDER BY count DESC
                      LIMIT $3"""
-        , [nodePattern, timespan, count], cb
+        , [nodePattern, timespan, count]
+        , (err, res) ->
+            cb err, res?.rows
 
 parseEl = (xml) ->
     try
