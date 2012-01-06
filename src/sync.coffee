@@ -64,7 +64,7 @@ class PaginatedSynchronization extends Synchronization
 
                     @writeResults t, results, (err) =>
                         if err
-                            return cb2 results
+                            return cb2 err
 
                         nextOffset = results.rsm?.last
                         cb2 null, nextOffset
