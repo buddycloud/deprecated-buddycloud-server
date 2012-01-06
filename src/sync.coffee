@@ -51,7 +51,7 @@ class PaginatedSynchronization extends Synchronization
 
     run: (t, cb) ->
         rsmWalk (offset, cb2) =>
-            logger.debug "PaginatedSynchronization walk %s", offset
+            logger.debug "PaginatedSynchronization walk #{offset}"
             @request.rsm.after = offset
             @runRequest (err, results) =>
                 logger.debug "ranRequest #{err or results?.length}"
