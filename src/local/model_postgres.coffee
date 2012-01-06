@@ -452,7 +452,7 @@ class Transaction
         , (res, cb2) ->
             isSet = res and res.rows and res.rows[0]
             xml = el.toString()
-            params = [ xml, node, id ]
+            params = [ node, id, xml ]
             updated = el.getChildText('updated') or
                 el.getChildText('published')
             if updated
@@ -461,7 +461,7 @@ class Transaction
             else
                 updated_query = "CURRENT_TIMESTAMP"
             if isSet
-                db.query "UPDATE items SET xml=$1, updated=#{updated_query} WHERE node=$2 AND id=$3"
+                db.query "UPDATE items SET xml=$3, updated=#{updated_query} WHERE node=$1 AND id=$2"
                 , params
                 , cb2
             else unless isSet
