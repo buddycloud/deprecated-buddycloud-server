@@ -21,7 +21,7 @@ if [ -z "$nobuild" ] && [ -z "$help" ]; then
     env ./node_modules/.bin/cake build || exit 1
 fi
 # go back where we came from
-cd cwd
+cd "$cwd"
 # execute the real program.
 exec env node "$moduleDir/lib/main.js $@"
 
