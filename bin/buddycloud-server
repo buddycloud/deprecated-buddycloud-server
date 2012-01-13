@@ -6,7 +6,7 @@ for arg in $@; do
     esac
 done
 if [ ! $nobuild ] && [ ! $help ]; then
-    env node-waf build || exit 1
+    env ./node_modules/.bin/cake build || exit 1
 fi
-exec env node build/Release/main.js $@
+exec env node lib/main.js $@
 

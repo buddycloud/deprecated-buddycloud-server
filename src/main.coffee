@@ -4,7 +4,7 @@ async = require('async')
 {inspect} = require('util')
 # Config
 config = require('jsconfig')
-defaultConfigPath = path.join(__dirname,"..","..","config")
+defaultConfigPath = path.join(__dirname,"..","config")
 config.defaults(defaultConfigPath)
 # Included
 { version } = require('./version')

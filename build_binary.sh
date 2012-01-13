@@ -32,6 +32,7 @@ fi
 # deps & coffeescript build
 cd $SRCDIR
 npm i . -g
+./node_module/.bin/cake build
 
 rm $PREFIX/bin/buddycloud-server
 cp _opt_buddycloud-server_bin_buddycloud-server $PREFIX/bin/buddycloud-server

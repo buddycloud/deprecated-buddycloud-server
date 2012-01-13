@@ -3,7 +3,7 @@
 ,"bin": { "buddycloud-server": "./bin/buddycloud-server" }
 ,"description": "buddycloud channels service for XMPP"
 ,"author": "Stephan Maka"
-,"dependencies": {"coffee-script": ">=1.1.1",
+,"dependencies": {
         "node-xmpp": ">=0.3.1",
         "node-stringprep": ">=0.1.1",
         "node-expat": ">=1.2.0",
@@ -13,15 +13,17 @@
         "node-uuid": ">=1.1.0",
         "pg": ">=0.2.6",
         "underscore.logger": ">=0.3.1",
-	"ain2": ">=0.2.1"
+        "ain2": ">=0.2.1"
+        }
+,"devDependencies": {
+        "muffin": ">=0.2.6",
+        "coffee-script": ">=1.2.0"
         }
 ,"repositories": [{"type": "git"
         ,"path": "git://github.com/buddycloud/buddycloud-server.git"
         }]
 ,"scripts": {
-    "start": "./bin/buddycloud-server --nobuild",
-    "install": "node-waf configure build",
-    "build": "node-waf configure build"
+    "start": "./bin/buddycloud-server --nobuild"
 }
 ,"homepage": "http://buddycloud.org"
 ,"bugs": "http://github.com/buddycloud/buddycloud-server/issues"
