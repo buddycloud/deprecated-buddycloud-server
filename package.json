@@ -33,5 +33,5 @@
         }]
 ,"contributors": ["Stephan Maka"]
 ,"licenses": [{"type": "APL2"}]
-,"engine": "node"
+, "engines": {"node": ">= 0.5"}
 }
