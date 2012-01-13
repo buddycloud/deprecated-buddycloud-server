@@ -7,7 +7,7 @@ config = require('jsconfig')
 defaultConfigPath = path.join(__dirname,"..","config")
 config.defaults(defaultConfigPath)
 # Included
-{ version } = require('./version')
+{ version } = require('../package.json')
 
 process.title = "buddycloud-server #{version}"
 
@@ -22,8 +22,15 @@ config.cli
     debug: [off, "enable debug mode"]
     nobuild: [off, "[INTERNAL] disable build"]
     stdout: ['logging.stdout', [off, "Log to stdout"]]
+    version: [off, "Display version"]
 
 config.load (args, opts) ->
+
+    if opts.version
+        console.log version
+        process.exit 0
+
+
     # dont load default config over opts and args
     unless opts.config is defaultConfigPath
         config.merge(require(opts.config))
