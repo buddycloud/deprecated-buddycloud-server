@@ -13,7 +13,7 @@ exports.setConfig = (config_) ->
         logFile = fs.createWriteStream config_.file, flags: 'a'
     # syslog needs a hostname as dgram_unix
     # support has been removed from node.
-    if config_.syslog? and config_.syslog.hostname
+    if config_.syslog? and Object.keys(config_.syslog).length > 0
         ain2.set
             tag: 'buddycloud'
             facility: 'daemon'
@@ -45,7 +45,7 @@ class Logger extends CommonLogger
             console.log message
         if logFile
             logFile.write "#{message}\n"
-        if config.syslog?
+        if config.syslog? and Object.keys(config.syslog).length > 0
             ain2['info'] message
 
 
