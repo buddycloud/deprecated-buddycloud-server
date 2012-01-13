@@ -115,7 +115,11 @@ config.load (args, opts) ->
     xmppConn.on 'online', ->
         logger.info "XMPP connection established"
         process.title = "buddycloud-server #{version}: #{xmppConn.jid}"
+        saidHello = no
         model.forListeners (listener) ->
+            unless saidHello
+                logger.info "server successfully started"
+                saidHello = yes
             xmppConn.probePresence(listener)
 
         router.setupSync Math.ceil((config.modelConfig.poolSize or 2) / 2)
