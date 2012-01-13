@@ -1,12 +1,22 @@
 #!/bin/sh
+# find where this file really is by dereferencing the symlink(s).
+this=$0
+while [ -n "`readlink $this`" ] ; do
+    this=`readlink $this`
+done
+moduleDir=`dirname $this`/..
+# build or display help.
 for arg in $@; do
     case $arg in
         '--nobuild') nobuild=1 ;;
         '--help') help=1 ;;
     esac
 done
-if [ ! $nobuild ] && [ ! $help ]; then
+if [ -z "$nobuild" ] && [ -z "$help" ]; then
     env ./node_modules/.bin/cake build || exit 1
 fi
+# execute the real program.
+export PATH=`dirname $0`:$PATH
+cd $moduleDir
 exec env node lib/main.js $@
 
