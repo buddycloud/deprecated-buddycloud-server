@@ -152,15 +152,3 @@ exports.syncNode = (router, model, node, cb) ->
 # Setup synchronization queue
 exports.setup = (jobs) ->
     syncQueue.concurrency = jobs
-
-
-nodeRegexp = /^\/user\/([^\/]+)\/?(.*)/
-getNodeUser = (node) ->
-    unless node
-        return null
-
-    m = nodeRegexp.exec(node)
-    unless m
-        return null
-
-    m[1]

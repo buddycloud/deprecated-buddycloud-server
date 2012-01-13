@@ -7,6 +7,7 @@ pubsubClient = require('./pubsub_client')
 errors = require('../errors')
 NS = require('./ns')
 forms = require('./forms')
+{getNodeUser, getUserDomain} = require('../util')
 
 ##
 # Initialize with XMPP connection
@@ -294,21 +295,3 @@ class RequestCache
             process.nextTick =>
                 cb @entries[id].err, @entries[id].results
 
-
-getUserDomain = (user) ->
-    if user.indexOf('@') >= 0
-        user.substr(user.indexOf('@') + 1)
-    else
-        user
-
-
-nodeRegexp = /^\/user\/([^\/]+)\/?(.*)/
-getNodeUser = (node) ->
-    unless node
-        return null
-
-    m = nodeRegexp.exec(node)
-    unless m
-        return null
-
-    m[1]

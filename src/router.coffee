@@ -5,6 +5,7 @@ sync = require('./sync')
 async = require('async')
 rsmWalk = require('./rsm_walk')
 {RSM} = require('./xmpp/rsm')
+{getNodeUser} = require('./util')
 
 CACHE_TIMEOUT = 60 * 1000
 
