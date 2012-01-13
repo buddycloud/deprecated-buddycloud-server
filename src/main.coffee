@@ -33,7 +33,9 @@ config.load (args, opts) ->
 
     # dont load default config over opts and args
     unless opts.config is defaultConfigPath
-        config.merge(require(path.join(process.cwd(), opts.config)))
+        unless opts.config[0] is '/'
+            opts.config = require(path.join(process.cwd(), opts.config))
+        config.merge(opts.config)
 
     # Kludge:
     if opts.stdout
