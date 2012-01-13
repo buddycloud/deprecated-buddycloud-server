@@ -33,7 +33,7 @@ config.load (args, opts) ->
 
     # dont load default config over opts and args
     unless opts.config is defaultConfigPath
-        config.merge(require(opts.config))
+        config.merge(require(path.join(process.cwd(), opts.config)))
 
     # Kludge:
     if opts.stdout

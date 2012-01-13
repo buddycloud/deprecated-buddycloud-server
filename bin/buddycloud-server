@@ -1,4 +1,5 @@
 #!/bin/sh
+cwd=`pwd`
 # find where this file really is by dereferencing the symlink(s).
 this=$0
 while [ -n "`readlink $this`" ] ; do
@@ -19,6 +20,8 @@ cd $moduleDir
 if [ -z "$nobuild" ] && [ -z "$help" ]; then
     env ./node_modules/.bin/cake build || exit 1
 fi
+# go back where we came from
+cd cwd
 # execute the real program.
-exec env node lib/main.js $@
+exec env node "$moduleDir/lib/main.js $@"
 
