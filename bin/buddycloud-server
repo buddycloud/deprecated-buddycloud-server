@@ -12,11 +12,13 @@ for arg in $@; do
         '--help') help=1 ;;
     esac
 done
+# cd to right destination
+export PATH=`dirname $0`:$PATH
+cd $moduleDir
+# compile coffeescript
 if [ -z "$nobuild" ] && [ -z "$help" ]; then
     env ./node_modules/.bin/cake build || exit 1
 fi
 # execute the real program.
-export PATH=`dirname $0`:$PATH
-cd $moduleDir
 exec env node lib/main.js $@
 
