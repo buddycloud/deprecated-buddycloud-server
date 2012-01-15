@@ -7,7 +7,10 @@ config = require('jsconfig')
 defaultConfigPath = path.join(__dirname,"..","config")
 config.defaults(defaultConfigPath)
 # Included
-{ version } = require('../package.json')
+try
+    { version } = require('../package.json')
+catch e
+    { version } = JSON.parse(require('fs').readFileSync(path.join(__dirname,'..','package.json')))
 
 process.title = "buddycloud-server #{version}"
 
