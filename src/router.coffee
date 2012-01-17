@@ -263,7 +263,7 @@ class exports.Router
                             @syncNode subscription.node, (err) ->
                                 # Ignore err, a single node may fail
                                 cb3()
-                , (err, cb2) ->
+                , (err) ->
                     cb2 err, results?.rsm?.last
         , cb
 
