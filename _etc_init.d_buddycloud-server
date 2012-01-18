@@ -25,8 +25,11 @@ RUN_AS_USER=buddycloud
 DAEMON=/opt/buddycloud-server/bin/node
 RUNDIR=/opt/buddycloud-server/lib/node_modules/buddycloud-server
 DAEMON_ARGS=lib/main.js
-PIDFILE=/var/run/$NAME.pid
+PIDDIR=/var/run/buddycloud-server
+PIDFILE="$PIDDIR/$NAME.pid"
 SCRIPTNAME=/etc/init.d/$NAME
+LOGDIR=/var/log/buddycloud-server
+LOGFILE="$LOGDIR/buddycloud-server.log"
 
 # Exit if the package is not installed
 [ -x "$DAEMON" ] || exit 0
@@ -51,6 +54,15 @@ do_start()
 	#   0 if daemon has been started
 	#   1 if daemon was already running
 	#   2 if daemon could not be started
+
+	for dir in "$PIDDIR" "$LOGDIR"; do
+		if [ ! -d $PIDDIR ]; then
+			mkdir -p "$dir" || return 2
+			chown "$RUN_AS_USER": "$dir" || return 2
+			chmod 755 "$dir" || return 2
+		fi
+	done
+
 	start-stop-daemon --start --quiet --pidfile $PIDFILE --exec $DAEMON --chuid $RUN_AS_USER --test > /dev/null \
 		|| return 1
 	start-stop-daemon --start --quiet --background --pidfile $PIDFILE --chdir $RUNDIR --chuid $RUN_AS_USER --exec $DAEMON -- \
