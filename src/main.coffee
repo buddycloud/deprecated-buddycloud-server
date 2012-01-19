@@ -5,6 +5,7 @@ async = require('async')
 # Config
 config = require('jsconfig')
 version = require('./version')
+config.defaults path.join(__dirname,"..","config.js")
 
 process.title = "buddycloud-server #{version}"
 
@@ -22,7 +23,7 @@ config.cli
     stdout: ['logging.stdout', [off, "Log to stdout"]]
     version: [off, "Display version"]
 
-config.load path.join(__dirname,"..","config.js"), "/etc/buddycloud-server/config.js", (args, opts) ->
+config.load "/etc/buddycloud-server/config.js", (args, opts) ->
 
     if opts.version
         console.log version
