@@ -4,8 +4,6 @@ async = require('async')
 {inspect} = require('util')
 # Config
 config = require('jsconfig')
-defaultConfigPath = path.join(__dirname,"..","config")
-config.defaults(defaultConfigPath)
 # Included
 try
     { version } = require('../package.json')
@@ -14,6 +12,7 @@ catch e
 
 process.title = "buddycloud-server #{version}"
 
+config.set 'ignore unknown', yes
 config.set 'env',
     HOST: 'xmpp.host'
     PORT: ['xmpp.port', parseInt]
@@ -21,23 +20,22 @@ config.set 'env',
 config.cli
     host: ['xmpp.host', ['b', "xmpp server listen address", 'host']]
     port: ['xmpp.port', ['p', "xmpp server listen port",  'number']]
-    config: ['c', "load config file", 'path', defaultConfigPath]
+    config: ['c', "load config file", 'path']
     debug: [off, "enable debug mode"]
     nobuild: [off, "[INTERNAL] disable build"]
     stdout: ['logging.stdout', [off, "Log to stdout"]]
     version: [off, "Display version"]
 
-config.load (args, opts) ->
+config.load path.join(__dirname,"..","config.js"), "/etc/buddycloud-server/config.js", (args, opts) ->
 
     if opts.version
         console.log version
         process.exit 0
 
-
-    # dont load default config over opts and args
-    unless opts.config is defaultConfigPath
+    if opts.config
         unless opts.config[0] is '/'
             opts.config = require(path.join(process.cwd(), opts.config))
+        # Always reload config for -c argument
         config.merge(opts.config)
 
     # Kludge:
