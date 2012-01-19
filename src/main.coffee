@@ -4,11 +4,7 @@ async = require('async')
 {inspect} = require('util')
 # Config
 config = require('jsconfig')
-# Included
-try
-    { version } = require('../package.json')
-catch e
-    { version } = JSON.parse(require('fs').readFileSync(path.join(__dirname,'..','package.json')))
+version = require('./version')
 
 process.title = "buddycloud-server #{version}"
 
