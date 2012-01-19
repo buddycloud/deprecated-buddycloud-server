@@ -13,7 +13,7 @@
         "node-uuid": ">=1.1.0",
         "pg": ">=0.2.6",
         "underscore.logger": ">=0.3.1",
-        "ain2": ">=0.2.1"
+        "ain2": ">=1.0.0"
         }
 ,"devDependencies": {
         "muffin": ">=0.2.6",

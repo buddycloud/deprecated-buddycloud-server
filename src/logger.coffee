@@ -1,5 +1,5 @@
 { constructor: CommonLogger } = require 'underscore.logger'
-ain2 = require 'ain2'
+SysLogger = require 'ain2'
 fs = require 'fs'
 
 config = {}
@@ -14,6 +14,7 @@ exports.setConfig = (config_) ->
     # syslog needs a hostname as dgram_unix
     # support has been removed from node.
     if config_.syslog? and Object.keys(config_.syslog).length > 0
+        ain2 = new SysLogger()
         ain2.set
             tag: 'buddycloud'
             facility: 'daemon'
@@ -46,7 +47,7 @@ class Logger extends CommonLogger
         if logFile
             logFile.write "#{message}\n"
         if config.syslog? and Object.keys(config.syslog).length > 0
-            ain2['info'] message
+            ain2?['info']?(message)
 
 
 exports.makeLogger = (module) ->
