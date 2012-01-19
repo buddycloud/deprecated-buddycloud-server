@@ -8,7 +8,7 @@
         "node-stringprep": ">=0.1.1",
         "node-expat": ">=1.2.0",
         "ltx": ">=0.0.4",
-        "jsconfig": ">=0.1.3",
+        "jsconfig": ">=0.2.0",
         "async": ">=0.1.9",
         "node-uuid": ">=1.1.0",
         "pg": ">=0.2.6",

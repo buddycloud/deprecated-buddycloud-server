@@ -28,9 +28,9 @@ config.load path.join(__dirname,"..","config.js"), "/etc/buddycloud-server/confi
         console.log version
         process.exit 0
 
-    if opts.config
+    if opts.config?.length
         unless opts.config[0] is '/'
-            opts.config = require(path.join(process.cwd(), opts.config))
+            opts.config = path.join(process.cwd(), opts.config)
         # Always reload config for -c argument
         config.merge(opts.config)
 
