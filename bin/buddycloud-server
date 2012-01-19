@@ -2,10 +2,13 @@
 cwd=`pwd`
 # find where this file really is by dereferencing the symlink(s).
 this=$0
+cd `dirname $this`
 while [ -n "`readlink $this`" ] ; do
     this=`readlink $this`
+    cd `dirname $this`
 done
-moduleDir=`dirname $this`/..
+moduleDir=`pwd`
+moduleDir=${moduleDir%%/bin}
 # build or display help.
 for arg in $@; do
     case $arg in
