@@ -462,7 +462,7 @@ class Unsubscribe extends PrivilegedOperation
             t.getAffiliation @req.node, @req.actor, cb2
         , (affiliation, cb2) =>
             # only decrease if <= defaultAffiliation
-            if isAffiliationAtLeast @nodeConfig.defaultAffiliation, affiliation and
+            if isAffiliationAtLeast(@nodeConfig.defaultAffiliation, affiliation) and
                @actorAffiliation isnt 'outcast'
                 @actorAffiliation = 'none'
                 t.setAffiliation @req.node, @req.actor, 'none', cb2
