@@ -171,7 +171,8 @@ class PrivilegedOperation extends ModelOperation
         cb()
 
     checkRequiredAffiliation: (t, cb) ->
-        if isAffiliationAtLeast @actorAffiliation, @requiredAffiliation
+        if not @requiredAffiliation? or
+           isAffiliationAtLeast @actorAffiliation, @requiredAffiliation
             cb()
         else
             cb new errors.Forbidden("Requires affiliation #{@requiredAffiliation} (you are #{@actorAffiliation})")
