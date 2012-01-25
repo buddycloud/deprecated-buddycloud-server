@@ -110,9 +110,9 @@ class PrivilegedOperation extends ModelOperation
         , (cb2) =>
             @fetchNodeConfig t, cb2
         , (cb2) =>
-            @checkRequiredAffiliation t, cb2
-        , (cb2) =>
             @checkAccessModel t, cb2
+        , (cb2) =>
+            @checkRequiredAffiliation t, cb2
         ], (err) =>
             if err
                 return cb err
