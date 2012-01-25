@@ -95,7 +95,12 @@ AFFILIATIONS = [
     'publisher', 'moderator', 'owner'
 ]
 isAffiliationAtLeast = (affiliation1, affiliation2) ->
-    AFFILIATIONS.indexOf(affiliation1) >= AFFILIATIONS.indexOf(affiliation2)
+    i1 = AFFILIATIONS.indexOf(affiliation1)
+    i2 = AFFILIATIONS.indexOf(affiliation2)
+    if i2 < 0
+        false
+    else
+        i1 >= i2
 
 class PrivilegedOperation extends ModelOperation
 
@@ -180,7 +185,7 @@ class PrivilegedOperation extends ModelOperation
             when 'members'
                 pass = isAffiliationAtLeast @actorAffiliation, 'member'
             when 'publishers'
-                pass = isAffiliationAtLeast @actorAffiliation, 'publishers'
+                pass = isAffiliationAtLeast @actorAffiliation, 'publisher'
             else
                 # Owners can always post
                 pass = (@actorAffiliation is 'owner')
