@@ -12,7 +12,7 @@ module.exports = (iter, cb) ->
             if lastOffset
                 # Remote supports RSM, walk:
                 if seenOffsets.hasOwnProperty(lastOffset)
-                    cb new Error("RSM offset loop detected for #{@request.node}: #{offset} already seen")
+                    cb new Error("RSM offset loop detected: #{offset} already seen")
                 else
                     seenOffsets[lastOffset] = true
                     walk lastOffset
