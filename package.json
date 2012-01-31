@@ -2,7 +2,6 @@
 ,"version": "0.1.11"
 ,"bin": { "buddycloud-server": "./bin/buddycloud-server" }
 ,"description": "buddycloud channels service for XMPP"
-,"author": "Stephan Maka"
 ,"dependencies": {
         "node-xmpp": ">=0.3.1",
         "node-stringprep": ">=0.1.1",
@@ -28,10 +27,10 @@
 }
 ,"homepage": "http://buddycloud.org"
 ,"bugs": "http://github.com/buddycloud/buddycloud-server/issues"
-,"maintainers": [{"name": "Astro"
+,"maintainer": {"name": "Astro"
         ,"email": "astro@spaceboyz.net"
         ,"web": "http://spaceboyz.net/~astro/"
-        }]
+        }
 ,"contributors": ["Stephan Maka"]
 ,"licenses": [{"type": "APL2"}]
 , "engines": {"node": ">= 0.4"}
