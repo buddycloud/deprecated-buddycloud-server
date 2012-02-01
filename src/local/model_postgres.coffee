@@ -145,7 +145,7 @@ class Transaction
         timeout = setTimeout =>
             logger.error "Danger: lost transaction, rolling back!"
             timeout = undefined
-            @rollback
+            @rollback()
         , LOST_TRANSACTION_TIMEOUT
         @rmTimeout = ->
             if timeout
