@@ -340,14 +340,23 @@ class Register extends ModelOperation
 class CreateNode extends ModelOperation
     run: (cb) ->
         nodePrefix = "/user/#{@req.actor}/"
-        if @req.node.indexOf(nodePrefix) == 0
-            super
-        else
-            cb new errors.Forbidden("You can only create nodes under #{nodePrefix}")
+        unless @req.node.indexOf(nodePrefix) == 0
+            @creating_topic_channel = yes
+        super
 
     transaction: (t, cb) ->
-        # TODO: config?
-        t.createNode @req.node, cb
+        async.waterfall [(cb2) =>
+            logger.info "creating #{node}"
+            t.createNode @req.node, cb2
+        , (created, cb2) =>
+            unless created
+                # node already existed
+                if @creating_topic_channel
+                    cb new Error("Don't try overwriting other user's channels")
+                return
+
+            created = created_
+            t.setAffiliation node, user, 'owner', cb2
 
 
 class Publish extends PrivilegedOperation
