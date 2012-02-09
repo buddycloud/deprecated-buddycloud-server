@@ -1,5 +1,5 @@
 logger = require('../logger').makeLogger 'local/operations'
-{inspect} = require('util')
+{inspect, getNodeUser} = require('util')
 async = require('async')
 uuid = require('node-uuid')
 errors = require('../errors')
@@ -338,26 +338,23 @@ class Register extends ModelOperation
 
 
 class CreateNode extends ModelOperation
-    run: (cb) ->
-        nodePrefix = "/user/#{@req.actor}/"
-        unless @req.node.indexOf(nodePrefix) == 0
-            @creating_topic_channel = yes
-        super
-
     transaction: (t, cb) ->
+        nodePrefix = "/user/#{getNodeUser @req.node}/"
         async.waterfall [(cb2) =>
-            logger.info "creating #{node}"
-            t.createNode @req.node, cb2
+            t.getNodeOwnersByPrefix nodePrefix, cb2
+        , (owners, cb2) =>
+            if owners.length < 1 or owners.indexOf(@req.actor) >= 0
+                # Either there are no owners yet, or the user is
+                # already one of them.
+                t.createNode @req.node, cb2
+            else
+                cb2 new Error("Nodes with prefix #{nodePrefix} are already owned by #{owners.join(', ')}")
         , (created, cb2) =>
-            unless created
-                # node already existed
-                if @creating_topic_channel
-                    cb new Error("Don't try overwriting other user's channels")
-                return
-
-            created = created_
-            t.setAffiliation node, user, 'owner', cb2
-
+            if created
+                t.setAffiliation node, user, 'owner', cb2
+            else
+                cb2 new Error("Node #{@req.node} already exists")
+        ], cb
 
 class Publish extends PrivilegedOperation
     # checks affiliation with @checkPublishModel below

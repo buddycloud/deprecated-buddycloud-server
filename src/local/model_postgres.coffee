@@ -445,6 +445,16 @@ class Transaction
             )
         ], cb
 
+    getOwnersByNodePrefix: (nodePrefix, cb) ->
+        db = @db
+        async.waterfall [(cb2) ->
+            db.query "SELECT DISTINCT \"user\" FROM affiliations WHERE node LIKE $1 AND affiliation='owner'"
+            , [ nodePrefix ]
+            , cb2
+        , (res, cb2) ->
+            cb2 null, res.rows.map (row) -> row.user
+        ], cb
+
     writeItem: (node, id, el, cb) ->
         db = @db
         async.waterfall [ @validateNode(node), (cb2) ->
