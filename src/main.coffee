@@ -53,7 +53,7 @@ config.load "/etc/buddycloud-server/config.js", (args, opts) ->
     model = require('./local/model_postgres')
     model.start config.modelConfig
 
-    router = new (require('./router').Router)(model)
+    router = new (require('./router').Router)(model, config.checkCreateNode)
 
     # XMPP Connection, w/ presence tracking
     xmppConn = new (require('./xmpp/connection').Connection)(config.xmpp)

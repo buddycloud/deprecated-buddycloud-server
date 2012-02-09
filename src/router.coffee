@@ -76,11 +76,12 @@ class RemoteRouter
 # Decides whether operations can be served from the local DB by an
 # Operation, or to go remote
 class exports.Router
-    constructor: (@model) ->
+    constructor: (@model, checkCreateNode) ->
         @remote = new RemoteRouter(@)
 
         @operations = require('./local/operations')
         @operations.setModel model
+        @operations.checkCreateNode = checkCreateNode
 
         @addBackend = @remote.addBackend
         @isUserOnline = @remote.isUserOnline

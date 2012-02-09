@@ -12,6 +12,8 @@ runTransaction = null
 exports.setModel = (model) ->
     runTransaction = model.transaction
 
+exports.checkCreateNode = null
+
 defaultConfiguration = (user) ->
     posts:
         title: "#{user} Channel Posts"
@@ -345,6 +347,17 @@ class CreateNode extends ModelOperation
             return cb new Error("Malformed node")
 
         nodePrefix = "/user/#{nodeUser}/"
+
+        try
+            opts =
+                node: @req.node
+                nodeUser: nodeUser
+                actor: @req.actor
+            unless exports.checkCreateNode opts
+                return cb new errors.NotAllowed("Node creation not allowed")
+        catch e
+            return cb e
+
         async.waterfall [(cb2) =>
             t.getOwnersByNodePrefix nodePrefix, cb2
         , (owners, cb2) =>

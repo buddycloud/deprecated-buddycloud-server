@@ -39,3 +39,14 @@ exports.logging = {
     },
     file: "/var/log/buddycloud-server.log"
 };
+
+/**
+ * Who may create what node?
+ *
+ * Default: only allow creating a personal channel, or a topic channel
+ * on the same domain.
+ */
+exports.checkCreateNode = function(opts) {
+    return (opts.nodeUser === opts.actor) ||
+	(opts.nodeUser.split("@")[1] === opts.actor.split("@")[1]);
+};
