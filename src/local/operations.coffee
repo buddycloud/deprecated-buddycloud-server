@@ -1,6 +1,6 @@
 logger = require('../logger').makeLogger 'local/operations'
 {inspect} = require('util')
-{getNodeUser} = require('../util')
+{getNodeUser, getNodeType} = require('../util')
 async = require('async')
 uuid = require('node-uuid')
 errors = require('../errors')
@@ -51,6 +51,16 @@ defaultConfiguration = (user) ->
         description: "Browse my interests"
         accessModel: "open"
         publishModel: "publishers"
+        defaultAffiliation: "member"
+
+# user is "topic@domain" string
+defaultTopicConfiguration = (user) =>
+    posts:
+        title: "#{user} Topic Channel"
+        description: "All about #{user.split('@')?[0]}"
+        channelType: "topic"
+        accessModel: "open"
+        publishModel: "subscribers"
         defaultAffiliation: "member"
 
 NODE_OWNER_TYPE_REGEXP = /^\/user\/([^\/]+)\/?(.*)/
@@ -344,8 +354,8 @@ class CreateNode extends ModelOperation
     transaction: (t, cb) ->
         nodeUser = getNodeUser @req.node
         unless nodeUser
-            return cb new Error("Malformed node")
-
+            return cb new errors.BadRequest("Malformed node")
+        isTopic = nodeUser isnt @req.actor
         nodePrefix = "/user/#{nodeUser}/"
 
         try
@@ -366,12 +376,28 @@ class CreateNode extends ModelOperation
                 # already one of them.
                 t.createNode @req.node, cb2
             else
-                cb2 new Error("Nodes with prefix #{nodePrefix} are already owned by #{owners.join(', ')}")
+                cb2 new errors.NotAllowed("Nodes with prefix #{nodePrefix} are already owned by #{owners.join(', ')}")
         , (created, cb2) =>
             if created
-                t.setAffiliation @req.node, @req.actor, 'owner', cb2
+                # Worked, proceed
+                cb2 null
             else
-                cb2 new Error("Node #{@req.node} already exists")
+                # Already exists
+                cb2 new errors.Conflict("Node #{@req.node} already exists")
+        , (cb2) =>
+            if isTopic
+                defaults = defaultConfiguration nodeUser
+            else
+                defaults = defaultTopicConfiguration nodeUser
+            config = defaults[getNodeType @req.nodenode]
+            if config
+                t.setConfig @req.node, config, cb2
+            else
+                cb2 null
+        , (cb2) =>
+            t.setSubscription node, user, @req.sender, 'subscribed', cb2
+        , (cb2) =>
+            t.setAffiliation @req.node, @req.actor, 'owner', cb2
         ], cb
 
 class Publish extends PrivilegedOperation

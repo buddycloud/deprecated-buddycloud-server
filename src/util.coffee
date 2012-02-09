@@ -3,12 +3,13 @@ exports.getNodeUser = (node) ->
     unless node
         return null
 
-    m = nodeRegexp.exec(node)
-    unless m
+    nodeRegexp.exec(node)?[1]
+
+exports.getNodeType = (node) ->
+    unless node
         return null
 
-    m[1]
-
+    nodeRegexp.exec(node)?[2]
 
 exports.getUserDomain = (user) ->
     if user.indexOf('@') >= 0
