@@ -395,7 +395,7 @@ class CreateNode extends ModelOperation
             else
                 cb2 null
         , (cb2) =>
-            t.setSubscription node, user, @req.sender, 'subscribed', cb2
+            t.setSubscription @req.node, @req.actor, @req.sender, 'subscribed', cb2
         , (cb2) =>
             t.setAffiliation @req.node, @req.actor, 'owner', cb2
         ], cb
