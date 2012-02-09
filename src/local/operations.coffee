@@ -363,7 +363,7 @@ class CreateNode extends ModelOperation
                 node: @req.node
                 nodeUser: nodeUser
                 actor: @req.actor
-            unless exports.checkCreateNode opts
+            unless exports.checkCreateNode?(opts)
                 return cb new errors.NotAllowed("Node creation not allowed")
         catch e
             return cb e
