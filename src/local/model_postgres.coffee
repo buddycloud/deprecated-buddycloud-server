@@ -448,7 +448,7 @@ class Transaction
     getOwnersByNodePrefix: (nodePrefix, cb) ->
         db = @db
         async.waterfall [(cb2) ->
-            db.query "SELECT DISTINCT \"user\" FROM affiliations WHERE node LIKE $1 AND affiliation='owner'"
+            db.query "SELECT DISTINCT \"user\" FROM affiliations WHERE node LIKE ($1 || '%') AND affiliation='owner'"
             , [ nodePrefix ]
             , cb2
         , (res, cb2) ->
