@@ -1,5 +1,6 @@
 logger = require('../logger').makeLogger 'local/operations'
-{inspect, getNodeUser} = require('util')
+{inspect} = require('util')
+{getNodeUser} = require('../util')
 async = require('async')
 uuid = require('node-uuid')
 errors = require('../errors')
@@ -339,7 +340,11 @@ class Register extends ModelOperation
 
 class CreateNode extends ModelOperation
     transaction: (t, cb) ->
-        nodePrefix = "/user/#{getNodeUser @req.node}/"
+        nodeUser = getNodeUser @req.node
+        unless nodeUser
+            return cb new Error("Malformed node")
+
+        nodePrefix = "/user/#{nodeUser}/"
         async.waterfall [(cb2) =>
             t.getNodeOwnersByPrefix nodePrefix, cb2
         , (owners, cb2) =>
