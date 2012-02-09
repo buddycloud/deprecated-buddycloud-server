@@ -356,7 +356,7 @@ class CreateNode extends ModelOperation
                 cb2 new Error("Nodes with prefix #{nodePrefix} are already owned by #{owners.join(', ')}")
         , (created, cb2) =>
             if created
-                t.setAffiliation node, user, 'owner', cb2
+                t.setAffiliation @req.node, @req.actor, 'owner', cb2
             else
                 cb2 new Error("Node #{@req.node} already exists")
         ], cb
