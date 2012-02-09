@@ -346,7 +346,7 @@ class CreateNode extends ModelOperation
 
         nodePrefix = "/user/#{nodeUser}/"
         async.waterfall [(cb2) =>
-            t.getNodeOwnersByPrefix nodePrefix, cb2
+            t.getOwnersByNodePrefix nodePrefix, cb2
         , (owners, cb2) =>
             if owners.length < 1 or owners.indexOf(@req.actor) >= 0
                 # Either there are no owners yet, or the user is
