@@ -288,6 +288,13 @@ class PubsubCreateRequest extends PubsubRequest
         @createEl = @pubsubEl?.getChild("create")
         @node = @createEl?.attrs.node
 
+        configureEl = @pubsubEl?.getChild("configure")
+        if configureEl
+            @config = {}
+            configureEl?.getChildren("x", NS.DATA).forEach (formEl) =>
+                form = forms.fromXml formEl
+                @config = forms.formToConfig(form) or @config
+
     matches: () ->
         super &&
         @iq.attrs.type is 'set' &&
