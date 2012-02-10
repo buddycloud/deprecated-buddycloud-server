@@ -385,6 +385,7 @@ class CreateNode extends ModelOperation
                 # Already exists
                 cb2 new errors.Conflict("Node #{@req.node} already exists")
         , (cb2) =>
+            config = @req.config
             # Pick config defaults
             if isTopic
                 defaults = defaultConfiguration nodeUser
@@ -392,17 +393,17 @@ class CreateNode extends ModelOperation
                 defaults = defaultTopicConfiguration nodeUser
             defaults = defaults[getNodeType @req.nodenode]
             if defaults
-                # Mix into @config
+                # Mix into config
                 for own key, value of defaults
-                    unless @config
-                        @config = {}
+                    unless config
+                        config = {}
                     # Don't overwrite existing
-                    unless @config.hasOwnProperty key
-                        @config[key] = value
+                    unless config.hasOwnProperty key
+                        config[key] = value
 
-            if @config?
+            if config?
                 # Set
-                t.setConfig @req.node, @config, cb2
+                t.setConfig @req.node, config, cb2
             else
                 cb2 null
         , (cb2) =>
