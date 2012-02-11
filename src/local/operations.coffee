@@ -391,7 +391,7 @@ class CreateNode extends ModelOperation
                 defaults = defaultConfiguration nodeUser
             else
                 defaults = defaultTopicConfiguration nodeUser
-            defaults = defaults[getNodeType @req.nodenode]
+            defaults = defaults[getNodeType @req.node]
             if defaults
                 # Mix into config
                 for own key, value of defaults
