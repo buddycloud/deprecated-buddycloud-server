@@ -50,3 +50,11 @@ exports.checkCreateNode = function(opts) {
     return (opts.nodeUser === opts.actor) ||
 	(opts.nodeUser.split("@")[1] === "topics.buddycloud.org");
 };
+
+/**
+ * Welcome new users by auto-subscribing them to a few channels
+ */
+exports.autosubscribeNewUsers = [
+    "lounge@topics.buddycloud.org",
+    "topics@topics.buddycloud.org"
+];

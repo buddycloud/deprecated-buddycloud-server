@@ -1040,24 +1040,24 @@ exports.run = (router, request, cb) ->
     opName = request.operation
     unless opName
         # No operation specified, reply immediately
-        return cb()
+        return cb?()
 
     opClass = OPERATIONS[opName]
     unless opClass
         logger.warn "Unimplemented operation #{opName}: #{inspect request}"
-        return cb(new errors.FeatureNotImplemented("Unimplemented operation #{opName}"))
+        return cb?(new errors.FeatureNotImplemented("Unimplemented operation #{opName}"))
 
     logger.debug "operations.run: #{inspect request}"
     op = new opClass(router, request)
     op.run (error, result) ->
         if error
             logger.warn "Operation #{opName} failed: #{error.stack or error}"
-            cb error
+            cb? error
         else
             # Successfully done
             logger.debug "Operation #{opName} ran: #{inspect result}"
             try
-                cb null, result
+                cb? null, result
             catch e
                 logger.error e.stack or e
 

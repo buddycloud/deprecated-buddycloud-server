@@ -16,3 +16,9 @@ exports.getUserDomain = (user) ->
         user.substr(user.indexOf('@') + 1)
     else
         user
+
+exports.nodeTypes = [
+    "posts", "status",
+    "geo/previous", "geo/current", "geo/next",
+    "subscriptions"
+];

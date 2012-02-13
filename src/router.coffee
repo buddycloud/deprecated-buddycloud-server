@@ -5,7 +5,7 @@ sync = require('./sync')
 async = require('async')
 rsmWalk = require('./rsm_walk')
 {RSM} = require('./xmpp/rsm')
-{getNodeUser} = require('./util')
+{getNodeUser, nodeTypes} = require('./util')
 
 CACHE_TIMEOUT = 60 * 1000
 
@@ -76,7 +76,7 @@ class RemoteRouter
 # Decides whether operations can be served from the local DB by an
 # Operation, or to go remote
 class exports.Router
-    constructor: (@model, checkCreateNode) ->
+    constructor: (@model, checkCreateNode, @autosubscribeNewUsers) ->
         @remote = new RemoteRouter(@)
 
         @operations = require('./local/operations')
@@ -132,12 +132,25 @@ class exports.Router
         logger.trace "Router.run %s", inspect(opts)
         @runCheckAnonymous opts, (err) =>
             if err
-                return cb err
+                return cb? err
 
             logger.info "Router.run #{opts.actor}(#{opts.actorType})/#{opts.sender}: #{opts.operation} #{opts.node}"
 
             unless opts.node?
-                @runLocally opts, cb
+                @runLocally opts, (err, results) =>
+                    cb? err, results
+
+                    # Auto-subscribe new user
+                    if not err? and
+                       opts.operation is 'register-user' and
+                       @autosubscribeNewUsers?
+                        for userid in @autosubscribeNewUsers
+                            for type in nodeTypes
+                                req = Object.create(opts)
+                                req.operation = 'subscribe-user'
+                                req.node = "/user/#{userid}/#{type}"
+                                req.writes = yes
+                                @run req
             else if opts.writes
                 # Request to mess with data, run remotely
                 @runRemotely opts, (err, results) =>
@@ -146,7 +159,7 @@ class exports.Router
                         @runLocally opts, cb
                     else
                         # result/error from remote
-                        cb err, results
+                        cb? err, results
             else
                 @isLocallySubscribed opts.node, (err, locallySubscribed) =>
                     if locallySubscribed
@@ -157,9 +170,9 @@ class exports.Router
                             if err?.constructor is errors.SeeLocal
                                 # Is not locally present but discovery
                                 # returned ourselves.
-                                cb new errors.NotFound("Node does not exist here")
+                                cb? new errors.NotFound("Node does not exist here")
                             else
-                                cb err, results
+                                cb? err, results
 
     runCheckAnonymous: (opts, cb) ->
         # May have been set by pubsub_server or previous recursion
