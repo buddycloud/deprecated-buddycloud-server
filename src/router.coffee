@@ -147,7 +147,7 @@ class exports.Router
                         for userid in @autosubscribeNewUsers
                             for type in nodeTypes
                                 req = Object.create(opts)
-                                req.operation = 'subscribe-user'
+                                req.operation = 'subscribe-node'
                                 req.node = "/user/#{userid}/#{type}"
                                 req.writes = yes
                                 @run req
