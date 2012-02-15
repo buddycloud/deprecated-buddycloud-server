@@ -388,9 +388,9 @@ class CreateNode extends ModelOperation
             config = @req.config
             # Pick config defaults
             if isTopic
-                defaults = defaultConfiguration nodeUser
-            else
                 defaults = defaultTopicConfiguration nodeUser
+            else
+                defaults = defaultConfiguration nodeUser
             defaults = defaults[getNodeType @req.node]
             if defaults
                 # Mix into config
