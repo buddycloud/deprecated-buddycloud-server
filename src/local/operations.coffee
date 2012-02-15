@@ -385,7 +385,9 @@ class CreateNode extends ModelOperation
                 # Already exists
                 cb2 new errors.Conflict("Node #{@req.node} already exists")
         , (cb2) =>
-            config = @req.config
+            config = @req.config or {}
+            config.creationDate = new Date().toISOString()
+
             # Pick config defaults
             if isTopic
                 defaults = defaultTopicConfiguration nodeUser
@@ -398,14 +400,11 @@ class CreateNode extends ModelOperation
                     unless config
                         config = {}
                     # Don't overwrite existing
-                    unless config.hasOwnProperty key
+                    unless config[key]?
                         config[key] = value
 
-            if config?
-                # Set
-                t.setConfig @req.node, config, cb2
-            else
-                cb2 null
+            # Set
+            t.setConfig @req.node, config, cb2
         , (cb2) =>
             t.setSubscription @req.node, @req.actor, @req.sender, 'subscribed', cb2
         , (cb2) =>
