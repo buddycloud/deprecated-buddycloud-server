@@ -355,6 +355,8 @@ class CreateNode extends ModelOperation
         nodeUser = getNodeUser @req.node
         unless nodeUser
             return cb new errors.BadRequest("Malformed node")
+        if nodeUser.split("@")[0].length < 1
+            return cb new errors.BadRequest("Malformed node name")
         isTopic = nodeUser isnt @req.actor
         nodePrefix = "/user/#{nodeUser}/"
 
