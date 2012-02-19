@@ -568,7 +568,15 @@ class RetrieveItems extends PrivilegedOperation
     privilegedTransaction: (t, cb) ->
         node = @req.node
         rsm = @req.rsm
-        t.getItemIds node, (err, ids) ->
+
+        if @req.itemIds?
+            fetchItemIds = (cb2) ->
+                cb2 null, @req.itemIds
+        else
+            fetchItemIds = (cb2) ->
+                t.getItemIds node, cb2
+
+        fetchItemIds, (err, ids) ->
             # Apply RSM
             ids = rsm.cropResults ids
 

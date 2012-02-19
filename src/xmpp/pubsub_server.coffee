@@ -448,6 +448,9 @@ class PubsubItemsRequest extends PubsubRequest
         super
 
         @itemsEl = @pubsubEl?.getChild("items")
+        if (itemEls = @itemsEl.getChildren("item")).length > 0
+            @itemIds = itemEls.map (itemEl) ->
+                itemEl.attrs.id
         @node = @itemsEl?.attrs.node
 
     matches: () ->
