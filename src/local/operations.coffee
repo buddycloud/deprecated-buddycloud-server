@@ -570,7 +570,7 @@ class RetrieveItems extends PrivilegedOperation
         rsm = @req.rsm
 
         if @req.itemIds?
-            fetchItemIds = (cb2) ->
+            fetchItemIds = (cb2) =>
                 cb2 null, @req.itemIds
         else
             fetchItemIds = (cb2) ->
