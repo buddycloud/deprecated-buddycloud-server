@@ -576,7 +576,7 @@ class RetrieveItems extends PrivilegedOperation
             fetchItemIds = (cb2) ->
                 t.getItemIds node, cb2
 
-        fetchItemIds, (err, ids) ->
+        fetchItemIds (err, ids) ->
             # Apply RSM
             ids = rsm.cropResults ids
 
