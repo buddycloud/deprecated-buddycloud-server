@@ -540,7 +540,7 @@ class Unsubscribe extends PrivilegedOperation
             type: 'subscription'
             node: @req.node
             user: @req.actor
-            subscription: 'unsubscribed'
+            subscription: 'none'
         }, {
             type: 'affiliation'
             node: @req.node

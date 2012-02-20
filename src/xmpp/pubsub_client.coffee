@@ -190,7 +190,7 @@ class Unsubscribe extends PubsubRequest
             type: 'subscription'
             node: @opts.node
             user: @opts.actor
-            subscription: 'unsubscribed'
+            subscription: 'none'
         }]
 
 class RetrieveItems extends PubsubRequest
