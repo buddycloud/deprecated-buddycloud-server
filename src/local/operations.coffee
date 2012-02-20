@@ -514,8 +514,8 @@ class Subscribe extends PrivilegedOperation
 
 ##
 # Not privileged as anybody should be able to unsubscribe him/herself
-class Unsubscribe extends PrivilegedOperation
-    privilegedTransaction: (t, cb) ->
+class Unsubscribe extends ModelOperation
+    transaction: (t, cb) ->
         if @req.node.indexOf("/user/#{@req.actor}/") == 0
             return cb new errors.Forbidden("You may not unsubscribe from your own nodes")
 
