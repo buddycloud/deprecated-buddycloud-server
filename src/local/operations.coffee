@@ -1006,8 +1006,8 @@ class Notify extends ModelOperation
             # notification, even if just unsubscribed.
             for update in @req
                 if update.type is 'subscription' and
-                   listeners.indexOf(update.jid) < 0
-                    listeners.push update.jid
+                   listeners.indexOf(update.user) < 0
+                    listeners.push update.user
 
             for listener in listeners
                 notification = Object.create(@req)
