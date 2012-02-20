@@ -514,7 +514,7 @@ class Subscribe extends PrivilegedOperation
 
 ##
 # Not privileged as anybody should be able to unsubscribe him/herself
-class Unsubscribe extends ModelOperation
+class Unsubscribe extends PrivilegedOperation
     transaction: (t, cb) ->
         if @req.node.indexOf("/user/#{@req.actor}/") == 0
             return cb new errors.Forbidden("You may not unsubscribe from your own nodes")
@@ -522,10 +522,12 @@ class Unsubscribe extends ModelOperation
         async.waterfall [ (cb2) =>
             t.setSubscription @req.node, @req.actor, @req.sender, 'none', cb2
         , (cb2) =>
-            t.getAffiliation @req.node, @req.actor, cb2
-        , (affiliation, cb2) =>
+            @fetchActorAffiliation t, cb2
+        , (cb2) =>
+            @fetchNodeConfig t, cb2
+        , (cb2) =>
             # only decrease if <= defaultAffiliation
-            if isAffiliationAtLeast(@nodeConfig.defaultAffiliation, affiliation) and
+            if isAffiliationAtLeast(@nodeConfig.defaultAffiliation, @actorAffiliation) and
                @actorAffiliation isnt 'outcast'
                 @actorAffiliation = 'none'
                 t.setAffiliation @req.node, @req.actor, 'none', cb2
