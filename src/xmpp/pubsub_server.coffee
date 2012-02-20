@@ -595,8 +595,8 @@ class PubsubOwnerSetSubscriptionsRequest extends PubsubOwnerRequest
             @node = @subscriptionsEl.attrs.node
             @subscriptions = @subscriptionsEl.getChildren("subscription").map(
                 (subscriptionEl) ->
-                    { user: subscriptionEl.attrs.jid
-                      subscription: subscriptionEl.attrs.subscription }
+                    user: subscriptionEl.attrs.jid
+                    subscription: subscriptionEl.attrs.subscription
             )
 
     matches: () ->
