@@ -1001,8 +1001,14 @@ class Notify extends ModelOperation
         t.getNodeListeners @req.node, (err, listeners) =>
             if err
                 return cb err
-            if @req.extraListeners?
-                listeners = listeners.concat @req.extraListeners
+
+            # Always notify all users pertained by a subscription
+            # notification, even if just unsubscribed.
+            for update in @req
+                if update.type is 'subscription' and
+                   listeners.indexOf(update.jid) < 0
+                    listeners.push update.jid
+
             for listener in listeners
                 notification = Object.create(@req)
                 notification.listener = listener
@@ -1078,10 +1084,6 @@ exports.run = (router, request, cb) ->
             notifications = []
             if (notification = op.notification?())
                 for own node, notifications of groupByNode(notification)
-                    # Notify unsubscribed users too:
-                    if opName is 'unsubscribe-node'
-                        notification.extraListeners = getNodeUser(node)
-
                     notification.node = node
                     new Notify(router, notification).run (err) ->
                         if err
