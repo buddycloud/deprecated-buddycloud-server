@@ -184,11 +184,16 @@ class PrivilegedOperation extends ModelOperation
         cb()
 
     checkRequiredAffiliation: (t, cb) ->
-        if not @requiredAffiliation? or
-           isAffiliationAtLeast @actorAffiliation, @requiredAffiliation
+        if @requiredAffiliation?.constructor is Function
+            requiredAffiliation = @requiredAffiliation()
+        else
+            requiredAffiliation = @requiredAffiliation
+
+        if not requiredAffiliation? or
+           isAffiliationAtLeast @actorAffiliation, requiredAffiliation
             cb()
         else
-            cb new errors.Forbidden("Requires affiliation #{@requiredAffiliation} (you are #{@actorAffiliation})")
+            cb new errors.Forbidden("Requires affiliation #{requiredAffiliation} (you are #{@actorAffiliation})")
 
     # Used by Publish operation
     checkPublishModel: (t, cb) ->
@@ -770,7 +775,14 @@ class RetrieveNodeConfiguration extends PrivilegedOperation
 
 
 class ManageNodeSubscriptions extends PrivilegedOperation
-    requiredAffiliation: 'owner'
+    requiredAffiliation: =>
+        if @actorAffiliation is 'owner'
+            yes
+        else if @nodeConfig.channelType is 'topic' and
+                @actorAffiliation is 'moderator'
+            yes
+        else
+            no
 
     privilegedTransaction: (t, cb) ->
         defaultAffiliation = null
@@ -804,7 +816,14 @@ class ManageNodeSubscriptions extends PrivilegedOperation
             }
 
 class ManageNodeAffiliations extends PrivilegedOperation
-    requiredAffiliation: 'owner'
+    requiredAffiliation: =>
+        if @actorAffiliation is 'owner'
+            yes
+        else if @nodeConfig.channelType is 'topic' and
+                @actorAffiliation is 'moderator'
+            yes
+        else
+            no
 
     privilegedTransaction: (t, cb) ->
         async.series @req.affiliations.map(({user, affiliation}) =>
@@ -885,7 +904,14 @@ class RemoveUser extends ModelOperation
 
 
 class AuthorizeSubscriber extends PrivilegedOperation
-    requiredAffiliation: 'moderator'
+    requiredAffiliation: =>
+        if @actorAffiliation is 'owner'
+            yes
+        else if @nodeConfig.channelType is 'topic' and
+                @actorAffiliation is 'moderator'
+            yes
+        else
+            no
 
     privilegedTransaction: (t, cb) ->
         if @req.allow
