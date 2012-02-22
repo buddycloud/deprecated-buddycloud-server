@@ -773,21 +773,26 @@ class ManageNodeSubscriptions extends PrivilegedOperation
     requiredAffiliation: 'owner'
 
     privilegedTransaction: (t, cb) ->
-        async.series @req.subscriptions.map(({user, subscription}) =>
-            (cb2) =>
-                async.waterfall [(cb3) =>
-                    t.setSubscription @req.node, user, null, subscription, cb2
-                , (cb3) =>
-                    t.getAffiliation @req.node, user, cb3
-                , (affiliation, cb3) =>
+        defaultAffiliation = null
+        async.waterfall [(cb2) =>
+            t.getConfig @req.node, (error, config) =>
+                defaultAffiliation = config.defaultAffiliation or 'member'
+                cb2(error)
+        , (cb2) =>
+            async.forEach @req.subscriptions
+            , ({user, subscription}, cb3) =>
+                async.waterfall [(cb4) =>
+                    t.setSubscription @req.node, user, null, subscription, cb4
+                , (cb4) =>
+                    t.getAffiliation @req.node, user, cb4
+                , (affiliation, cb4) =>
                     if affiliation is 'none'
-                        t.getConfig @req.node, (error, config) =>
-                            defaultAffiliation = config.defaultAffiliation or 'member'
-                            t.setAffiliation @req.node, user, defaultAffiliation, cb3
+                        t.setAffiliation @req.node, user, defaultAffiliation, cb4
                     else
-                        cb3()
-                ], cb2
-        ), cb
+                        cb4()
+                ], cb3
+            , cb2
+        ], cb
 
     notification: ->
         @req.subscriptions.map ({user, subscription}) =>
