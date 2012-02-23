@@ -776,13 +776,10 @@ class RetrieveNodeConfiguration extends PrivilegedOperation
 
 class ManageNodeSubscriptions extends PrivilegedOperation
     requiredAffiliation: =>
-        if @actorAffiliation is 'owner'
-            yes
-        else if @nodeConfig.channelType is 'topic' and
-                @actorAffiliation is 'moderator'
-            yes
+        if @nodeConfig.channelType is 'topic'
+            'moderator'
         else
-            no
+            'owner'
 
     privilegedTransaction: (t, cb) ->
         defaultAffiliation = null
@@ -817,13 +814,10 @@ class ManageNodeSubscriptions extends PrivilegedOperation
 
 class ManageNodeAffiliations extends PrivilegedOperation
     requiredAffiliation: =>
-        if @actorAffiliation is 'owner'
-            yes
-        else if @nodeConfig.channelType is 'topic' and
-                @actorAffiliation is 'moderator'
-            yes
+        if @nodeConfig.channelType is 'topic'
+            'moderator'
         else
-            no
+            'owner'
 
     privilegedTransaction: (t, cb) ->
         async.series @req.affiliations.map(({user, affiliation}) =>
@@ -905,13 +899,10 @@ class RemoveUser extends ModelOperation
 
 class AuthorizeSubscriber extends PrivilegedOperation
     requiredAffiliation: =>
-        if @actorAffiliation is 'owner'
-            yes
-        else if @nodeConfig.channelType is 'topic' and
-                @actorAffiliation is 'moderator'
-            yes
+        if @nodeConfig.channelType is 'topic'
+            'moderator'
         else
-            no
+            'owner'
 
     privilegedTransaction: (t, cb) ->
         if @req.allow
