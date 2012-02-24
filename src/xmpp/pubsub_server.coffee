@@ -661,8 +661,8 @@ class PubsubOwnerSetAffiliationsRequest extends PubsubOwnerRequest
             @node = @affiliationsEl.attrs.node
             @affiliations = @affiliationsEl?.getChildren("affiliation").map(
                 (affiliationEl) ->
-                    { user: affiliationEl.attrs.jid
-                      affiliation: affiliationEl.attrs.affiliation }
+                    user: affiliationEl.attrs.jid
+                    affiliation: affiliationEl.attrs.affiliation
             )
 
     matches: () ->
