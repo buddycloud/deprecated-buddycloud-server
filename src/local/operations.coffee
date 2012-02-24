@@ -822,7 +822,7 @@ class ManageNodeAffiliations extends PrivilegedOperation
     privilegedTransaction: (t, cb) ->
         async.series @req.affiliations.map(({user, affiliation}) =>
             (cb2) =>
-                async.series [ (cb3) =>
+                async.waterfall [ (cb3) =>
                     t.getAffiliation @req.node, user, cb3
                 , (oldAffiliation, cb3) =>
                     if oldAffiliation is affiliation
