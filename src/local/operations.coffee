@@ -472,7 +472,8 @@ class Subscribe extends PrivilegedOperation
                 return cb2()
 
             @subscription = 'subscribed'
-            unless isAffiliationAtLeast @actorAffiliation, @nodeConfig.defaultAffiliation
+            defaultAffiliation = @nodeConfig.defaultAffiliation or 'none'
+            unless isAffiliationAtLeast @actorAffiliation, defaultAffiliation
                 # Less than current affiliation? Bump up to defaultAffiliation
                 @affiliation = @nodeConfig.defaultAffiliation or 'member'
 
