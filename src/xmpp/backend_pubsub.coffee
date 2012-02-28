@@ -72,7 +72,7 @@ class exports.PubsubBackend extends EventEmitter
         notification = Notifications.make(opts)
         listener = opts.listener
         try
-            if not opts.replay and listener.indexOf("@") >= 0
+            if not opts.replay and listener and listener.indexOf("@") >= 0
                 # is user? send to all resources...
                 #
                 # except for replays, which are requested by a certain
@@ -80,7 +80,7 @@ class exports.PubsubBackend extends EventEmitter
                 for onlineJid in @conn.getOnlineResources listener
                     logger.info "notifying client #{onlineJid} for #{opts.node}"
                     @conn.send notification.toStanza(@conn.jid, onlineJid)
-            else
+            else if listener
                 # other component (inbox)? just send out
                 logger.info "notifying #{listener} for #{opts.node}"
                 @conn.send notification.toStanza(@conn.jid, listener)
