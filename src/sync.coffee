@@ -141,11 +141,15 @@ exports.syncNode = (router, model, node, cb) ->
     , (syncClass, cb2) ->
         syncQueue.push { router, model, node, syncClass }, cb2
     , (err) ->
-        if err
+        if err and err.constructor is errors.SeeLocal
+            logger.debug "Omitted syncing local node #{node}"
+            cb?()
+        else if err
             logger.error "sync #{node}: #{err}"
+            cb?(err)
         else
             logger.info "synced #{node}"
-        cb(err)
+            cb?()
 
 ##
 # Setup synchronization queue
