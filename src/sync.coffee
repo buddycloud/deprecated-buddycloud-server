@@ -6,6 +6,7 @@ async = require('async')
 RSM = require('./xmpp/rsm')
 NS = require('./xmpp/ns')
 rsmWalk = require('./rsm_walk')
+errors = require('./errors')
 
 class Synchronization
     constructor: (@router, @node) ->
