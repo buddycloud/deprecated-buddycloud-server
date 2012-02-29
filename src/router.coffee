@@ -221,13 +221,13 @@ class exports.Router
 
         @model.getAllNodes (err, nodes) =>
             if err
-                logger.error "getAllNodes %s", err.stack or err
+                logger.error "getAllNodes #{err.stack or err}"
                 return
 
             for node in nodes
                 @syncNode node, (err) ->
                     if err
-                        logger.error err
+                        logger.error "syncNode #{node} error: #{err}"
             # TODO: once batchified, syncQueue.drain = ...
 
     ##

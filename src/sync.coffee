@@ -124,7 +124,6 @@ syncQueue = async.queue (task, cb) ->
 
         synchronization.run t, (err) ->
             if err
-                logger.error "sync run: #{err.stack or err}"
                 t.rollback ->
                     cb err
             else
