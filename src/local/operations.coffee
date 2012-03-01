@@ -1073,7 +1073,13 @@ class Notify extends ModelOperation
                         if err
                             return cb3 err
 
-                        async.map update.items, ({id}, cb4) =>
+                        async.map update.items, ({id, el}, cb4) =>
+                            if el
+                                # Content already exists, perhaps
+                                # relaying a notification from another
+                                # service
+                                return cb4()
+
                             userSubscriptions = subscriptions.filter (subscription) ->
                                 subscription.node.indexOf("/user/#{id}/") is 0
                             affiliations = {}
@@ -1094,7 +1100,7 @@ class Notify extends ModelOperation
                                     itemAttrs['pubsub:affiliation'] ?= affiliations[subscription.node]
                                     item.el.c('item', itemAttrs)
 
-                                cb4 { id, el }
+                                cb4 null, { id, el }
                         , (err, items) =>
                             if err
                                 return cb3(err)
@@ -1192,7 +1198,6 @@ exports.run = (router, request, cb) ->
             notifications = []
             if (notification = op.notification?())
                 # Extend by subscriptions node notifications
-                # TODO: only if authoritative!
                 notification = notification.concat
                     generateSubscriptionsNotifications(notification)
                 # Call Notify operation grouped by node
