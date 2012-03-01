@@ -1098,7 +1098,7 @@ class Notify extends ModelOperation
                                         node: subscription.node
                                     itemAttrs['pubsub:subscription'] ?= subscription.subscription
                                     itemAttrs['pubsub:affiliation'] ?= affiliations[subscription.node]
-                                    item.el.c('item', itemAttrs)
+                                    el.c('item', itemAttrs)
 
                                 cb4 null, { id, el }
                         , (err, items) =>
