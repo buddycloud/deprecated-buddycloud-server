@@ -1078,7 +1078,7 @@ class Notify extends ModelOperation
                                 # Content already exists, perhaps
                                 # relaying a notification from another
                                 # service
-                                return cb4()
+                                return cb4 null, { id, el }
 
                             userSubscriptions = subscriptions.filter (subscription) ->
                                 subscription.node.indexOf("/user/#{id}/") is 0
