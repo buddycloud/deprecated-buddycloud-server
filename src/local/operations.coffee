@@ -975,6 +975,8 @@ class AuthorizeSubscriber extends PrivilegedOperation
 # and authorization form query
 #
 # The RSM handling here respects only a <max/> value.
+#
+# Doesn't care about about subscriptions nodes.
 class ReplayArchive extends ModelOperation
     transaction: (t, cb) ->
         max = @req.rsm?.max or 50
@@ -1061,12 +1063,51 @@ class PushInbox extends ModelOperation
 
 class Notify extends ModelOperation
     transaction: (t, cb) ->
-        # TODO: walk in batches
-        logger.debug "notifyNotification: #{inspect @req}"
-        t.getNodeListeners @req.node, (err, listeners) =>
-            if err
-                return cb err
+        async.waterfall [(cb2) =>
+            async.forEach @req, (update, cb3) =>
+                m = update.node.match(NODE_OWNER_TYPE_REGEXP)
+                # Fill in missing subscriptions node items
+                if update.type is 'items' and m?[2] is 'subscriptions'
+                    subscriber = m[1]
+                    t.getSubscriptions subscriber, (err, subscriptions) =>
+                        if err
+                            return cb3 err
 
+                        async.map update.items, ({id}, cb4) =>
+                            userSubscriptions = subscriptions.filter (subscription) ->
+                                subscription.node.indexOf("/user/#{id}/") is 0
+                            affiliations = {}
+                            async.forEach userSubscriptions, (subscription, cb5) =>
+                                t.getAffiliation subscriber, subscription.node, (err, affiliation) =>
+                                    affiliations[subscription.node] = affiliation
+                                    cb5(err)
+                            , (err) =>
+                                el = new Element('query',
+                                    xmlns: NS.DISCO_ITEMS
+                                    'xmlns:pubsub': NS.PUBSUB
+                                )
+                                for subscription in userSubscriptions
+                                    itemAttrs =
+                                        jid: subscriber
+                                        node: subscription.node
+                                    itemAttrs['pubsub:subscription'] ?= subscription.subscription
+                                    itemAttrs['pubsub:affiliation'] ?= affiliations[subscription.node]
+                                    item.el.c('item', itemAttrs)
+
+                                cb4 { id, el }
+                        , (err, items) =>
+                            if err
+                                return cb3(err)
+                            update.items = items
+                            cb3()
+                else
+                    cb3()
+            , cb2
+        , (cb2) =>
+            # TODO: walk in batches
+            logger.debug "notifyNotification: #{inspect @req}"
+            t.getNodeListeners @req.node, cb2
+        , (listeners, cb2) =>
             # Always notify all users pertained by a subscription
             # notification, even if just unsubscribed.
             for update in @req
@@ -1074,11 +1115,13 @@ class Notify extends ModelOperation
                    listeners.indexOf(update.user) < 0
                     listeners.push update.user
 
-            for listener in listeners
+            async.forEach listeners, (listener, cb3) =>
                 notification = Object.create(@req)
                 notification.listener = listener
                 @router.notify notification
-            cb()
+                cb3()
+            , cb2
+        ], cb
 
 class ModeratorNotify extends ModelOperation
     transaction: (t, cb) ->
@@ -1148,6 +1191,12 @@ exports.run = (router, request, cb) ->
             # Run notifications
             notifications = []
             if (notification = op.notification?())
+                # Extend by subscriptions node notifications
+                # TODO: only if authoritative!
+                notification = notification.concat
+                    generateSubscriptionsNotifications(notification)
+                # Call Notify operation grouped by node
+                # (looks up subscribers by node)
                 for own node, notifications of groupByNode(notification)
                     notification.node = node
                     new Notify(router, notification).run (err) ->
@@ -1166,3 +1215,24 @@ groupByNode = (updates) ->
             result[update.node] = []
         result[update.node].push update
     result
+
+generateSubscriptionsNotifications = (updates) ->
+    itemIdsSeen = {}
+    updates.filter((update) ->
+        update.type is 'subscription' or
+        update.type is 'affiliation'
+    ).map((update) ->
+        followee = update.node.match(NODE_OWNER_TYPE_REGEXP)?[1]
+        return
+            type: 'items'
+            node: "/user/#{update.user}/subscriptions"
+            items: [{ id: update.followee }]
+        # Actual item payload will be completed by Notify transaction
+    ).filter((update) ->
+        itemId = update.items[0].id
+        if itemIdsSeen[itemId]?
+            no
+        else
+            itemIdsSeen[itemId] = yes
+            yes
+    )
