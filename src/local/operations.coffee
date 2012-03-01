@@ -296,17 +296,48 @@ class BrowseTopPublishedNodes extends BrowseNodes
 
 class BrowseNodeItems extends PrivilegedOperation
     privilegedTransaction: (t, cb) ->
-        t.getItemIds @req.node, (err, ids) =>
-            if err
-                return cb err
+        if @subscriptionsNodeOwner?
+            t.getSubscription @subscriptionsNodeOwner, (err, subscriptions) =>
+                if err
+                    return cb err
 
-            # Apply RSM
-            ids = @req.rsm.cropResults ids
-            results = ids.map (id) =>
-                { name: id, jid: @req.me, node: @req.node }
-            results.node = @req.node
-            results.rsm = @req.rsm
-            cb null, results
+                # Group for item ids by followee:
+                subscriptionsByFollowee = {}
+                for subscription in subscriptions
+                    if (m = subscription.node.match(NODE_OWNER_TYPE_REGEXP))
+                        followee = m[1]
+                        subscriptionsByFollowee[followee] = true
+                # Prepare RSM suitable result set
+                results = []
+                for own followee, present of subscriptionsByFollowee
+                    results.push
+                        name: followee
+                        jid: @req.me
+                        node: @req.node
+                # Sort for a stable traversal with multiple RSM'ed queries
+                results.sort (result1, result2) ->
+                    if result1.name < result2.name
+                        -1
+                    else if result1.name > result2.name
+                        1
+                    else
+                        0
+                # Apply RSM
+                results = @req.rsm.cropResults results, 'name'
+
+                cb null, results
+        else
+            t.getItemIds @req.node, (err, ids) =>
+                if err
+                    return cb err
+
+                # Apply RSM
+                ids = @req.rsm.cropResults ids
+                results = ids.map (id) =>
+                    { name: id, jid: @req.me, node: @req.node }
+                results.node = @req.node
+                results.rsm = @req.rsm
+                cb null, results
 
 class Register extends ModelOperation
     run: (cb) ->
