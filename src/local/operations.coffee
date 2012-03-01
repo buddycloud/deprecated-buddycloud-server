@@ -297,7 +297,7 @@ class BrowseTopPublishedNodes extends BrowseNodes
 class BrowseNodeItems extends PrivilegedOperation
     privilegedTransaction: (t, cb) ->
         if @subscriptionsNodeOwner?
-            t.getSubscription @subscriptionsNodeOwner, (err, subscriptions) =>
+            t.getSubscriptions @subscriptionsNodeOwner, (err, subscriptions) =>
                 if err
                     return cb err
 
