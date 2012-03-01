@@ -1198,8 +1198,7 @@ exports.run = (router, request, cb) ->
             notifications = []
             if (notification = op.notification?())
                 # Extend by subscriptions node notifications
-                notification = notification.concat
-                    generateSubscriptionsNotifications(notification)
+                notification = notification.concat generateSubscriptionsNotifications(notification)
                 # Call Notify operation grouped by node
                 # (looks up subscribers by node)
                 for own node, notifications of groupByNode(notification)
@@ -1228,10 +1227,9 @@ generateSubscriptionsNotifications = (updates) ->
         update.type is 'affiliation'
     ).map((update) ->
         followee = update.node.match(NODE_OWNER_TYPE_REGEXP)?[1]
-        return
-            type: 'items'
-            node: "/user/#{update.user}/subscriptions"
-            items: [{ id: update.followee }]
+        type: 'items'
+        node: "/user/#{update.user}/subscriptions"
+        items: [{ id: update.followee }]
         # Actual item payload will be completed by Notify transaction
     ).filter((update) ->
         itemId = update.items[0].id
