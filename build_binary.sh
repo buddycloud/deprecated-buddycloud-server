@@ -36,7 +36,6 @@ npm i coffee-script muffin
 # Install runtime deps globally, so they land in our $PATH which can
 # later be packaged up.
 npm i . -g
-./node_modules/.bin/cake build
 
 rm $PREFIX/bin/buddycloud-server
 cp _opt_buddycloud-server_bin_buddycloud-server $PREFIX/bin/buddycloud-server
