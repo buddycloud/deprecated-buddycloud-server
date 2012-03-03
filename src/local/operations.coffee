@@ -1195,15 +1195,14 @@ exports.run = (router, request, cb) ->
                 logger.error e.stack or e
 
             # Run notifications
-            notifications = []
             if (notification = op.notification?())
                 # Extend by subscriptions node notifications
                 notification = notification.concat generateSubscriptionsNotifications(notification)
                 # Call Notify operation grouped by node
                 # (looks up subscribers by node)
                 for own node, notifications of groupByNode(notification)
-                    notification.node = node
-                    new Notify(router, notification).run (err) ->
+                    notifications.node = node
+                    new Notify(router, notifications).run (err) ->
                         if err
                             logger.error("Error running notifications: #{err.stack or err.message or err}")
             if (notification = op.moderatorNotification?())
