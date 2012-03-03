@@ -18,7 +18,7 @@ export PATH="$PREFIX/bin:$PATH"
 [ -d "$TMPDIR" ] || mkdir "$TMPDIR"
 
 # Build node
-NODE_VER=0.6.11
+NODE_VER=0.6.12
 if [ ! -x "$PREFIX/bin/node" ]; then
     cd "$TMPDIR"
     wget -c http://nodejs.org/dist/v${NODE_VER}/node-v${NODE_VER}.tar.gz
