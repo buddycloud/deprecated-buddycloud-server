@@ -110,7 +110,7 @@ class AffiliationsSynchronization extends PaginatedSynchronization
 
     writeResults: (t, results, cb) ->
         async.forEach results, (item, cb2) =>
-            t.setAffiliation @node, item.user, item.affiliations, cb2
+            t.setAffiliation @node, item.user, item.affiliation, cb2
         , cb
 
 
