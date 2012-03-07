@@ -20,8 +20,8 @@ defaultConfiguration = (user) ->
         description: "A buddycloud channel"
         channelType: "personal"
         accessModel: "open"
-        publishModel: "subscribers"
-        defaultAffiliation: "member"
+        publishModel: "publishers"
+        defaultAffiliation: "publisher"
     status:
         title: "#{user} Status Updates"
         description: "M000D"
