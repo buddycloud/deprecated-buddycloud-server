@@ -1,13 +1,13 @@
 #! /bin/sh
 ### BEGIN INIT INFO
-# Provides:          skeleton
+# Provides:          buddycloud-server
 # Required-Start:    $remote_fs $syslog
 # Required-Stop:     $remote_fs $syslog
 # Default-Start:     2 3 4 5
 # Default-Stop:      1
-# Short-Description: Example initscript
-# Description:       This file should be used to construct scripts to be
-#                    placed in /etc/init.d.
+# Short-Description: buddycloud-server
+# Description:       This script starts, stops and restarts the buddycloud server
+#                    daemon which then connects to the domains XMPP server.
 ### END INIT INFO
 
 # Author: Simon Tennant <simon@buddycloud.com>
