@@ -65,6 +65,23 @@ defaultTopicConfiguration = (user) =>
 
 NODE_OWNER_TYPE_REGEXP = /^\/user\/([^\/]+)\/?(.*)/
 
+
+AFFILIATIONS = [
+    'outcast', 'none', 'member',
+    'publisher', 'moderator', 'owner'
+]
+isAffiliationAtLeast = (affiliation1, affiliation2) ->
+    i1 = AFFILIATIONS.indexOf(affiliation1)
+    i2 = AFFILIATIONS.indexOf(affiliation2)
+    if i2 < 0
+        false
+    else
+        i1 >= i2
+
+###
+# Base Operations
+###
+
 ##
 # Is created with options from the request
 #
@@ -102,18 +119,6 @@ class ModelOperation extends Operation
     transaction: (t, cb) ->
         cb null
 
-
-AFFILIATIONS = [
-    'outcast', 'none', 'member',
-    'publisher', 'moderator', 'owner'
-]
-isAffiliationAtLeast = (affiliation1, affiliation2) ->
-    i1 = AFFILIATIONS.indexOf(affiliation1)
-    i2 = AFFILIATIONS.indexOf(affiliation2)
-    if i2 < 0
-        false
-    else
-        i1 >= i2
 
 class PrivilegedOperation extends ModelOperation
 
@@ -221,6 +226,12 @@ class PrivilegedOperation extends ModelOperation
                     cb err or new errors.Forbidden("Only subscribers may publish")
         else
             cb new errors.Forbidden("Only #{@nodeConfig.publishModel} may publish")
+
+
+###
+# Discrete Operations
+###
+
 
 class BrowseInfo extends Operation
 
