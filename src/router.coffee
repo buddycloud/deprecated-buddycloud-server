@@ -129,12 +129,12 @@ class exports.Router
         @remote.run opts, cb
 
     run: (opts, cb) ->
-        logger.trace "Router.run %s", inspect(opts)
+        logger.trace "Router.run #{inspect opts}"
         @runCheckAnonymous opts, (err) =>
             if err
                 return cb? err
 
-            logger.info "Router.run #{opts.actor}(#{opts.actorType})/#{opts.sender}: #{opts.operation} #{opts.node}"
+            logger.info "run #{opts.operation} #{opts.node} by #{opts.actor}(#{opts.actorType})/#{opts.sender}"
 
             unless opts.node?
                 @runLocally opts, (err, results) =>

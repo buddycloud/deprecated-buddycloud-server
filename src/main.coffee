@@ -63,7 +63,7 @@ config.load "/etc/buddycloud-server/config.js", (args, opts) ->
 
     # Handle XEP-0060 Publish-Subscribe and related requests:
     pubsubServer.on 'request', (request) ->
-        logger.trace "request: %s", inspect(request)
+        logger.trace "request: #{inspect request}"
         if request.operation is 'get-version'
             request.callback null,
                 name: "buddycloud-server"
@@ -88,7 +88,7 @@ config.load "/etc/buddycloud-server/config.js", (args, opts) ->
 
     # Handle incoming XEP-0060 Publish-Subscribe notifications
     pubsubBackend.on 'notificationPush', (opts) ->
-        logger.trace "notificationPush: %s", inspect(opts)
+        logger.trace "notificationPush: #{inspect(opts)}"
         # Sender is already authenticated at this point
         opts.operation = 'push-inbox'
         router.run opts, ->
