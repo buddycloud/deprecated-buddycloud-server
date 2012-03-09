@@ -78,6 +78,10 @@ isAffiliationAtLeast = (affiliation1, affiliation2) ->
     else
         i1 >= i2
 
+canModerate = (affiliation) ->
+    affiliation is 'owner' or affiliation is 'moderator'
+
+
 ###
 # Base Operations
 ###
@@ -147,7 +151,6 @@ class PrivilegedOperation extends ModelOperation
                     return cb err
 
                 @actorAffiliation = affiliation or 'none'
-                cb()
 
         else
             # actor no user? check if listener!
@@ -157,9 +160,16 @@ class PrivilegedOperation extends ModelOperation
 
                 @actorAffiliation = 'none'
                 for affiliation in affiliations
-                    if isAffiliationAtLeast affiliation, @actorAffiliation
+                    if affiliation isnt @actorAffiliation and
+                       isAffiliationAtLeast affiliation, @actorAffiliation
                         @actorAffiliation = affiliation
-                cb()
+
+        if canModerate @actorAffiliation
+            # Moderators get to see everything
+            @filterSubscription = @filterSubscriptionModerator
+            @filterAffiliation = @filterAffiliationModerator
+
+        cb()
 
     fetchNodeConfig: (t, cb) ->
         unless @req.node
@@ -226,6 +236,19 @@ class PrivilegedOperation extends ModelOperation
                     cb err or new errors.Forbidden("Only subscribers may publish")
         else
             cb new errors.Forbidden("Only #{@nodeConfig.publishModel} may publish")
+
+    filterSubscription: (subscription) =>
+        subscription.jid is @actor or
+        subscription.subscription is 'subscribed'
+
+    filterAffiliation: (affiliation) ->
+        affiliation.affiliation isnt 'outcast'
+
+    filterSubscriptionModerator: (subscription) ->
+        yes
+
+    filterAffiliationModerator: (affiliation) ->
+        yes
 
 
 ###
@@ -791,6 +814,7 @@ class RetrieveNodeSubscriptions extends PrivilegedOperation
             if err
                 return cb err
 
+            subscriptions = subscriptions.filter @filterSubscription
             subscriptions = rsm.cropResults subscriptions, 'user'
             cb null, subscriptions
 
@@ -801,6 +825,7 @@ class RetrieveNodeAffiliations extends PrivilegedOperation
             if err
                 return cb err
 
+            affiliations = affiliations.filter @filterAffiliation
             affiliations = rsm.cropResults affiliations, 'user'
             cb null, affiliations
 
@@ -1076,6 +1101,8 @@ class Notify extends ModelOperation
     transaction: (t, cb) ->
         async.waterfall [(cb2) =>
             async.forEach @req, (update, cb3) =>
+                # First, we complete subscriptions node items
+
                 m = update.node.match(NODE_OWNER_TYPE_REGEXP)
                 # Fill in missing subscriptions node items
                 if update.type is 'items' and m?[2] is 'subscriptions'
@@ -1121,6 +1148,9 @@ class Notify extends ModelOperation
                     cb3()
             , cb2
         , (cb2) =>
+            # Then, retrieve all listeners
+            # (assuming all updates pertain one single node)
+
             # TODO: walk in batches
             logger.debug "notifyNotification: #{inspect @req}"
             t.getNodeListeners @req.node, cb2
@@ -1132,12 +1162,46 @@ class Notify extends ModelOperation
                    listeners.indexOf(update.user) < 0
                     listeners.push update.user
 
+            cb2 null, listeners
+        , (listeners, cb2) =>
+            moderatorListeners = []
+            otherListeners = []
             async.forEach listeners, (listener, cb3) =>
-                notification = Object.create(@req)
-                notification.listener = listener
-                @router.notify notification
-                cb3()
-            , cb2
+                t.getAffiliation @req.node, listener, (err, affiliation) ->
+                    if err
+                        return cb3 err
+
+                    if canModerate affiliation
+                        moderatorListeners.push listener
+                    else
+                        otherListeners.push listener
+                    cb3()
+            , (err) =>
+                cb2 err, moderatorListeners, otherListeners
+        , (moderatorListeners, otherListeners, cb2) =>
+            # Send out through backends
+            if moderatorListeners.length > 0
+                for listener in moderatorListeners
+                    notification = Object.create(@req)
+                    notification.listener = listener
+                    @router.notify notification
+            if otherListeners.length > 0
+                req = @req.filter (update) ->
+                    switch update.type
+                        when 'subscription'
+                            @filterSubscription update
+                        when 'affiliation'
+                            @filterAffiliation update
+                        else
+                            yes
+                # Any left after filtering? Don't send empty
+                # notification when somebody got banned.
+                if req.length > 0
+                    for listener in moderatorListeners
+                        notification = Object.create(req)
+                        notification.listener = listener
+                        @router.notify notification
+            cb2()
         ], cb
 
 class ModeratorNotify extends ModelOperation
