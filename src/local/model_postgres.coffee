@@ -435,6 +435,16 @@ class Transaction
             cb2 null, affiliations
         ], cb
 
+    getOutcast: (node, cb) ->
+        db = @db
+        async.waterfall [(cb2) ->
+            db.query "SELECT user FROM affiliations WHERE affiliation = 'outcast' AND node = $1 ORDER BY updated DESC", [ node ], cb2
+        , (res, cb2) ->
+            cb2 null, res.rows.map((row) ->
+                row.user
+            )
+        ], cb
+
     getOwners: (node, cb) ->
         db = @db
         async.waterfall [(cb2) ->

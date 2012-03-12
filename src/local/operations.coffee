@@ -888,6 +888,8 @@ class ManageNodeAffiliations extends PrivilegedOperation
             'owner'
 
     privilegedTransaction: (t, cb) ->
+        @newModerators = []
+
         async.series @req.affiliations.map(({user, affiliation}) =>
             (cb2) =>
                 async.waterfall [ (cb3) =>
@@ -903,13 +905,17 @@ class ManageNodeAffiliations extends PrivilegedOperation
                             # Non-owner tries to elect a new owner!
                             cb3 new errors.Forbidden("You may not elect a new owner")
                         else
+                            if not canModerate(oldAffiliation) and
+                               canModerate(affiliation)
+                                @newModerators.push { user, node: @req.node }
+
                             t.setAffiliation @req.node, user, affiliation, cb3
                 ], cb2
         ), cb
 
 
     notification: ->
-        @req.affiliations.map ({user, affiliation}) =>
+        affiliations = @req.affiliations.map ({user, affiliation}) =>
             {
                 type: 'affiliation'
                 node: @req.node
@@ -1065,6 +1071,8 @@ class PushInbox extends ModelOperation
             , (updates) ->
                 cb2 null, updates
         , (updates, cb2) =>
+            @newModerators = []
+
             logger.debug "pushFilteredUpdates: #{inspect updates}"
             async.forEach updates, (update, cb3) ->
                 switch update.type
@@ -1081,7 +1089,15 @@ class PushInbox extends ModelOperation
 
                     when 'affiliation'
                         {node, user, affiliation} = update
-                        t.setAffiliation node, user, affiliation, cb3
+                        t.getAffiliation node, user, (err, oldAffiliation) ->
+                            if err
+                                return cb3 err
+
+                            if not canModerate(oldAffiliation) and
+                               canModerate(affiliation)
+                                @newModerators.push { user, node }
+
+                            t.setAffiliation node, user, affiliation, cb3
 
                     when 'config'
                         {node, config} = update
@@ -1217,6 +1233,29 @@ class ModeratorNotify extends ModelOperation
                 @router.notify notification
             cb()
 
+class NewModeratorNotify extends PrivilegedOperation
+    privilegedTransaction: (t, cb) ->
+        async.parallel [ (cb2) =>
+            t.getPending @req.node, cb2
+        , (cb2) =>
+            t.getOutcast @req.node, cb2
+        ], (err, [pendingUsers, bannedUsers]) =>
+            notification = []
+            for user in pendingUsers
+                notification.push
+                    type: 'subscription'
+                    node: @req.node
+                    user: user
+                    subscription: 'pending'
+            for user in bannedUsers
+                notification.push
+                    type: 'affiliation'
+                    node: @req.node
+                    user: user
+                    affiliation: 'outcast'
+            @router.notify notification
+
+
 OPERATIONS =
     'browse-info': BrowseInfo
     'browse-node-info': BrowseNodeInfo
@@ -1284,6 +1323,15 @@ exports.run = (router, request, cb) ->
                 new ModeratorNotify(router, notification).run (err) ->
                     if err
                         logger.error("Error running notifications: #{err.stack or err.message or err}")
+            if (op.newModerators and op.newModerators.length > 0)
+                for {user, node} in op.newModerators
+                    req =
+                        operation: 'new-moderator-notification'
+                        actor: user
+                        node: node
+                    new NewModeratorNotify(router, req).run (err) ->
+                        if err
+                            logger.error("Error running new moderator notification: #{err.stack or err.message or err}")
 
 
 groupByNode = (updates) ->
