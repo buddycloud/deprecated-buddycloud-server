@@ -697,6 +697,9 @@ class RetrieveItems extends PrivilegedOperation
         async.waterfall [ (cb2) =>
             t.getSubscriptions @subscriptionsNodeOwner, cb2
         , (subscriptions, cb2) =>
+            # No pending subscriptions:
+            subscriptions = subscriptions.filter (subscription) ->
+                subscription.subscription is 'subscribed'
             # Group for item ids by followee:
             subscriptionsByFollowee = {}
             for subscription in subscriptions
@@ -1345,7 +1348,8 @@ groupByNode = (updates) ->
 generateSubscriptionsNotifications = (updates) ->
     itemIdsSeen = {}
     updates.filter((update) ->
-        update.type is 'subscription' or
+        (update.type is 'subscription' and
+         update.subscription is 'subscribed') or
         update.type is 'affiliation'
     ).map((update) ->
         followee = update.node.match(NODE_OWNER_TYPE_REGEXP)?[1]
