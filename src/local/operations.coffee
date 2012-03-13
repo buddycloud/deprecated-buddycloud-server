@@ -107,15 +107,15 @@ class ModelOperation extends Operation
             if err
                 return cb err
 
-            opName = @req.operation or "?"
+            opName = @req.operation or @constructor?.name or "?"
             @transaction t, (err, results) ->
                 if err
-                    logger.warn "Transaction rollback: #{err}"
+                    logger.warn "Transaction #{opName} rollback: #{err}"
                     t.rollback ->
                         cb err
                 else
                     t.commit ->
-                        logger.debug "Operation #{opName} committed"
+                        logger.debug "Transaction #{opName} committed"
                         cb null, results
 
 
