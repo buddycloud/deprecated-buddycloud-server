@@ -240,6 +240,12 @@ class Transaction
         , (err, res) ->
             cb err, res?.rows?[0]?.subscription or "none"
 
+    getSubscriptionListener: (node, user, cb) ->
+        @db.query "SELECT listener FROM subscriptions WHERE node=$1 AND \"user\"=$2"
+        , [ node, user ]
+        , (err, res) ->
+            cb err, res?.rows?[0]?.listener
+
     setSubscription: (node, user, listener, subscription, cb) ->
         unless node
             return cb(new Error("No node"))

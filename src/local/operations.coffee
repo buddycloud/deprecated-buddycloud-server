@@ -908,11 +908,19 @@ class ManageNodeAffiliations extends PrivilegedOperation
                             # Non-owner tries to elect a new owner!
                             cb3 new errors.Forbidden("You may not elect a new owner")
                         else
-                            if not canModerate(oldAffiliation) and
-                               canModerate(affiliation)
-                                @newModerators.push { user, node: @req.node }
-
-                            t.setAffiliation @req.node, user, affiliation, cb3
+                            async.series [ (cb4) =>
+                                if not canModerate(oldAffiliation) and
+                                   canModerate(affiliation)
+                                    t.getSubscriptionListener @req.node, user, (err, listener) =>
+                                        if (not err) and listener
+                                            @newModerators.push { user, listener, node: @req.node }
+                                        cb4 err
+                                else
+                                    cb4()
+                            , (cb4) =>
+                                t.setAffiliation @req.node, user, affiliation, cb4
+                            ], (err) ->
+                                cb3 err
                 ], cb2
         ), cb
 
@@ -1096,11 +1104,19 @@ class PushInbox extends ModelOperation
                             if err
                                 return cb3 err
 
-                            if not canModerate(oldAffiliation) and
-                               canModerate(affiliation)
-                                @newModerators.push { user, node }
-
-                            t.setAffiliation node, user, affiliation, cb3
+                            async.series [ (cb4) =>
+                                if not canModerate(oldAffiliation) and
+                                   canModerate(affiliation)
+                                    t.getSubscriptionListener @req.node, user, (err, listener) =>
+                                        if (not err) and listener
+                                            @newModerators.push { user, listener, node: @req.node }
+                                        cb4 err
+                                else
+                                    cb4()
+                            , (cb4) =>
+                                t.setAffiliation @req.node, user, affiliation, cb4
+                            ], (err) ->
+                                cb3 err
 
                     when 'config'
                         {node, config} = update
@@ -1249,7 +1265,7 @@ class NewModeratorNotify extends PrivilegedOperation
 
             notification = []
             notification.node = @req.node
-            notification.listener = @req.actor
+            notification.listener = @req.listener
             for user in pendingUsers
                 notification.push
                     type: 'subscription'
@@ -1335,11 +1351,12 @@ exports.run = (router, request, cb) ->
                     if err
                         logger.error("Error running notifications: #{err.stack or err.message or err}")
             if (op.newModerators and op.newModerators.length > 0)
-                for {user, node} in op.newModerators
+                for {user, node, listener} in op.newModerators
                     req =
                         operation: 'new-moderator-notification'
-                        actor: user
                         node: node
+                        actor: user
+                        listener: listener
                     new NewModeratorNotify(router, req).run (err) ->
                         if err
                             logger.error("Error running new moderator notification: #{err.stack or err.message or err}")
