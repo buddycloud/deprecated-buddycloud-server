@@ -1208,9 +1208,9 @@ class Notify extends ModelOperation
                 req = @req.filter (update) =>
                     switch update.type
                         when 'subscription'
-                            @filterSubscription update
+                            PrivilegedOperation::filterSubscription update
                         when 'affiliation'
-                            @filterAffiliation update
+                            PrivilegedOperation::filterAffiliation update
                         else
                             yes
                 # Any left after filtering? Don't send empty
