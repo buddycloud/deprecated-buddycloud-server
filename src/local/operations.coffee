@@ -1218,6 +1218,7 @@ class Notify extends ModelOperation
                 if req.length > 0
                     for listener in otherListeners
                         notification = Object.create(req)
+                        notification.node = @req.node
                         notification.listener = listener
                         @router.notify notification
             cb2()
