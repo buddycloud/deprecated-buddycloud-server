@@ -1082,7 +1082,7 @@ class PushInbox extends ModelOperation
             , (updates) ->
                 cb2 null, updates
         , (updates, cb2) =>
-            @newModerators = []
+            newModerators = []
 
             logger.debug "pushFilteredUpdates: #{inspect updates}"
             async.forEach updates, (update, cb3) ->
@@ -1107,14 +1107,14 @@ class PushInbox extends ModelOperation
                             async.series [ (cb4) =>
                                 if not canModerate(oldAffiliation) and
                                    canModerate(affiliation)
-                                    t.getSubscriptionListener @req.node, user, (err, listener) =>
+                                    t.getSubscriptionListener node, user, (err, listener) ->
                                         if (not err) and listener
-                                            @newModerators.push { user, listener, node: @req.node }
+                                            newModerators.push { user, listener, node }
                                         cb4 err
                                 else
                                     cb4()
                             , (cb4) =>
-                                t.setAffiliation @req.node, user, affiliation, cb4
+                                t.setAffiliation node, user, affiliation, cb4
                             ], (err) ->
                                 cb3 err
 
@@ -1128,6 +1128,8 @@ class PushInbox extends ModelOperation
             # Memorize updates for notifications, same format:
             @notification = ->
                 updates
+            if newModerators.length > 0
+                @newModerators = newModerators
             # TODO: no subscriptions left? DELETE NODE!
         ], cb
 
