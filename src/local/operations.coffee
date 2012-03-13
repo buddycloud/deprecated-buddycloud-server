@@ -1382,7 +1382,7 @@ generateSubscriptionsNotifications = (updates) ->
         followee = update.node.match(NODE_OWNER_TYPE_REGEXP)?[1]
         type: 'items'
         node: "/user/#{update.user}/subscriptions"
-        items: [{ id: update.followee }]
+        items: [{ id: followee }]
         # Actual item payload will be completed by Notify transaction
     ).filter((update) ->
         itemId = update.items[0].id
