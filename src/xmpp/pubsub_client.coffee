@@ -85,7 +85,6 @@ class exports.DiscoverInfo extends DiscoverRequest
             @results.features.push el.attrs.var
         else if el.is('x', NS.DATA)
             form = forms.fromXml(el)
-            logger.debug form: form, formType: form.getFormType(), is: (form.getFormType() is NS.PUBSUB_META_DATA)
             if form.getFormType() is NS.PUBSUB_META_DATA
                 @results.config = forms.formToConfig(form)
 
