@@ -1249,7 +1249,7 @@ class NewModeratorNotify extends PrivilegedOperation
 
             notification = []
             notification.node = @req.node
-            notification.listener = @actor
+            notification.listener = @req.actor
             for user in pendingUsers
                 notification.push
                     type: 'subscription'
