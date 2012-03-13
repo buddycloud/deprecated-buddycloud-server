@@ -83,6 +83,7 @@ class exports.Connection extends EventEmitter
         unless stanza.attrs.from
             stanza.attrs.from = @jid
 
+        # Count serialized length (do not actually allocate yet)
         bytes = 0
         stanza.root().write (s) ->
             bytes += Buffer.byteLength(s)
@@ -90,12 +91,14 @@ class exports.Connection extends EventEmitter
             logger.warn "Stanza with #{bytes} bytes: #{stanza.toString().substr(0, 1024)}..."
             throw new errors.MaxStanzaSizeExceeded(bytes)
 
-        logger.trace ">> #{stanza.toString()}"
+        # Serialize once (for logging and sending)
+        s = stanza.toString()
+        logger.trace ">> #{s}"
         if stanza.attrs.to is @jid
             # Loopback short-cut
             @conn.emit 'stanza', stanza
         else
-            @conn.send stanza
+            @conn.send s
 
     ##
     # @param {Function} cb: Called with (errorStanza, resultStanza)
