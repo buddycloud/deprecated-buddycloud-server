@@ -308,7 +308,7 @@ class Transaction
     getPending: (node, cb) ->
         db = @db
         async.waterfall [(cb2) ->
-            db.query "SELECT user FROM subscriptions WHERE subscription = 'pending' AND node = $1 ORDER BY updated DESC", [ node ], cb2
+            db.query "SELECT \"user\" FROM subscriptions WHERE subscription = 'pending' AND node = $1 ORDER BY updated DESC", [ node ], cb2
         , (res, cb2) ->
             cb2 null, res.rows.map((row) ->
                 row.user
@@ -438,7 +438,7 @@ class Transaction
     getOutcast: (node, cb) ->
         db = @db
         async.waterfall [(cb2) ->
-            db.query "SELECT user FROM affiliations WHERE affiliation = 'outcast' AND node = $1 ORDER BY updated DESC", [ node ], cb2
+            db.query "SELECT \"user\" FROM affiliations WHERE affiliation = 'outcast' AND node = $1 ORDER BY updated DESC", [ node ], cb2
         , (res, cb2) ->
             cb2 null, res.rows.map((row) ->
                 row.user
