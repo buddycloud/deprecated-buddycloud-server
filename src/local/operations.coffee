@@ -1244,6 +1244,9 @@ class NewModeratorNotify extends PrivilegedOperation
         , (cb2) =>
             t.getOutcast @req.node, cb2
         ], (err, [pendingUsers, bannedUsers]) =>
+            if err
+                return cb err
+
             notification = []
             notification.node = @req.node
             notification.listener = @actor
@@ -1260,6 +1263,8 @@ class NewModeratorNotify extends PrivilegedOperation
                     user: user
                     affiliation: 'outcast'
             @router.notify notification
+
+            cb()
 
 
 OPERATIONS =
