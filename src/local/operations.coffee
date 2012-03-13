@@ -1244,6 +1244,8 @@ class NewModeratorNotify extends PrivilegedOperation
             t.getOutcast @req.node, cb2
         ], (err, [pendingUsers, bannedUsers]) =>
             notification = []
+            notification.node = @req.node
+            notification.listener = @actor
             for user in pendingUsers
                 notification.push
                     type: 'subscription'
