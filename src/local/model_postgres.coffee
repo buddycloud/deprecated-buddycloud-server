@@ -158,7 +158,7 @@ class Transaction
             process.nextTick =>
                 dbIsAvailable @db
 
-            cb err
+            cb? err
 
     rollback: (cb) ->
         @db.query "ROLLBACK", [], (err, res) =>
@@ -166,7 +166,7 @@ class Transaction
             process.nextTick =>
                 dbIsAvailable @db
 
-            cb err
+            cb? err
 
     ##
     # Actual data model
