@@ -1216,7 +1216,7 @@ class Notify extends ModelOperation
                 # Any left after filtering? Don't send empty
                 # notification when somebody got banned.
                 if req.length > 0
-                    for listener in moderatorListeners
+                    for listener in otherListeners
                         notification = Object.create(req)
                         notification.listener = listener
                         @router.notify notification
