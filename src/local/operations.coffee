@@ -813,7 +813,7 @@ class RetrieveUserAffiliations extends ModelOperation
 class RetrieveNodeSubscriptions extends PrivilegedOperation
     privilegedTransaction: (t, cb) ->
         rsm = @req.rsm
-        t.getSubscribers @req.node, (err, subscriptions) ->
+        t.getSubscribers @req.node, (err, subscriptions) =>
             if err
                 return cb err
 
@@ -824,7 +824,7 @@ class RetrieveNodeSubscriptions extends PrivilegedOperation
 class RetrieveNodeAffiliations extends PrivilegedOperation
     privilegedTransaction: (t, cb) ->
         rsm = @req.rsm
-        t.getAffiliated @req.node, (err, affiliations) ->
+        t.getAffiliated @req.node, (err, affiliations) =>
             if err
                 return cb err
 
@@ -1205,7 +1205,7 @@ class Notify extends ModelOperation
                     notification.listener = listener
                     @router.notify notification
             if otherListeners.length > 0
-                req = @req.filter (update) ->
+                req = @req.filter (update) =>
                     switch update.type
                         when 'subscription'
                             @filterSubscription update
