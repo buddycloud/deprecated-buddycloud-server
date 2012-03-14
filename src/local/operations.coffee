@@ -862,7 +862,11 @@ class ManageNodeSubscriptions extends PrivilegedOperation
             async.forEach @req.subscriptions
             , ({user, subscription}, cb3) =>
                 async.waterfall [(cb4) =>
-                    t.setSubscription @req.node, user, null, subscription, cb4
+                    if @req.node.indexOf("/user/#{user}/") == 0 and
+                       subscription isnt 'subscribed'
+                        cb4 new errors.Forbidden("You may not unsubscribe the owner")
+                    else
+                        t.setSubscription @req.node, user, null, subscription, cb4
                 , (cb4) =>
                     t.getAffiliation @req.node, user, cb4
                 , (affiliation, cb4) =>
@@ -918,7 +922,11 @@ class ManageNodeAffiliations extends PrivilegedOperation
                                 else
                                     cb4()
                             , (cb4) =>
-                                t.setAffiliation @req.node, user, affiliation, cb4
+                                if @req.node.indexOf("/user/#{user}/") == 0 and
+                                   affiliation isnt 'owner'
+                                    cb4 new errors.Forbidden("You may not demote the owner")
+                                else
+                                    t.setAffiliation @req.node, user, affiliation, cb4
                             ], (err) ->
                                 cb3 err
                 ], cb2
