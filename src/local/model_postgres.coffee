@@ -210,17 +210,15 @@ class Transaction
 
     purgeNode: (node, cb) ->
         db = @db
-        async.series [(cb2) ->
-            db.query "DELETE FROM items WHERE node=$1", [ node ], cb2
-        , (res, cb2) ->
-            db.query "DELETE FROM subscriptions WHERE node=$1", [ node ], cb2
-        , (res, cb2) ->
-            db.query "DELETE FROM affiliations WHERE node=$1", [ node ], cb2
-        , (res, cb2) ->
-            db.query "DELETE FROM node_config WHERE node=$1", [ node ], cb2
-        , (res, cb2) ->
-            db.query "DELETE FROM nodes WHERE node=$1", [ node ], cb2
-        , (res, cb2) ->
+        q = (sql) ->
+            (cb2) ->
+                db.query sql, [ node ], cb2
+        async.series [
+            q "DELETE FROM items WHERE node=$1"
+            q "DELETE FROM subscriptions WHERE node=$1"
+            q "DELETE FROM affiliations WHERE node=$1"
+            q "DELETE FROM node_config WHERE node=$1"
+            q "DELETE FROM nodes WHERE node=$1"
         ], (err) ->
             logger.info "Purged all data of node #{node}"
             cb err
