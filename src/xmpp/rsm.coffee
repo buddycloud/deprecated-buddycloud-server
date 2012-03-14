@@ -39,7 +39,7 @@ class exports.RSM
         if 'before' of @
             # Paging backwards
             results = results.slice(Math.max(0, results.length - @max), results.length)
-            @firstIndex = count - results.length
+            @firstIndex = @count - results.length
         else
             # Paging forward
             results = results.slice(0, Math.min(@max, results.length))
