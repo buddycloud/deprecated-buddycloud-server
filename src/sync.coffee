@@ -96,6 +96,7 @@ class SubscriptionsSynchronization extends PaginatedSynchronization
 
     operation: 'retrieve-node-subscriptions'
 
+    # TODO: none left? remove whole node.
     writeResults: (t, results, cb) ->
         async.forEach results, (item, cb2) =>
             listener = @userListeners[item.user]

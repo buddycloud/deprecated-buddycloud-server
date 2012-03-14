@@ -1068,6 +1068,8 @@ class ReplayArchive extends ModelOperation
 
 class PushInbox extends ModelOperation
     transaction: (t, cb) ->
+        unsubscribedNodes = {}
+
         async.waterfall [(cb2) =>
             logger.debug "pushUpdates: #{inspect @req}"
             async.filter @req, (update, cb3) ->
@@ -1096,6 +1098,8 @@ class PushInbox extends ModelOperation
 
                     when 'subscription'
                         {node, user, listener, subscription} = update
+                        if subscription isnt 'subscribed'
+                            unsubscribedNodes[node] = yes
                         t.setSubscription node, user, listener, subscription, cb3
 
                     when 'affiliation'
@@ -1130,7 +1134,18 @@ class PushInbox extends ModelOperation
                 updates
             if newModerators.length > 0
                 @newModerators = newModerators
-            # TODO: no subscriptions left? DELETE NODE!
+        , (cb2) =>
+            # no local subscriptions left to remote node? delete it.
+            checks = []
+            for own node, _ of unsubscribedNodes
+                checks.push (cb3) ->
+                    t.getNodeListeners node, (err, listeners) ->
+                        if err
+                            return cb3 err
+                        unless listeners? and listeners.length > 0
+                            t.purgeNode node, cb3
+
+            async.parallel checks, cb2
         ], cb
 
 

@@ -208,6 +208,22 @@ class Transaction
                     cb2 err, true
         ], cb
 
+    purgeNode: (node, cb) ->
+        db = @db
+        async.series [(cb2) ->
+            db.query "DELETE FROM items WHERE node=$1", [ node ], cb2
+        , (res, cb2) ->
+            db.query "DELETE FROM subscriptions WHERE node=$1", [ node ], cb2
+        , (res, cb2) ->
+            db.query "DELETE FROM affiliations WHERE node=$1", [ node ], cb2
+        , (res, cb2) ->
+            db.query "DELETE FROM node_config WHERE node=$1", [ node ], cb2
+        , (res, cb2) ->
+            db.query "DELETE FROM nodes WHERE node=$1", [ node ], cb2
+        , (res, cb2) ->
+        ], (err) ->
+            cb err
+
     ##
     # only open ones
     #
@@ -244,7 +260,7 @@ class Transaction
         @db.query "SELECT listener FROM subscriptions WHERE node=$1 AND \"user\"=$2"
         , [ node, user ]
         , (err, res) ->
-            cb err, res?.rows?[0]?.listener
+            cb err, res?.rows?[0]?.listener or "none"
 
     setSubscription: (node, user, listener, subscription, cb) ->
         unless node

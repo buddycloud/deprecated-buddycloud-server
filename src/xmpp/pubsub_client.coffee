@@ -169,13 +169,16 @@ class Subscribe extends PubsubRequest
             @results.subscription ?= el.attrs.subscription or 'subscribed'
 
     localPushData: ->
-        [{
-            type: 'subscription'
-            node: @opts.node
-            user: @results.user
-            listener: @opts.sender
-            subscription: @results.subscription
-        }]
+        if @results.subscription is 'subscribed'
+            [{
+                type: 'subscription'
+                node: @opts.node
+                user: @results.user
+                listener: @opts.sender
+                subscription: @results.subscription
+            }]
+        else
+            []
 
 class Unsubscribe extends PubsubRequest
     iqType: ->
