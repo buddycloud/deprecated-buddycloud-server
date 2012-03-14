@@ -1069,7 +1069,7 @@ class ReplayArchive extends ModelOperation
 class PushInbox extends ModelOperation
     transaction: (t, cb) ->
         notification = []
-        newNodes = {}
+        newNodes = []
         newModerators = []
         unsubscribedNodes = {}
 
