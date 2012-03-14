@@ -31,6 +31,8 @@ fi
 
 # deps & coffeescript build
 cd $SRCDIR
+# Avoid npm refusing installation
+rm -f $PREFIX/bin/buddycloud-server
 # devDeps
 npm i coffee-script muffin
 # Install runtime deps globally, so they land in our $PATH which can
