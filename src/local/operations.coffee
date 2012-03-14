@@ -1074,11 +1074,15 @@ class PushInbox extends ModelOperation
 
         async.waterfall [(cb2) =>
             logger.debug "pushUpdates: #{inspect @req}"
-            async.filter @req, (update, cb3) ->
+            async.filter @req, (update, cb3) =>
                 if update.type is 'subscription' and update.listener?
                     # Was successful remote subscription attempt
-                    t.createNode update.node, (err, created) ->
-                        cb3 not err
+                    t.createNode update.node, (err, created) =>
+                        if not err and created
+                            @router.syncNode update.node, (err) ->
+                                cb3 not err
+                        else
+                            cb3 not err
                 else
                     # Just an update, to be cached locally?
                     t.nodeExists update.node, (err, exists) ->
