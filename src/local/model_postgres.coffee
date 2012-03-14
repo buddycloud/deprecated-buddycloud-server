@@ -222,6 +222,7 @@ class Transaction
             db.query "DELETE FROM nodes WHERE node=$1", [ node ], cb2
         , (res, cb2) ->
         ], (err) ->
+            logger.info "Purged all data of node #{node}"
             cb err
 
     ##

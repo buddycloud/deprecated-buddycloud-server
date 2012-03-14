@@ -91,10 +91,31 @@ class ItemsSynchronization extends PaginatedSynchronization
 
 class SubscriptionsSynchronization extends PaginatedSynchronization
     reset: (t, cb) ->
+        # Preserve the subscriptions listeners that are local, which
+        # is only a small subset of the global subscriptions to a
+        # remote node.
         t.resetSubscriptions @node, (err, @userListeners) =>
             cb err
 
     operation: 'retrieve-node-subscriptions'
+
+    run: (t, cb) ->
+        super (err) =>
+            if err
+                return cb err
+
+            cb2 = =>
+                cb.apply @, arguments
+            # After all subscriptions have synced, check if any local
+            # subscriptions are left:
+            t.getNodeListeners @node, (err, listeners) ->
+                if err
+                    logger.error "Cannot get node listeners: #{err.stack or err}"
+
+                unless listeners? and listeners.length > 0
+                    t.purgeNode @node, cb2
+
+            cb2()
 
     # TODO: none left? remove whole node.
     writeResults: (t, results, cb) ->
@@ -105,7 +126,14 @@ class SubscriptionsSynchronization extends PaginatedSynchronization
 
 class AffiliationsSynchronization extends PaginatedSynchronization
     reset: (t, cb) ->
-        t.resetAffiliations(@node, cb)
+        async.waterfall [
+            # Only AffiliationsSynchronization happens after
+            # SubscriptionsSynchronization which may have purged the
+            # node.
+            t.validateNode @node
+        , (cb2) ->
+            t.resetAffiliations(@node, cb2)
+        ], cb
 
     operation: 'retrieve-node-affiliations'
 
