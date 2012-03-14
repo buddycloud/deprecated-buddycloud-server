@@ -1080,7 +1080,7 @@ class PushInbox extends ModelOperation
                     t.createNode update.node, (err, created) =>
                         if not err and created
                             @router.syncNode update.node, (err) ->
-                                cb3 not err
+                                cb3 true
                         else
                             cb3 not err
                 else
