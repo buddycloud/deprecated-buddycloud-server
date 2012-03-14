@@ -3,18 +3,18 @@
 ,"bin": { "buddycloud-server": "./bin/buddycloud-server" }
 ,"description": "buddycloud channels service for XMPP"
 ,"dependencies": {
-        "node-xmpp": ">=0.3.1",
-        "node-stringprep": ">=0.1.1",
-        "node-expat": ">=1.2.0",
-        "ltx": ">=0.0.4",
+        "node-xmpp": ">=0.3.2",
+        "node-stringprep": ">=0.1.4",
+        "node-expat": ">=1.4.4",
+        "ltx": ">=0.1.3",
         "jsconfig": ">=0.2.0",
-        "async": ">=0.1.9",
-        "node-uuid": ">=1.1.0",
-        "pg": ">=0.2.6",
+        "async": ">=0.1.18",
+        "node-uuid": ">=1.3.3",
+        "pg": ">=0.6.14",
         "underscore.logger": ">=0.3.1",
-        "ain2": ">=1.0.0",
+        "ain2": ">=1.1.0",
         "glob": "<3",
-        "muffin": ">=0.2.6",
+        "muffin": ">=0.2.7",
         "coffee-script": ">=1.2.0"
         }
 ,"repositories": [{"type": "git"
