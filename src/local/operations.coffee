@@ -1069,6 +1069,7 @@ class ReplayArchive extends ModelOperation
 class PushInbox extends ModelOperation
     transaction: (t, cb) ->
         notification = []
+        newNodes = {}
         newModerators = []
         unsubscribedNodes = {}
 
@@ -1078,11 +1079,9 @@ class PushInbox extends ModelOperation
                 if update.type is 'subscription' and update.listener?
                     # Was successful remote subscription attempt
                     t.createNode update.node, (err, created) =>
-                        if not err and created
-                            @router.syncNode update.node, (err) ->
-                                cb3 true
-                        else
-                            cb3 not err
+                        if created
+                            newNodes.push update.node
+                        cb3 not err
                 else
                     # Just an update, to be cached locally?
                     t.nodeExists update.node, (err, exists) ->
@@ -1140,6 +1139,8 @@ class PushInbox extends ModelOperation
         , (cb2) ->
             # Memorize updates for notifications, same format:
             @notification = notification
+            if newNodes.length > 0
+                @newNodes = newNodes
             if newModerators.length > 0
                 @newModerators = newModerators
 
@@ -1357,10 +1358,21 @@ exports.run = (router, request, cb) ->
         else
             # Successfully done
             logger.debug "Operation #{opName} ran: #{inspect result}"
-            try
-                cb? null, result
-            catch e
-                logger.error e.stack or e
+
+            async.series [(cb2) ->
+                # May need to sync new nodes
+                if op.newNodes?
+                    async.forEach op.newNodes, (node, cb3) ->
+                        router.syncNode node, cb3
+                    , cb2
+                else
+                    cb2()
+            ], ->
+                # Ignore any sync result
+                try
+                    cb? null, result
+                catch e
+                    logger.error e.stack or e
 
             # Run notifications
             if (notification = op.notification?())
