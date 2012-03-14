@@ -1136,7 +1136,7 @@ class PushInbox extends ModelOperation
                     else
                         cb3 new errors.InternalServerError("Bogus push update type: #{update.type}")
             , cb2
-        , (cb2) ->
+        , (cb2) =>
             # Memorize updates for notifications, same format:
             @notification = notification
             if newNodes.length > 0
