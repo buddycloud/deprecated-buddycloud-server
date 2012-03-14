@@ -100,7 +100,7 @@ class SubscriptionsSynchronization extends PaginatedSynchronization
     operation: 'retrieve-node-subscriptions'
 
     run: (t, cb) ->
-        super (err) =>
+        super t, (err) =>
             if err
                 return cb err
 
@@ -108,7 +108,7 @@ class SubscriptionsSynchronization extends PaginatedSynchronization
                 cb.apply @, arguments
             # After all subscriptions have synced, check if any local
             # subscriptions are left:
-            t.getNodeListeners @node, (err, listeners) ->
+            t.getNodeListeners @node, (err, listeners) =>
                 if err
                     logger.error "Cannot get node listeners: #{err.stack or err}"
 
@@ -131,7 +131,7 @@ class AffiliationsSynchronization extends PaginatedSynchronization
             # SubscriptionsSynchronization which may have purged the
             # node.
             t.validateNode @node
-        , (cb2) ->
+        , (cb2) =>
             t.resetAffiliations(@node, cb2)
         ], cb
 
