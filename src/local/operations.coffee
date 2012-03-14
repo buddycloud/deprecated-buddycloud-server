@@ -1360,6 +1360,43 @@ exports.run = (router, request, cb) ->
             logger.debug "Operation #{opName} ran: #{inspect result}"
 
             async.series [(cb2) ->
+                # Run notifications
+                if (notification = op.notification?())
+                    # Extend by subscriptions node notifications
+                    notification = notification.concat generateSubscriptionsNotifications(notification)
+                    # Call Notify operation grouped by node
+                    # (looks up subscribers by node)
+                    for own node, notifications of groupByNode(notification)
+                        notifications.node = node
+                        new Notify(router, notifications).run (err) ->
+                            if err
+                                logger.error("Error running notifications: #{err.stack or err.message or err}")
+                            cb2()
+                else
+                    cb2()
+            , (cb2) ->
+                if (notification = op.moderatorNotification?())
+                    new ModeratorNotify(router, notification).run (err) ->
+                        if err
+                            logger.error("Error running notifications: #{err.stack or err.message or err}")
+                        cb2()
+                else
+                    cb2()
+            , (cb2) ->
+                if (op.newModerators and op.newModerators.length > 0)
+                    for {user, node, listener} in op.newModerators
+                        req =
+                            operation: 'new-moderator-notification'
+                            node: node
+                            actor: user
+                            listener: listener
+                        new NewModeratorNotify(router, req).run (err) ->
+                            if err
+                                logger.error("Error running new moderator notification: #{err.stack or err.message or err}")
+                            cb2()
+                else
+                    cb2()
+            , (cb2) ->
                 # May need to sync new nodes
                 if op.newNodes?
                     async.forEach op.newNodes, (node, cb3) ->
@@ -1373,32 +1410,6 @@ exports.run = (router, request, cb) ->
                     cb? null, result
                 catch e
                     logger.error e.stack or e
-
-            # Run notifications
-            if (notification = op.notification?())
-                # Extend by subscriptions node notifications
-                notification = notification.concat generateSubscriptionsNotifications(notification)
-                # Call Notify operation grouped by node
-                # (looks up subscribers by node)
-                for own node, notifications of groupByNode(notification)
-                    notifications.node = node
-                    new Notify(router, notifications).run (err) ->
-                        if err
-                            logger.error("Error running notifications: #{err.stack or err.message or err}")
-            if (notification = op.moderatorNotification?())
-                new ModeratorNotify(router, notification).run (err) ->
-                    if err
-                        logger.error("Error running notifications: #{err.stack or err.message or err}")
-            if (op.newModerators and op.newModerators.length > 0)
-                for {user, node, listener} in op.newModerators
-                    req =
-                        operation: 'new-moderator-notification'
-                        node: node
-                        actor: user
-                        listener: listener
-                    new NewModeratorNotify(router, req).run (err) ->
-                        if err
-                            logger.error("Error running new moderator notification: #{err.stack or err.message or err}")
 
 
 groupByNode = (updates) ->
