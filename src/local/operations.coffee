@@ -1068,6 +1068,8 @@ class ReplayArchive extends ModelOperation
 
 class PushInbox extends ModelOperation
     transaction: (t, cb) ->
+        notification = []
+        newModerators = []
         unsubscribedNodes = {}
 
         async.waterfall [(cb2) =>
@@ -1084,12 +1086,11 @@ class PushInbox extends ModelOperation
             , (updates) ->
                 cb2 null, updates
         , (updates, cb2) =>
-            newModerators = []
-
             logger.debug "pushFilteredUpdates: #{inspect updates}"
             async.forEach updates, (update, cb3) ->
                 switch update.type
                     when 'items'
+                        notification.push update
                         {node, items} = update
                         async.forEach items, (item, cb4) ->
                             {id, el} = item
@@ -1097,12 +1098,14 @@ class PushInbox extends ModelOperation
                         , cb3
 
                     when 'subscription'
+                        notification.push update
                         {node, user, listener, subscription} = update
                         if subscription isnt 'subscribed'
                             unsubscribedNodes[node] = yes
                         t.setSubscription node, user, listener, subscription, cb3
 
                     when 'affiliation'
+                        notification.push update
                         {node, user, affiliation} = update
                         t.getAffiliation node, user, (err, oldAffiliation) ->
                             if err
@@ -1123,17 +1126,20 @@ class PushInbox extends ModelOperation
                                 cb3 err
 
                     when 'config'
+                        notification.push update
                         {node, config} = update
                         t.setConfig node, config, cb3
 
                     else
                         cb3 new errors.InternalServerError("Bogus push update type: #{update.type}")
             , cb2
+        , (cb2) ->
             # Memorize updates for notifications, same format:
-            @notification = ->
-                updates
+            @notification = notification
             if newModerators.length > 0
                 @newModerators = newModerators
+
+            cb2()
         , (cb2) =>
             # no local subscriptions left to remote node? delete it.
             checks = []
