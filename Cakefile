@@ -15,6 +15,6 @@ task 'build', 'compile coffeescript → javascript', (options) ->
             'package.json': (m) ->
                 readFile(m[0]).then (package) ->
                     json = JSON.parse(package)
-                    data = "module.exports=\"#{json.version}\""
+                    data = "module.exports=\"#{json.version}\"\n"
                     writeFile("lib/version.js", data).then ->
                         notify m[0], "Extracted version: #{json.version}"
