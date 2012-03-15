@@ -1374,12 +1374,16 @@ exports.run = (router, request, cb) ->
                     notification = notification.concat generateSubscriptionsNotifications(notification)
                     # Call Notify operation grouped by node
                     # (looks up subscribers by node)
+                    blocks = []
                     for own node, notifications of groupByNode(notification)
                         notifications.node = node
-                        new Notify(router, notifications).run (err) ->
-                            if err
-                                logger.error("Error running notifications: #{err.stack or err.message or err}")
-                            cb2()
+                        do (notifications) ->
+                            blocks.push (cb3) ->
+                                new Notify(router, notifications).run (err) ->
+                                    if err
+                                        logger.error("Error running notifications: #{err.stack or err.message or err}")
+                                    cb3()
+                    async.series blocks, cb2
                 else
                     cb2()
             , (cb2) ->
@@ -1392,16 +1396,20 @@ exports.run = (router, request, cb) ->
                     cb2()
             , (cb2) ->
                 if (op.newModerators and op.newModerators.length > 0)
+                    blocks = []
                     for {user, node, listener} in op.newModerators
                         req =
                             operation: 'new-moderator-notification'
                             node: node
                             actor: user
                             listener: listener
-                        new NewModeratorNotify(router, req).run (err) ->
-                            if err
-                                logger.error("Error running new moderator notification: #{err.stack or err.message or err}")
-                            cb2()
+                        do (req) ->
+                            blocks.push (cb3) ->
+                                new NewModeratorNotify(router, req).run (err) ->
+                                    if err
+                                        logger.error("Error running new moderator notification: #{err.stack or err.message or err}")
+                                    cb3()
+                    async.series blocks, cb2
                 else
                     cb2()
             , (cb2) ->
