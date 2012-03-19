@@ -25,25 +25,25 @@ defaultConfiguration = (user) ->
     status:
         title: "#{user} Status Updates"
         description: "M000D"
-        accessModel: "open"
+        accessModel: "authorize"
         publishModel: "publishers"
         defaultAffiliation: "member"
     'geo/previous':
         title: "#{user} Previous Location"
         description: "Where #{user} has been before"
-        accessModel: "open"
+        accessModel: "authorize"
         publishModel: "publishers"
         defaultAffiliation: "member"
     'geo/current':
         title: "#{user} Current Location"
         description: "Where #{user} is at now"
-        accessModel: "open"
+        accessModel: "authorize"
         publishModel: "publishers"
         defaultAffiliation: "member"
     'geo/next':
         title: "#{user} Next Location"
         description: "Where #{user} intends to go"
-        accessModel: "open"
+        accessModel: "authorize"
         publishModel: "publishers"
         defaultAffiliation: "member"
     subscriptions:
