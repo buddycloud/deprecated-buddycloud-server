@@ -19,7 +19,7 @@ defaultConfiguration = (user) ->
         title: "#{user} Channel Posts"
         description: "A buddycloud channel"
         channelType: "personal"
-        accessModel: "open"
+        accessModel: "authorize"
         publishModel: "publishers"
         defaultAffiliation: "publisher"
     status:
@@ -49,7 +49,7 @@ defaultConfiguration = (user) ->
     subscriptions:
         title: "#{user} Subscriptions"
         description: "Browse my interests"
-        accessModel: "open"
+        accessModel: "authorize"
         publishModel: "publishers"
         defaultAffiliation: "member"
 
