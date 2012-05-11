@@ -13,8 +13,8 @@ task 'build', 'compile coffeescript → javascript', (options) ->
                 compileScript m[0], path.join("lib" ,"#{m[1]}.js"), options
 
             'package.json': (m) ->
-                readFile(m[0]).then (package) ->
-                    json = JSON.parse(package)
+                readFile(m[0]).then (item) ->
+                    json = JSON.parse(item)
                     data = "module.exports=\"#{json.version}\"\n"
                     writeFile("lib/version.js", data).then ->
                         notify m[0], "Extracted version: #{json.version}"
