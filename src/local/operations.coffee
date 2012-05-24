@@ -1146,7 +1146,7 @@ class PushInbox extends ModelOperation
             , cb2
         , (cb2) =>
             # Memorize updates for notifications, same format:
-            @notification = notification
+            @notification = -> notification
             if newNodes.length > 0
                 @newNodes = newNodes
             if newModerators.length > 0
