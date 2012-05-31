@@ -39,7 +39,7 @@ npm i coffee-script muffin
 # later be packaged up.
 npm i . -g
 
-rm $PREFIX/bin/buddycloud-server
+rm -f $PREFIX/bin/buddycloud-server
 cp _opt_buddycloud-server_bin_buddycloud-server $PREFIX/bin/buddycloud-server
 
 rm -r "$TMPDIR"
