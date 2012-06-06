@@ -36,9 +36,11 @@ class EventNotification extends Notification
                 when 'items'
                     itemsEl = eventEl.
                         c('items', node: update.node)
-                    for item in update.items
+                    if update.items? then for item in update.items
                         itemsEl.c('item', id: item.id).
                             cnode(item.el)
+                    if update.retract? then for item_id in update.retract
+                        itemsEl.c('retract', id: item_id)
                 when 'subscription'
                     eventEl.
                         c('subscription',

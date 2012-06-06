@@ -769,6 +769,15 @@ class RetractItems extends PrivilegedOperation
             async.forEach @req.items, (id, cb3) =>
                     t.deleteItem @req.node, id, cb3
             , cb2
+        , (cb2) =>
+            if @req.notify
+                @notification = ->
+                    [{
+                        type: 'items'
+                        node: @req.node
+                        retract: @req.items
+                    }]
+            cb2()
         ], cb
 
     checkItemsAuthor: (t, cb) ->
