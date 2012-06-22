@@ -20,7 +20,7 @@ for arg in $@; do
     case $arg in
         '--nobuild') nobuild=1;;
         '--help') help=1 ;;
-        '--remote-debug') 
+        '--node-debug') 
             debug=" "
             if [[ $2 =~ ^[0-9]+$ ]]; then
               debug="="$2
