@@ -13,18 +13,19 @@ moduleDir=${moduleDir%%/bin}
 args=''
 skipnext=0
 for arg in $@; do
-    echo $skipnext
     if [ "$skipnext" == "1" ]; then
-      skipnext = 0
-      echo 'skippy'
+      skipnext=0
       continue
     fi
     case $arg in
         '--nobuild') nobuild=1;;
         '--help') help=1 ;;
         '--remote-debug') 
-            debug=$2
-            skipnext=1
+            debug=" "
+            if [[ $2 =~ ^[0-9]+$ ]]; then
+              debug="="$2
+              skipnext=1
+            fi 
             continue;;
     esac
     args=$args" "$arg
@@ -43,5 +44,5 @@ cd "$cwd"
 if [ -z "$debug" ]; then
   exec env node "$moduleDir/lib/main.js" $args
 else
-  exec env node --debug-brk=$debug "$moduleDir/lib/main.js" $args
+  exec env node --debug-brk$debug "$moduleDir/lib/main.js" $args
 fi
