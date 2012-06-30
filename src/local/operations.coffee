@@ -6,6 +6,7 @@ uuid = require('node-uuid')
 errors = require('../errors')
 NS = require('../xmpp/ns')
 {normalizeItem} = require('../normalize')
+{makeTombstone} = require('../tombstone')
 {Element} = require('node-xmpp')
 
 runTransaction = null
@@ -759,45 +760,48 @@ class RetrieveItems extends PrivilegedOperation
 class RetractItems extends PrivilegedOperation
     privilegedTransaction: (t, cb) ->
         async.waterfall [ (cb2) =>
+            # Get full items, not just IDs
+            async.map @req.items, (id, cb3) =>
+                t.getItem @req.node, id, cb3
+            , cb2
+        , (fullItems, cb2) =>
             if isAffiliationAtLeast @actorAffiliation, 'moderator'
                 # Owners and moderators may remove any post
-                cb2()
+                cb2 null, fullItems
             else
                 # Anyone may remove only their own posts
-                @checkItemsAuthor t, cb2
-        , (cb2) =>
-            async.forEach @req.items, (id, cb3) =>
-                    t.deleteItem @req.node, id, cb3
+                @checkItemsAuthor fullItems, cb2
+        , (fullItems, cb2) =>
+            async.forEach fullItems, (el, cb3) =>
+                tsEl = makeTombstone el
+                id = el.getChildText('id')
+                t.writeItem @req.node, id, tsEl, cb3
             , cb2
-        , (cb2) =>
-            if @req.notify
-                @notification = ->
-                    [{
-                        type: 'items'
-                        node: @req.node
-                        retract: @req.items
-                    }]
-            cb2()
         ], cb
 
-    checkItemsAuthor: (t, cb) ->
-        async.forEachSeries @req.items, (id, cb2) =>
-            t.getItem @req.node, id, (err, el) =>
-                if err?.constructor is errors.NotFound
-                    # Ignore non-existant item
-                    return cb2()
-                else if err
-                    return cb2(err)
+    checkItemsAuthor: (fullItems, cb) ->
+        async.forEachSeries fullItems, (el, cb2) =>
+            # Check for post authorship
+            author = el?.is('entry') and
+                el.getChild('author')?.getChild('uri')?.getText()
+            if author is "acct:#{@req.actor}"
+                # Authenticated!
+                cb2()
+            else
+                cb2 new errors.NotAllowed("You may not retract other people's posts")
+        , (err) =>
+            if err?
+                cb err
+            else
+                cb null, fullItems
 
-                # Check for post authorship
-                author = el?.is('entry') and
-                    el.getChild('author')?.getChild('uri')?.getText()
-                if author is "acct:#{@req.actor}"
-                    # Authenticated!
-                    cb2()
-                else
-                    cb2 new errors.NotAllowed("You may not retract other people's posts")
-        , cb
+    notification: ->
+        [{
+            type: 'items'
+            node: @req.node
+            retract: @req.items
+        }]
+
 
 class RetrieveUserSubscriptions extends ModelOperation
     transaction: (t, cb) ->

@@ -420,13 +420,11 @@ class PubsubRetractRequest extends PubsubRequest
 
         @retractEl = @pubsubEl?.getChild("retract")
         @items = []
-        @notify = false
         if @retractEl
             @node = @retractEl.attrs.node
             for itemEl in @retractEl.getChildren("item")
                 if itemEl.attrs.id
                     @items.push itemEl.attrs.id
-            @notify = @retractEl.attrs?.notify in ["true", "1"]
 
     matches: () ->
         super &&
