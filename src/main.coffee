@@ -122,4 +122,7 @@ config.load "/etc/buddycloud-server/config.js", (args, opts) ->
                 saidHello = yes
             xmppConn.probePresence(listener)
 
-        router.setupSync Math.ceil((config.modelConfig.poolSize or 2) / 2)
+        # wait for a fully initialised server before starting tasks
+        sync = ->
+          router.setupSync Math.ceil((config.modelConfig.poolSize or 2) / 2)
+        setTimeout sync, 5000
