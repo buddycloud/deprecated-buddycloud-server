@@ -759,6 +759,8 @@ class RetrieveItems extends PrivilegedOperation
 
 class RetractItems extends PrivilegedOperation
     privilegedTransaction: (t, cb) ->
+        @retractedItems = []
+
         async.waterfall [ (cb2) =>
             # Get full items, not just IDs
             async.map @req.items, (id, cb3) =>
@@ -773,9 +775,11 @@ class RetractItems extends PrivilegedOperation
                 @checkItemsAuthor fullItems, cb2
         , (fullItems, cb2) =>
             async.forEach fullItems, (el, cb3) =>
-                tsEl = makeTombstone el
-                id = el.getChildText('id')
-                t.writeItem @req.node, id, tsEl, cb3
+                item =
+                    el: makeTombstone el
+                    id: el.getChildText('id')
+                t.writeItem @req.node, item.id, item.el, cb3
+                @retractedItems.push item
             , cb2
         ], cb
 
@@ -799,7 +803,7 @@ class RetractItems extends PrivilegedOperation
         [{
             type: 'items'
             node: @req.node
-            retract: @req.items
+            retract: @retractedItems
         }]
 
 
