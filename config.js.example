@@ -25,6 +25,13 @@ exports.modelConfig = {
 };
 
 /**
+ * For XMPP servers which don't support prosody/ejabberd's mod_disco functionality
+ * e.g. openfire
+ */
+/*exports.advertiseDomains = [ 'topics.EXAMPLE.COM' ];*/
+
+
+/**
  * Logging
  */
 exports.logging = {
