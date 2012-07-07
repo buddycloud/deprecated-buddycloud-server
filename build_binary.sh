@@ -18,7 +18,7 @@ export PATH="$PREFIX/bin:$PATH"
 [ -d "$TMPDIR" ] || mkdir "$TMPDIR"
 
 # Build node
-NODE_VER=0.6.12
+NODE_VER=0.6.18
 if [ ! -x "$PREFIX/bin/node" ]; then
     cd "$TMPDIR"
     wget -c http://nodejs.org/dist/v${NODE_VER}/node-v${NODE_VER}.tar.gz
@@ -37,9 +37,9 @@ rm -f $PREFIX/bin/buddycloud-server
 npm i coffee-script muffin
 # Install runtime deps globally, so they land in our $PATH which can
 # later be packaged up.
-npm i . -g
+NPM_CONFIG_PREFIX=$PREFIX npm i . -g
 
-rm $PREFIX/bin/buddycloud-server
+rm -f $PREFIX/bin/buddycloud-server
 cp _opt_buddycloud-server_bin_buddycloud-server $PREFIX/bin/buddycloud-server
 
 rm -r "$TMPDIR"

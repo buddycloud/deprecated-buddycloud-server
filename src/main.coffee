@@ -1,12 +1,14 @@
 # 3rd-party libs
-path = require('path')
-async = require('async')
-{inspect} = require('util')
+path       = require('path')
+async      = require('async')
+{inspect}  = require('util')
+Connection = require('./xmpp/connection')
+mpp        = require("node-xmpp")
+NS         = require('./xmpp/ns')
 # Config
 config = require('jsconfig')
 version = require('./version')
 config.defaults path.join(__dirname,"..","config.js")
-Connection = require('./xmpp/connection')
 
 process.title = "buddycloud-server #{version}"
 
@@ -122,16 +124,15 @@ config.load "/etc/buddycloud-server/config.js", (args, opts) ->
                 logger.info "server successfully started"
                 saidHello = yes
             xmppConn.probePresence(listener)
-        doSync = -> 
+            
+        # wait for a fully initialised server before starting tasks
+        sync = ->
           router.setupSync Math.ceil((config.modelConfig.poolSize or 2) / 2)
-        setTimeout doSync, 5000
+        setTimeout sync, 5000
 
-    xmpp             = require("node-xmpp")
-    extraConnections = []
     if !config.advertiseDomains?
       config.advertiseDomains = []
     for index of config.advertiseDomains
-      NS = require './xmpp/ns'
       domainConfig = {}
       for key, value of config.xmpp
         domainConfig[key] = value
@@ -139,7 +140,7 @@ config.load "/etc/buddycloud-server/config.js", (args, opts) ->
       connection = new xmpp.Component(domainConfig)
       connection.on "stanza", (stanza) =>
           # Just debug output:
-          logger.trace "<< Extra connection #{stanza.toString()}"
+          logger.trace "<< Extra connection request: #{stanza.toString()}"
           from = stanza.attrs.from
 
           if stanza.name is 'iq' and stanza.attrs.type is 'get'
@@ -175,5 +176,5 @@ config.load "/etc/buddycloud-server/config.js", (args, opts) ->
                         c('identity', category:'pubsub', type:'service', name:'Buddycloud proxy domain')
                 else 
                     return                  
-              logger.trace "<< Extra connection response #{reply.toString()}"         
+              logger.trace "<< Extra connection response: #{reply.toString()}"         
               connection.send reply
