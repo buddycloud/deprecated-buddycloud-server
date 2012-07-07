@@ -130,14 +130,14 @@ config.load "/etc/buddycloud-server/config.js", (args, opts) ->
           router.setupSync Math.ceil((config.modelConfig.poolSize or 2) / 2)
         setTimeout sync, 5000
 
-    if !config.advertiseDomains?
-      config.advertiseDomains = []
-    for index of config.advertiseDomains
-      domainConfig = {}
+    if !config.advertiseComponents?
+      config.advertiseComponents = []
+    for index of config.advertiseComponents
+      componentConfig = {}
       for key, value of config.xmpp
-        domainConfig[key] = value
-      domainConfig.jid = config.advertiseDomains[index]
-      connection = new xmpp.Component(domainConfig)
+        componentConfig[key] = value
+      componentConfig.jid = config.advertiseComponents[index]
+      connection = new xmpp.Component(componentConfig)
       connection.on "stanza", (stanza) =>
           # Just debug output:
           logger.trace "<< Extra connection request: #{stanza.toString()}"
