@@ -18,3 +18,6 @@ task 'build', 'compile coffeescript → javascript', (options) ->
                     data = "module.exports=\"#{json.version}\"\n"
                     writeFile("lib/version.js", data).then ->
                         notify m[0], "Extracted version: #{json.version}"
+                    data = "module.exports=\"#{json.name}\"\n"
+                    writeFile("lib/name.js", data).then ->
+                        notify m[0], "Extracted name: #{json.name}"
