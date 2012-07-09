@@ -1,7 +1,10 @@
 # 3rd-party libs
-path = require('path')
-async = require('async')
-{inspect} = require('util')
+path       = require('path')
+async      = require('async')
+{inspect}  = require('util')
+Connection = require('./xmpp/connection')
+mpp        = require("node-xmpp")
+NS         = require('./xmpp/ns')
 # Config
 config = require('jsconfig')
 version = require('./version')
@@ -56,7 +59,7 @@ config.load "/etc/buddycloud-server/config.js", (args, opts) ->
     router = new (require('./router').Router)(model, config.checkCreateNode, config.autosubscribeNewUsers)
 
     # XMPP Connection, w/ presence tracking
-    xmppConn = new (require('./xmpp/connection').Connection)(config.xmpp)
+    xmppConn = new (Connection.Connection)(config.xmpp)
     pubsubServer = new (require('./xmpp/pubsub_server').PubsubServer)(xmppConn)
     pubsubBackend = new (require('./xmpp/backend_pubsub').PubsubBackend)(xmppConn)
     router.addBackend pubsubBackend
@@ -121,8 +124,57 @@ config.load "/etc/buddycloud-server/config.js", (args, opts) ->
                 logger.info "server successfully started"
                 saidHello = yes
             xmppConn.probePresence(listener)
-
+            
         # wait for a fully initialised server before starting tasks
         sync = ->
           router.setupSync Math.ceil((config.modelConfig.poolSize or 2) / 2)
         setTimeout sync, 5000
+
+    if !config.advertiseComponents?
+      config.advertiseComponents = []
+    for index of config.advertiseComponents
+      componentConfig = {}
+      for key, value of config.xmpp
+        componentConfig[key] = value
+      componentConfig.jid = config.advertiseComponents[index]
+      connection = new xmpp.Component(componentConfig)
+      connection.on "stanza", (stanza) =>
+          # Just debug output:
+          logger.trace "<< Extra connection request: #{stanza.toString()}"
+          from = stanza.attrs.from
+
+          if stanza.name is 'iq' and stanza.attrs.type is 'get'
+              # IQ requests
+              if !stanza.children?
+                stanza.children = []
+              for i, child of stanza.children
+                if child.name is 'query'
+                  query = child
+              if !query?
+                  return
+              switch query.attrs.xmlns
+                when NS.DISCO_ITEMS
+                    reply = new xmpp.Element("iq",
+                        from: stanza.attrs.to
+                        to: stanza.attrs.from
+                        id: stanza.attrs.id or ""
+                        type: "result"
+                        xmlns: Connection.NS_STREAM).
+                        c('query', xmlns: NS.DISCO_ITEMS).
+                        c('item', jid: config.xmpp.jid, name: 'buddycloud-server')                  
+                when NS.DISCO_INFO
+                    reply = new xmpp.Element("iq",
+                        from: stanza.attrs.to
+                        to: stanza.attrs.from
+                        id: stanza.attrs.id or ""
+                        type: "result"
+                        xmlns: Connection.NS_STREAM).
+                        c('query', xmlns: NS.DISCO_INFO).
+                        c('feature', var: NS.DISCO_INFO).up().
+                        c('feature', var: NS.DISCO_ITEMS).up().
+                        c('feature', var: NS.REGISTER).up().
+                        c('identity', category:'pubsub', type:'service', name:'Buddycloud proxy domain')
+                else 
+                    return                  
+              logger.trace "<< Extra connection response: #{reply.toString()}"         
+              connection.send reply
