@@ -361,6 +361,36 @@ class PubsubUnsubscribeRequest extends PubsubRequest
     writes: true
 
 # <iq type='set'
+#     from='francisco@denmark.lit/barracks'
+#     to='pubsub.shakespeare.lit'
+#     id='sub1'>
+#   <pubsub xmlns='http://jabber.org/protocol/pubsub'>
+#     <options node='princely_musings'>
+#       <x xmlns='jabber:x:data' type='submit'>
+# ...
+class PubsubOptionsRequest extends PubsubRequest
+    constructor: (stanza) ->
+        super
+
+        @optionsEl = @pubsubEl?.getChild("options")
+        @node = @optionsEl?.attrs.node
+        @formEl = @optionsEl?.getChild("x")
+        if @formEl
+            for field in @formEl.getChildren("field")
+                if field.attrs.var == 'pubsub#expire'
+                    @temporary = field.getChild("value")?.getText() is 'presence'
+
+    matches: () ->
+        super &&
+        @iq.attrs.type is 'set' &&
+        @node &&
+        @formEl
+
+    operation: 'modify-subscription-options'
+
+    writes: true
+
+# <iq type='set'
 #     from='hamlet@denmark.lit/blogbot'
 #     to='pubsub.shakespeare.lit'
 #     id='publish1'>
@@ -741,6 +771,7 @@ REQUESTS = [
     PubsubCreateRequest,
     PubsubSubscribeRequest,
     PubsubUnsubscribeRequest,
+    PubsubOptionsRequest,
     PubsubPublishRequest,
     PubsubRetractRequest,
     PubsubItemsRequest,

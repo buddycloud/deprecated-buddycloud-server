@@ -620,6 +620,10 @@ class Unsubscribe extends PrivilegedOperation
             affiliation: @actorAffiliation
         }]
 
+class ModifySubscriptionOptions extends PrivilegedOperation
+    privilegedTransaction: (t, cb) ->
+        if @req.temporary?
+            t.setSubscriptionTemporary @req.node, @req.actor, @req.temporary, cb
 
 class RetrieveItems extends PrivilegedOperation
     run: (cb) ->
@@ -1006,6 +1010,10 @@ class RemoveUser extends ModelOperation
             t.clearUserSubscriptions @req.actor, (err) =>
                 cb err, subscriptions
 
+class RemoveTemporarySubscriptions extends ModelOperation
+    transaction: (t, cb) ->
+        t.clearTemporarySubscriptions @req.actor, (err) =>
+            cb err
 
 class AuthorizeSubscriber extends PrivilegedOperation
     requiredAffiliation: =>
@@ -1348,6 +1356,7 @@ OPERATIONS =
     'publish-node-items': Publish
     'subscribe-node': Subscribe
     'unsubscribe-node': Unsubscribe
+    'modify-subscription-options': ModifySubscriptionOptions
     'retrieve-node-items': RetrieveItems
     'retract-node-items': RetractItems
     'retrieve-user-subscriptions': RetrieveUserSubscriptions
@@ -1359,6 +1368,7 @@ OPERATIONS =
     'manage-node-affiliations': ManageNodeAffiliations
     'manage-node-configuration': ManageNodeConfiguration
     'remove-user': RemoveUser
+    'remove-temporary-subscriptions': RemoveTemporarySubscriptions
     'confirm-subscriber-authorization': AuthorizeSubscriber
     'replay-archive': ReplayArchive
     'push-inbox': PushInbox

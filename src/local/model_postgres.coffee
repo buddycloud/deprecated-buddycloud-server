@@ -305,6 +305,10 @@ class Transaction
         ], (err) ->
             cb err
 
+    setSubscriptionTemporary: (node, user, temporary, cb) ->
+        logger.debug "setSubscriptionTemporary #{node} #{user} #{temporary}"
+        @db.query "UPDATE subscriptions SET temporary=$1 WHERE node=$2 AND \"user\"=$3", [ temporary, node, user ], cb
+
     getSubscribers: (node, cb) ->
         unless node
             return cb(new Error("No node"))
@@ -380,6 +384,11 @@ class Transaction
 
     clearUserSubscriptions: (user, cb) ->
         @db.query "DELETE FROM subscriptions WHERE \"user\"=$1", [user], (err) ->
+            cb err
+
+    clearTemporarySubscriptions: (user, cb) ->
+        logger.debug "clearTemporarySubscriptions #{user}"
+        @db.query "DELETE FROM subscriptions WHERE \"user\"=$1 AND temporary=TRUE", [user], (err) ->
             cb err
 
     ##

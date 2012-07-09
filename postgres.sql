@@ -15,6 +15,7 @@ CREATE TABLE subscriptions (node TEXT REFERENCES nodes (node),
 			    listener TEXT,
 			    subscription TEXT,
  			    updated TIMESTAMP,
+			    temporary BOOLEAN DEFAULT FALSE,
 			    PRIMARY KEY (node, "user"));
 CREATE INDEX subscriptions_updated ON subscriptions (updated);
 CREATE TABLE affiliations (node TEXT REFERENCES nodes (node),
