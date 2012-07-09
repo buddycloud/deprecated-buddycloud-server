@@ -3,8 +3,9 @@ path       = require('path')
 async      = require('async')
 {inspect}  = require('util')
 Connection = require('./xmpp/connection')
-mpp        = require("node-xmpp")
+xmpp       = require('node-xmpp')
 NS         = require('./xmpp/ns')
+
 # Config
 config = require('jsconfig')
 version = require('./version')
