@@ -25,6 +25,12 @@ exports.modelConfig = {
 };
 
 /**
+ * Advertise additional components to the XMPP server e.g. for a topics domain 
+ */
+/*exports.advertiseComponents = [ 'topics.EXAMPLE.COM' ];*/
+
+
+/**
  * Logging
  */
 exports.logging = {
