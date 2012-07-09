@@ -140,6 +140,8 @@ config.load "/etc/buddycloud-server/config.js", (args, opts) ->
       componentConfig.jid = config.advertiseComponents[index]
       componentConfig.reconnect = true
       connection = new xmpp.Component(componentConfig)
+      connection.on "error", (e) ->
+          logger.error e 
       connection.on "stanza", (stanza) =>
           # Just debug output:
           logger.trace "<< Extra connection request: #{stanza.toString()}"
