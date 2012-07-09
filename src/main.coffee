@@ -125,7 +125,7 @@ config.load "/etc/buddycloud-server/config.js", (args, opts) ->
                 logger.info "server successfully started"
                 saidHello = yes
             xmppConn.probePresence(listener)
-            
+
         # wait for a fully initialised server before starting tasks
         sync = ->
           router.setupSync Math.ceil((config.modelConfig.poolSize or 2) / 2)
@@ -162,7 +162,7 @@ config.load "/etc/buddycloud-server/config.js", (args, opts) ->
                         type: "result"
                         xmlns: Connection.NS_STREAM).
                         c('query', xmlns: NS.DISCO_ITEMS).
-                        c('item', jid: config.xmpp.jid, name: 'buddycloud-server')                  
+                        c('item', jid: config.xmpp.jid, name: 'buddycloud-server')
                 when NS.DISCO_INFO
                     reply = new xmpp.Element("iq",
                         from: stanza.attrs.to
@@ -175,7 +175,7 @@ config.load "/etc/buddycloud-server/config.js", (args, opts) ->
                         c('feature', var: NS.DISCO_ITEMS).up().
                         c('feature', var: NS.REGISTER).up().
                         c('identity', category:'pubsub', type:'service', name:'Buddycloud proxy domain')
-                else 
-                    return                  
-              logger.trace "<< Extra connection response: #{reply.toString()}"         
+                else
+                    return
+              logger.trace "<< Extra connection response: #{reply.toString()}"
               connection.send reply
