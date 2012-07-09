@@ -138,6 +138,7 @@ config.load "/etc/buddycloud-server/config.js", (args, opts) ->
       for key, value of config.xmpp
         componentConfig[key] = value
       componentConfig.jid = config.advertiseComponents[index]
+      componentConfig.reconnect = true
       connection = new xmpp.Component(componentConfig)
       connection.on "stanza", (stanza) =>
           # Just debug output:
