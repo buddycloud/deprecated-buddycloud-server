@@ -20,12 +20,18 @@ var tarball = tarballify("./lib/main.js", {
 //     .on('syntaxError', console.error.bind(console))
 tarball.pipe(fs.createWriteStream(path.join(__dirname, name+"-"+version+".tar.gz")))
 ;[
+    // fix 'modName is not defined'
+    "node_modules/ltx/lib/sax_expat.js",
+    "node_modules/ltx/lib/sax_ltx.js",
+    "node_modules/ltx/lib/sax_saxjs.js",
+    // server files
     "config.js.example",
     "package.json",
     "postgres.sql",
     "LICENSE",
     "README.md"
 ].forEach(function(file){tarball.append(file)})
+console.log("(fixed 'modName is not defined').")
 
 console.log("setup ready …".green)
 tarball.end()
