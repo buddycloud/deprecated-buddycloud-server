@@ -31,8 +31,10 @@ tarball.pipe(fs.createWriteStream(path.join(__dirname, name+"-"+version+".tar.gz
     "LICENSE",
     "README.md"
 ].forEach(function(file){tarball.append(file)})
-console.log("(fixed 'modName is not defined').")
-console.log("('file is not defined' in jsconfig can be ignored).")
+;[
+    "fixed 'modName is not defined'.",
+    "'file is not defined' in jsconfig can be ignored.",
+].forEach(function(msg){console.log(msg.bold.black)})
 
 console.log("setup ready …".green)
 tarball.end()
