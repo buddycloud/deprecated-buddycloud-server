@@ -1089,6 +1089,7 @@ class ReplayArchive extends ModelOperation
         notification = Object.create(results)
         notification.listener = @req.fullSender
         notification.replay = true
+        notification.queryId = @req.queryId
         @router.notify notification
 
 class PushInbox extends ModelOperation

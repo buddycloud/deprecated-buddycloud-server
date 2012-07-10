@@ -88,7 +88,7 @@ class exports.PubsubBackend extends EventEmitter
             if e.constructor is errors.MaxStanzaSizeExceeded and opts.length > 1
                 # FIXME: a notification may have been sent already to a previous shorter listener jid
                 copyProps = (opts_) ->
-                    ['type', 'node', 'user', 'listener', 'replay'].forEach (prop) ->
+                    ['type', 'node', 'user', 'listener', 'replay', 'queryId'].forEach (prop) ->
                         opts_[prop] = opts[prop]
                 pivot = Math.floor(opts.length / 2)
                 opts1 = opts.slice(0, pivot)
@@ -294,4 +294,3 @@ class RequestCache
             logger.trace "Cache hit for #{id}"
             process.nextTick =>
                 cb @entries[id].err, @entries[id].results
-
