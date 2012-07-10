@@ -315,7 +315,7 @@ class Transaction
 
         db = @db
         async.waterfall [(cb2) ->
-            db.query "SELECT \"user\", subscription FROM subscriptions WHERE node=$1 ORDER BY updated DESC", [ node ], cb2
+            db.query "SELECT \"user\", subscription FROM subscriptions WHERE node=$1 AND temporary=FALSE ORDER BY updated DESC", [ node ], cb2
         , (res, cb2) ->
             subscribers = for row in res.rows
                 { user: row.user, subscription: row.subscription }
@@ -327,7 +327,7 @@ class Transaction
     # Not only by users but also by listeners.
     # @param cb {Function} cb(Error, { user, node, subscription })
     getSubscriptions: (actor, cb) ->
-        @db.query "SELECT \"user\", node, subscription FROM subscriptions WHERE \"user\"=$1 OR listener=$1 ORDER BY updated DESC", [ actor ], (err, res) ->
+        @db.query "SELECT \"user\", node, subscription FROM subscriptions WHERE temporary=FALSE AND (\"user\"=$1 OR listener=$1) ORDER BY updated DESC", [ actor ], (err, res) ->
             cb err, res?.rows
 
     getPending: (node, cb) ->
@@ -457,7 +457,7 @@ class Transaction
     getAffiliated: (node, cb) ->
         db = @db
         async.waterfall [(cb2) ->
-            db.query "SELECT \"user\", affiliation FROM affiliations WHERE node=$1 ORDER BY updated DESC", [ node ], cb2
+            db.query "SELECT affiliations.user, affiliation FROM (affiliations JOIN subscriptions ON affiliations.user = subscriptions.user AND affiliations.node = subscriptions.node AND temporary=FALSE) WHERE affiliations.node=$1 ORDER BY affiliations.updated DESC", [ node ], cb2
         , (res, cb2) ->
             affiliations = for row in res.rows
                 { user: row.user, affiliation: row.affiliation }
