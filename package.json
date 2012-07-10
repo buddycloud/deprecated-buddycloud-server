@@ -16,6 +16,7 @@
         "glob": "<3"
         }
 ,"devDependencies":  {
+        "colors": ">=0.6.0-1",
         "tarballify": ">=0.0.4",
         "muffin": ">=0.2.7",
         "coffee-script": ">=1.2.0"
