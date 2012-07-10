@@ -1,5 +1,6 @@
 logger = require('../logger').makeLogger 'local/operations'
 {inspect} = require('util')
+cfg = require('jsconfig')
 {getNodeUser, getNodeType} = require('../util')
 async = require('async')
 uuid = require('node-uuid')
@@ -16,51 +17,53 @@ exports.setModel = (model) ->
 exports.checkCreateNode = null
 
 defaultConfiguration = (user) ->
+    accessModel = if cfg.defaults.openUserChannel then "open" else "authorize"
     posts:
         title: "#{user} Channel Posts"
         description: "A buddycloud channel"
         channelType: "personal"
-        accessModel: "authorize"
+        accessModel: accessModel
         publishModel: "publishers"
         defaultAffiliation: "publisher"
     status:
         title: "#{user} Status Updates"
         description: "M000D"
-        accessModel: "authorize"
+        accessModel: accessModel
         publishModel: "publishers"
         defaultAffiliation: "member"
     'geo/previous':
         title: "#{user} Previous Location"
         description: "Where #{user} has been before"
-        accessModel: "authorize"
+        accessModel: accessModel
         publishModel: "publishers"
         defaultAffiliation: "member"
     'geo/current':
         title: "#{user} Current Location"
         description: "Where #{user} is at now"
-        accessModel: "authorize"
+        accessModel: accessModel
         publishModel: "publishers"
         defaultAffiliation: "member"
     'geo/next':
         title: "#{user} Next Location"
         description: "Where #{user} intends to go"
-        accessModel: "authorize"
+        accessModel: accessModel
         publishModel: "publishers"
         defaultAffiliation: "member"
     subscriptions:
         title: "#{user} Subscriptions"
         description: "Browse my interests"
-        accessModel: "authorize"
+        accessModel: accessModel
         publishModel: "publishers"
         defaultAffiliation: "member"
 
 # user is "topic@domain" string
 defaultTopicConfiguration = (user) =>
+    accessModel = if cfg.defaults.closedTopicChannel then "authorize" else "open"
     posts:
         title: "#{user} Topic Channel"
         description: "All about #{user.split('@')?[0]}"
         channelType: "topic"
-        accessModel: "open"
+        accessModel: accessModel
         publishModel: "subscribers"
         defaultAffiliation: "member"
 

@@ -25,9 +25,19 @@ exports.modelConfig = {
 };
 
 /**
- * Advertise additional components to the XMPP server e.g. for a topics domain 
+ * Advertise additional components to the XMPP server e.g. for a topics domain
  */
 /*exports.advertiseComponents = [ 'topics.EXAMPLE.COM' ];*/
+
+
+/**
+ * Defaults
+ */
+exports.defaults = {
+    openUserChannel:false,
+    closedTopicChannel:false,
+};
+
 
 
 /**
