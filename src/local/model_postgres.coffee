@@ -277,11 +277,11 @@ class Transaction
             logger.debug "setSubscription #{node} #{user} isSet=#{isSet} toDelete=#{toDelete}"
             if isSet and not toDelete
                 if listener
-                    db.query "UPDATE subscriptions SET listener=$1, subscription=$2, updated=CURRENT_TIMESTAMP WHERE node=$3 AND \"user\"=$4"
+                    db.query "UPDATE subscriptions SET listener=$1, subscription=$2, updated=CURRENT_TIMESTAMP, temporary=FALSE WHERE node=$3 AND \"user\"=$4"
                     , [ listener, subscription, node, user ]
                     , cb2
                 else
-                    db.query "UPDATE subscriptions SET subscription=$1, updated=CURRENT_TIMESTAMP WHERE node=$2 AND \"user\"=$3"
+                    db.query "UPDATE subscriptions SET subscription=$1, updated=CURRENT_TIMESTAMP, temporary=FALSE WHERE node=$2 AND \"user\"=$3"
                     , [ subscription, node, user ]
                     , cb2
             else if not isSet and not toDelete
@@ -757,4 +757,3 @@ parseEl = (xml) ->
     catch e
         logger.error "Parsing " + xml + ": " + e.stack
         return undefined
-
