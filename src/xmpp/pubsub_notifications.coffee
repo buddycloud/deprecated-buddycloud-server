@@ -1,6 +1,7 @@
 xmpp = require('node-xmpp')
 NS = require('./ns')
 forms = require('./forms')
+uuid = require('node-uuid')
 
 ##
 # All notifications are per-node, so listeners can be fetched once
@@ -19,7 +20,12 @@ class Notification
         if @opts.replay
             # For the MAM case the stanza is packaged up into
             # <forwarded/>
-            message.c('forwarded', xmlns: NS.FORWARD).
+            message.c('result',
+                        xmlns: NS.MAM
+                        queryid: @opts.queryId if @opts.queryId?
+                        id: uuid()
+                    ).up().
+                c('forwarded', xmlns: NS.FORWARD).
                 c('message',
                         type: 'headline'
                         from: fromJid

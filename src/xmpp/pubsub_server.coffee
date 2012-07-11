@@ -722,6 +722,7 @@ class MessageArchiveRequest extends Request
         super
 
         @mamEl = @iq.getChild("query", NS.MAM)
+        @queryId = @mamEl?.attrs?.queryid
         @start = @mamEl?.getChildText("start")
         @end = @mamEl?.getChildText("end")
 
