@@ -1,10 +1,7 @@
 try
     inherits = require("util").inherits
 catch x
-    try
-        inherits = require("utils").inherits
-    catch x
-        inherits = require("sys").inherits
+    inherits = require("sys").inherits
 xmpp = require("node-xmpp")
 NS_XMPP_STANZAS = "urn:ietf:params:xml:ns:xmpp-stanzas"
 
