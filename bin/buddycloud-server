@@ -18,28 +18,18 @@ for arg in $@; do
       continue
     fi
     case $arg in
-        '--nobuild') nobuild=1;;
         '--help') help=1 ;;
-        '--node-debug') 
+        '--node-debug')
             debug=" "
             if [[ $2 =~ ^[0-9]+$ ]]; then
               debug="="$2
               skipnext=1
-            fi 
+            fi
             continue;;
     esac
     args=$args" "$arg
 done
 
-# cd to right destination
-export PATH=`dirname $0`:$PATH
-cd $moduleDir
-# compile coffeescript
-if [ -z "$nobuild" ] && [ -z "$help" ]; then
-    env ./node_modules/.bin/cake build || exit 1
-fi
-# go back where we came from
-cd "$cwd"
 # execute the real programk
 if [ -z "$debug" ]; then
   exec env node "$moduleDir/lib/main.js" $args
