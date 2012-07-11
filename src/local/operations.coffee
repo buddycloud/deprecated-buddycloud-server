@@ -17,7 +17,7 @@ exports.setModel = (model) ->
 exports.checkCreateNode = null
 
 defaultConfiguration = (user) ->
-    accessModel = if cfg.defaults.openUserChannel then "open" else "authorize"
+    accessModel = if cfg.defaults?.openUserChannel then "open" else "authorize"
     posts:
         title: "#{user} Channel Posts"
         description: "A buddycloud channel"
@@ -58,7 +58,7 @@ defaultConfiguration = (user) ->
 
 # user is "topic@domain" string
 defaultTopicConfiguration = (user) =>
-    accessModel = if cfg.defaults.closedTopicChannel then "authorize" else "open"
+    accessModel = if cfg.defaults?.closedTopicChannel then "authorize" else "open"
     posts:
         title: "#{user} Topic Channel"
         description: "All about #{user.split('@')?[0]}"
