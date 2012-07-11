@@ -261,7 +261,7 @@ class Transaction
         , (err, res) ->
             cb err, res?.rows?[0]?.listener or "none"
 
-    setSubscription: (node, user, listener, subscription, cb) ->
+    setSubscription: (node, user, listener, subscription, temporary, cb) ->
         unless node
             return cb(new Error("No node"))
         unless user
@@ -277,22 +277,22 @@ class Transaction
             logger.debug "setSubscription #{node} #{user} isSet=#{isSet} toDelete=#{toDelete}"
             if isSet and not toDelete
                 if listener
-                    db.query "UPDATE subscriptions SET listener=$1, subscription=$2, updated=CURRENT_TIMESTAMP, temporary=FALSE WHERE node=$3 AND \"user\"=$4"
-                    , [ listener, subscription, node, user ]
+                    db.query "UPDATE subscriptions SET listener=$1, subscription=$2, updated=CURRENT_TIMESTAMP, temporary=$3 WHERE node=$4 AND \"user\"=$5"
+                    , [ listener, subscription, temporary, node, user ]
                     , cb2
                 else
-                    db.query "UPDATE subscriptions SET subscription=$1, updated=CURRENT_TIMESTAMP, temporary=FALSE WHERE node=$2 AND \"user\"=$3"
-                    , [ subscription, node, user ]
+                    db.query "UPDATE subscriptions SET subscription=$1, updated=CURRENT_TIMESTAMP, temporary=$2 WHERE node=$3 AND \"user\"=$4"
+                    , [ subscription, temporary, node, user ]
                     , cb2
             else if not isSet and not toDelete
                 # listener=null is allowed for 3rd-party inboxes
                 if listener
-                    db.query "INSERT INTO subscriptions (node, \"user\", listener, subscription, updated) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)"
-                    , [ node, user, listener, subscription ]
+                    db.query "INSERT INTO subscriptions (node, \"user\", listener, subscription, updated, temporary) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, $5)"
+                    , [ node, user, listener, subscription, temporary ]
                     , cb2
                 else
-                    db.query "INSERT INTO subscriptions (node, \"user\", subscription, updated) VALUES ($1, $2, $3, CURRENT_TIMESTAMP)"
-                    , [ node, user, subscription ]
+                    db.query "INSERT INTO subscriptions (node, \"user\", subscription, updated, temporary) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, $4)"
+                    , [ node, user, subscription, temporary ]
                     , cb2
             else if isSet and toDelete
                 db.query "DELETE FROM subscriptions WHERE node=$1 AND \"user\"=$2"
@@ -304,10 +304,6 @@ class Transaction
                 cb2 new Error('Invalid subscription transition')
         ], (err) ->
             cb err
-
-    setSubscriptionTemporary: (node, user, temporary, cb) ->
-        logger.debug "setSubscriptionTemporary #{node} #{user} #{temporary}"
-        @db.query "UPDATE subscriptions SET temporary=$1 WHERE node=$2 AND \"user\"=$3", [ temporary, node, user ], cb
 
     getSubscribers: (node, cb) ->
         unless node

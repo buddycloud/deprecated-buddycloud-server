@@ -411,7 +411,7 @@ class Register extends ModelOperation
             created = created_
             t.setAffiliation node, user, 'owner', cb2
         , (cb2) =>
-            t.setSubscription node, user, @req.sender, 'subscribed', cb2
+            t.setSubscription node, user, @req.sender, 'subscribed', false, cb2
         , (cb2) ->
             # if already present, don't overwrite config
             if created
@@ -479,7 +479,7 @@ class CreateNode extends ModelOperation
             # Set
             t.setConfig @req.node, config, cb2
         , (cb2) =>
-            t.setSubscription @req.node, @req.actor, @req.sender, 'subscribed', cb2
+            t.setSubscription @req.node, @req.actor, @req.sender, 'subscribed', false, cb2
         , (cb2) =>
             t.setAffiliation @req.node, @req.actor, 'owner', cb2
         ], cb
@@ -552,7 +552,7 @@ class Subscribe extends PrivilegedOperation
 
     privilegedTransaction: (t, cb) ->
         async.waterfall [ (cb2) =>
-            t.setSubscription @req.node, @req.actor, @req.sender, @subscription, cb2
+            t.setSubscription @req.node, @req.actor, @req.sender, @subscription, @req.temporary, cb2
         , (cb2) =>
             if @affiliation
                 t.setAffiliation @req.node, @req.actor, @affiliation, cb2
@@ -592,7 +592,7 @@ class Unsubscribe extends PrivilegedOperation
             return cb new errors.Forbidden("You may not unsubscribe from your own nodes")
 
         async.waterfall [ (cb2) =>
-            t.setSubscription @req.node, @req.actor, @req.sender, 'none', cb2
+            t.setSubscription @req.node, @req.actor, @req.sender, 'none', false, cb2
         , (cb2) =>
             @fetchActorAffiliation t, cb2
         , (cb2) =>
@@ -619,11 +619,6 @@ class Unsubscribe extends PrivilegedOperation
             user: @req.actor
             affiliation: @actorAffiliation
         }]
-
-class ModifySubscriptionOptions extends PrivilegedOperation
-    privilegedTransaction: (t, cb) ->
-        if @req.temporary?
-            t.setSubscriptionTemporary @req.node, @req.actor, @req.temporary, cb
 
 class RetrieveItems extends PrivilegedOperation
     run: (cb) ->
@@ -887,7 +882,7 @@ class ManageNodeSubscriptions extends PrivilegedOperation
                        subscription isnt 'subscribed'
                         cb4 new errors.Forbidden("You may not unsubscribe the owner")
                     else
-                        t.setSubscription @req.node, user, null, subscription, cb4
+                        t.setSubscription @req.node, user, null, subscription, false, cb4
                 , (cb4) =>
                     t.getAffiliation @req.node, user, cb4
                 , (affiliation, cb4) =>
@@ -1032,7 +1027,7 @@ class AuthorizeSubscriber extends PrivilegedOperation
             @subscription = 'none'
 
         async.waterfall [ (cb2) =>
-            t.setSubscription @req.node, @req.user, @req.sender, @subscription, cb2
+            t.setSubscription @req.node, @req.user, @req.sender, @subscription, false, cb2
         , (cb2) =>
             if @affiliation
                 t.setAffiliation @req.node, @req.user, @affiliation, cb2
@@ -1138,7 +1133,7 @@ class PushInbox extends ModelOperation
                         {node, user, listener, subscription} = update
                         if subscription isnt 'subscribed'
                             unsubscribedNodes[node] = yes
-                        t.setSubscription node, user, listener, subscription, cb3
+                        t.setSubscription node, user, listener, subscription, false, cb3
 
                     when 'affiliation'
                         notification.push update
@@ -1356,7 +1351,6 @@ OPERATIONS =
     'publish-node-items': Publish
     'subscribe-node': Subscribe
     'unsubscribe-node': Unsubscribe
-    'modify-subscription-options': ModifySubscriptionOptions
     'retrieve-node-items': RetrieveItems
     'retract-node-items': RetractItems
     'retrieve-user-subscriptions': RetrieveUserSubscriptions
