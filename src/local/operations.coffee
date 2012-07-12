@@ -17,7 +17,13 @@ exports.setModel = (model) ->
 exports.checkCreateNode = null
 
 defaultConfiguration = (user) ->
-    accessModel = if cfg.defaults?.openUserChannel then "open" else "authorize"
+    accessModel = innerAccessModel = "authorize"
+    if cfg.defaults?.openUserChannel
+        # only viewable by followers, followers+post and moderators.
+        innerAccessModel = "whitelist"
+        # anyone can view the channel
+        accessModel =  "open"
+
     posts:
         title: "#{user} Channel Posts"
         description: "A buddycloud channel"
@@ -34,19 +40,19 @@ defaultConfiguration = (user) ->
     'geo/previous':
         title: "#{user} Previous Location"
         description: "Where #{user} has been before"
-        accessModel: accessModel
+        accessModel: innerAccessModel
         publishModel: "publishers"
         defaultAffiliation: "member"
     'geo/current':
         title: "#{user} Current Location"
         description: "Where #{user} is at now"
-        accessModel: accessModel
+        accessModel: innerAccessModel
         publishModel: "publishers"
         defaultAffiliation: "member"
     'geo/next':
         title: "#{user} Next Location"
         description: "Where #{user} intends to go"
-        accessModel: accessModel
+        accessModel: innerAccessModel
         publishModel: "publishers"
         defaultAffiliation: "member"
     subscriptions:
