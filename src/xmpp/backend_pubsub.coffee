@@ -145,6 +145,7 @@ class exports.PubsubBackend extends EventEmitter
                             node: node
                             user: child.attrs.jid
                             subscription: child.attrs.subscription
+                            temporary: child.attrs.temporary? and child.attrs.temporary == '1'
 
                     if child.is('affiliation')
                         updates.push

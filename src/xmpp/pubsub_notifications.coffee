@@ -49,6 +49,7 @@ class EventNotification extends Notification
                             jid: update.user
                             node: update.node
                             subscription: update.subscription
+                            temporary: if update.temporary then '1' else '0'
                         )
                 when 'affiliation'
                     eventEl.

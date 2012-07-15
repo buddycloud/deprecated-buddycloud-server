@@ -569,6 +569,7 @@ class Subscribe extends PrivilegedOperation
                 node: @req.node
                 user: @req.actor
                 subscription: @subscription
+                temporary: @req.temporary
             }]
         if @affiliation
             ns.push
@@ -1130,10 +1131,10 @@ class PushInbox extends ModelOperation
 
                     when 'subscription'
                         notification.push update
-                        {node, user, listener, subscription} = update
+                        {node, user, listener, subscription, temporary} = update
                         if subscription isnt 'subscribed'
                             unsubscribedNodes[node] = yes
-                        t.setSubscription node, user, listener, subscription, false, cb3
+                        t.setSubscription node, user, listener, subscription, temporary, cb3
 
                     when 'affiliation'
                         notification.push update
