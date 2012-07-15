@@ -533,9 +533,12 @@ class Subscribe extends PrivilegedOperation
             @fetchNodeConfig t, cb2
         , (cb2) =>
             if @nodeConfig.accessModel is 'authorize'
-                @subscription = 'pending'
-                # Immediately return:
-                return cb2()
+                if @req.temporary
+                    return cb new errors.NotAllowed('Cannot subscribe temporarily to private node')
+                else
+                    @subscription = 'pending'
+                    # Immediately return:
+                    return cb2()
 
             @subscription = 'subscribed'
             defaultAffiliation = @nodeConfig.defaultAffiliation or 'none'
