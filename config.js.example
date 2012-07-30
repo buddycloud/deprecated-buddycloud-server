@@ -34,7 +34,7 @@ exports.modelConfig = {
  * Defaults
  */
 exports.defaults = {
-    openUserChannel:false,
+    openUserChannel:true,
     closedTopicChannel:false,
 };
 
@@ -71,6 +71,8 @@ exports.checkCreateNode = function(opts) {
  * Welcome new users by auto-subscribing them to a few channels
  */
 exports.autosubscribeNewUsers = [
+    "report_bugs@topics.buddycloud.org",
     "lounge@topics.buddycloud.org",
+    "music@topics.buddycloud.org",
     "topics@topics.buddycloud.org"
 ];
