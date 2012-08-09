@@ -101,6 +101,7 @@ normalizeLink = (req) ->
         "node=#{encodeURI req.node};" +
         "item=#{encodeURI req.item.id}"
     alreadyPresent = req.item.el.children.some (child) ->
+        typeof child != 'string' and
         child.is('link') and
         child.attrs.rel is 'self' and
         child.attrs.href is link
