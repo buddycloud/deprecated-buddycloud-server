@@ -34,7 +34,7 @@
         ,"email": "astro@spaceboyz.net"
         ,"web": "http://spaceboyz.net/~astro/"
         }
-,"contributors": ["Stephan Maka", "Jonas Smedegaard", "Simon Tennant", "dodo", "James Tait", "Thomas Jost"]
+,"contributors": ["Stephan Maka", "Jonas Smedegaard", "Simon Tennant", "dodo", "James Tait", "Thomas Jost", "Lloyd Watkin"]
 ,"licenses": [{"type": "APL2"}]
 , "engines": {"node": ">= 0.4"}
 }
