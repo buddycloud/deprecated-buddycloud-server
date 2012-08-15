@@ -1,4 +1,5 @@
 # 3rd-party libs
+fs         = require('fs')
 path       = require('path')
 async      = require('async')
 {inspect}  = require('util')
@@ -9,7 +10,9 @@ NS         = require('./xmpp/ns')
 # Config
 config = require('jsconfig')
 version = require('./version')
-config.defaults path.join(__dirname,"..","config.js")
+defaultConfigFile = path.join(__dirname,"..","config.js")
+if fs.existsSync(defaultConfigFile)
+    config.defaults defaultConfigFile
 
 process.title = "buddycloud-server #{version}"
 
@@ -27,7 +30,7 @@ config.cli
     stdout: ['logging.stdout', [off, "Log to stdout"]]
     version: [off, "Display version"]
 
-config.load "/etc/buddycloud-server/config.js", (args, opts) ->
+config.load (args, opts) ->
 
     if opts.version
         console.log version
@@ -38,6 +41,8 @@ config.load "/etc/buddycloud-server/config.js", (args, opts) ->
             opts.config = path.join(process.cwd(), opts.config)
         # Always reload config for -c argument
         config.merge(opts.config)
+    else if fs.existsSync("/etc/buddycloud-server/config.js")
+        config.merge("/etc/buddycloud-server/config.js")
 
     # Kludge:
     if opts.stdout
