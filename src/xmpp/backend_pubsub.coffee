@@ -1,4 +1,5 @@
 logger = require('../logger').makeLogger 'xmpp/backend_pubsub'
+{inspect} = require('util')
 {EventEmitter} = require('events')
 async = require('async')
 xmpp = require('node-xmpp')
@@ -50,7 +51,7 @@ class exports.PubsubBackend extends EventEmitter
             unless user
                 return cb new errors.NotFound("Unrecognized node form")
 
-            logger.debug 'PubsubBackend.run': opts, user: user
+            logger.debug "PubsubBackend.run user: #{user}, opts: #{inspect opts}"
             @disco.findService user, (err, service) =>
                 if err
                     return cb err
