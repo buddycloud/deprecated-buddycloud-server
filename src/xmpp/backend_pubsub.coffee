@@ -188,7 +188,7 @@ class exports.PubsubBackend extends EventEmitter
                     @emit 'authorizationConfirm', { node, user, allow, actor, sender }
 
         # Which nodes' updates pertain our local cache?
-        async.filter(updates, (update, cb) =>
+        async.filter updates, (update, cb) =>
             user = getNodeUser(update.node)
             unless user
                 return cb false
@@ -196,12 +196,25 @@ class exports.PubsubBackend extends EventEmitter
             @authorizeFor sender, user, (err, valid) ->
                 cb not err and valid
         , (updates) =>
-            if updates? and updates.length > 0
-                updates.sender = sender
-                updates.actor = sender
-                # Apply pushed updates
-                @emit 'notificationPush', updates
-        )
+            # Add a listener to each subscription update
+            async.map updates, (update, cb2) =>
+                if update.type is 'subscription'
+                    @disco.findService update.user, (err, service) =>
+                        if err
+                            cb2 err, null
+                        else
+                            # If remote user, listener = sender. If local user, listener = user.
+                            update.listener = if @getMyJids().indexOf(service) >= 0 then update.user else sender
+                            cb2 null, update
+                else
+                    cb2 null, update
+            , (err, updates) =>
+                # FIXME: don't ignore err
+                if updates? and updates.length > 0
+                    updates.sender = sender
+                    updates.actor = sender
+                    # Apply pushed updates
+                    @emit 'notificationPush', updates
 
 
 class BuddycloudDiscovery
