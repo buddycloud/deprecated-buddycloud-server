@@ -69,8 +69,8 @@ normalizePublished = (req) ->
     # The local now by default
     published = new Date().toISOString()
     # Find previous published date
-    if req.oldItem?.el?
-        req.oldItem.el.getChildren("published").forEach (publishedEl) ->
+    if req.oldItem?
+        req.oldItem.getChildren("published").forEach (publishedEl) ->
             published = publishedEl.getText()
     req.item.el.c("published").
         t(published)
