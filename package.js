@@ -29,7 +29,7 @@ tarball.pipe(fs.createWriteStream(path.join(__dirname, name+"-"+version+".tar.gz
     "bin/buddycloud-server",
     "config.js.example",
     "package.json",
-    "postgres.sql",
+    "postgres/install.sql",
     "LICENSE",
     "README.md"
 ].forEach(function(file){tarball.append(file)})

@@ -61,6 +61,7 @@ config.load (args, opts) ->
 
     model = require('./local/model_postgres')
     model.start config.modelConfig
+    model.checkSchemaVersion()
 
     router = new (require('./router').Router)(model, config.checkCreateNode, config.autosubscribeNewUsers)
 
