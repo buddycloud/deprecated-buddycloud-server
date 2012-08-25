@@ -521,19 +521,21 @@ class Transaction
             isSet = res and res.rows and res.rows[0]
             xml = el.toString()
             params = [ node, id, xml ]
+            irtEl = el.getChild('in-reply-to', 'http://purl.org/syndication/thread/1.0')
+            params.push if irtEl?.attrs.ref? then irtEl.attrs.ref
             updated = el.getChildText('updated') or
                 el.getChildText('published')
             if updated
                 params.push updated
-                updated_query = "$4"
+                updated_query = "$5"
             else
                 updated_query = "CURRENT_TIMESTAMP"
             if isSet
                 db.query "UPDATE items SET xml=$3, updated=#{updated_query} WHERE node=$1 AND id=$2"
                 , params
                 , cb2
-            else unless isSet
-                db.query "INSERT INTO items (node, id, xml, updated) VALUES ($1, $2, $3, #{updated_query})"
+            else
+                db.query "INSERT INTO items (node, id, xml, in_reply_to, updated) VALUES ($1, $2, $3, $4, #{updated_query})"
                 , params
                 , cb2
         ], cb
