@@ -12,7 +12,7 @@ async = require("async")
 errors = require("../errors")
 
 # Required schema version -- don't forget to bump it as needed!
-required_schema_version = 0
+required_schema_version = 1
 
 # ready DB connections
 pool = []
