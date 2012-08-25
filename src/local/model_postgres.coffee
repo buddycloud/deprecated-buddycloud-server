@@ -87,6 +87,13 @@ exports.checkSchemaVersion = ->
                 logger.error "Database schema too recent: require version #{required_schema_version} but using #{version}. Please update the server to a version that matches your DB."
                 process.exit 1
 
+exports.cleanupTemporaryData = (cb) ->
+    withNextDb (db) ->
+        db.query "DELETE FROM subscriptions WHERE anonymous=TRUE OR temporary=TRUE", (err) ->
+            process.nextTick ->
+                dbIsAvailable db
+            cb err
+
 exports.transaction = (cb) ->
     withNextDb (db) ->
         new Transaction(db, cb)
