@@ -497,7 +497,7 @@ class Publish extends PrivilegedOperation
     # checks affiliation with @checkPublishModel below
 
     privilegedTransaction: (t, cb) ->
-        if @subscriptionsNode?
+        if @subscriptionsNodeOwner?
             return cb new errors.NotAllowed("The subscriptions node is automagically populated")
 
         async.waterfall [ (cb2) =>

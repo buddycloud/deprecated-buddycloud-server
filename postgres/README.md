@@ -41,3 +41,6 @@ Version notes
   following anyone with a JID similar to `*@anon.*`, you will need to remove the
   "anonymous" flag for these subscriptions (`UPDATE subscriptions SET
   anonymous=FALSE WHERE "user" LIKE '%@anon.ymo.us';`)
+* **Buggy entries in `items` table**: a bug in sync caused subscription stanzas
+  to be added to the `items` table (XML `<query ...></query>` and node ending
+  with `/subscriptions`). They can (and should) be removed.

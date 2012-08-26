@@ -19,6 +19,9 @@ UPDATE subscriptions
        SET anonymous=TRUE
        WHERE "user" LIKE '%@anon.%';
 
+-- remove subscriptions from items table
+DELETE FROM items WHERE node LIKE '%/subscriptions';
+
 -- we need a schema_version table!
 CREATE TABLE schema_version (version INT NOT NULL PRIMARY KEY,
                              "when" TIMESTAMP,
