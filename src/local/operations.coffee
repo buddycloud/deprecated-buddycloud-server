@@ -18,7 +18,7 @@ exports.checkCreateNode = null
 
 defaultConfiguration = (user) ->
     accessModel = innerAccessModel = "authorize"
-    if cfg.defaults?.openUserChannel
+    if cfg.defaults?.userChannel?.openByDefault
         # only viewable by followers, followers+post and moderators.
         innerAccessModel = "whitelist"
         # anyone can view the channel
@@ -64,7 +64,7 @@ defaultConfiguration = (user) ->
 
 # user is "topic@domain" string
 defaultTopicConfiguration = (user) =>
-    accessModel = if cfg.defaults?.closedTopicChannel then "authorize" else "open"
+    accessModel = if cfg.defaults?.topicChannel?.openByDefault then "open" else "authorize"
     posts:
         title: "#{user} Topic Channel"
         description: "All about #{user.split('@')?[0]}"

@@ -31,14 +31,12 @@ exports.modelConfig = {
 
 
 /**
- * Defaults
+ * Default visibility to new channels
  */
 exports.defaults = {
-    openUserChannel:true,
-    closedTopicChannel:false,
+    userChannel: { openByDefault:  true },
+    topicChannel: { openByDefault: true },
 };
-
-
 
 /**
  * Logging
