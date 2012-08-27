@@ -1,6 +1,7 @@
 { constructor: CommonLogger } = require 'underscore.logger'
 SysLogger = require 'ain2'
 fs = require 'fs'
+{ inspect } = require 'util'
 
 config = {}
 logFile = undefined
@@ -33,7 +34,7 @@ class Logger extends CommonLogger
     # Monkey patch to always convert the format string object to an actual string
     _log: (level, args) ->
         if args[0] and typeof args[0] isnt 'string'
-            args[0] = args[0].toString()
+            args[0] = inspect args[0]
         super
 
     # + @module output

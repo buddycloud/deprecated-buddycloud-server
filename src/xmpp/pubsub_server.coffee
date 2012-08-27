@@ -1,6 +1,7 @@
 logger = require('../logger').makeLogger 'xmpp/pubsub_server'
 xmpp = require('node-xmpp')
-{EventEmitter} = require('events')
+{ EventEmitter } = require('events')
+{ inspect } = require('util')
 NS = require('./ns')
 forms = require('./forms')
 errors = require('../errors')
@@ -180,7 +181,7 @@ class DiscoItemsRequest extends Request
         @discoItemsEl?
 
     reply: (results) ->
-        logger.debug 'DiscoItemsRequest.reply': results
+        logger.debug "DiscoItemsRequest.reply: #{inspect results}"
         queryEl = new xmpp.Element("query", xmlns: NS.DISCO_ITEMS)
         if results?.node
             queryEl.attrs.node = results.node
@@ -781,7 +782,7 @@ class exports.PubsubServer extends EventEmitter
         for r in REQUESTS
             result = new r(stanza)
             if result.matches()
-                logger.trace 'found subrequest', r.name
+                logger.trace "found subrequest #{r.name}"
                 break
             else
                 result = null
