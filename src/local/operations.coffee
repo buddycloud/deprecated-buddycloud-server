@@ -550,11 +550,12 @@ class Subscribe extends PrivilegedOperation
                     return cb2()
 
             @subscription = 'subscribed'
-            # TODO: default affiliation for temporary subscriptions?
-            defaultAffiliation = @nodeConfig.defaultAffiliation or 'none'
-            unless isAffiliationAtLeast @actorAffiliation, defaultAffiliation
-                # Less than current affiliation? Bump up to defaultAffiliation
-                @affiliation = @nodeConfig.defaultAffiliation or 'member'
+            # Temporary subscriptions always have affiliation 'none'
+            unless @req.temporary
+                defaultAffiliation = @nodeConfig.defaultAffiliation or 'none'
+                unless isAffiliationAtLeast @actorAffiliation, defaultAffiliation
+                    # Less than current affiliation? Bump up to defaultAffiliation
+                    @affiliation = @nodeConfig.defaultAffiliation or 'member'
 
             @checkAccessModel t, cb2
         ], (err) =>
@@ -1304,14 +1305,22 @@ class Notify extends ModelOperation
             , (err) =>
                 cb2 err, moderatorListeners, otherListeners
         , (moderatorListeners, otherListeners, cb2) =>
+            # Temporary subscriptions must only by notified to remote listeners
+            localReq = @req.filter (update) ->
+                not (update.type is 'subscription' and update.temporary? and update.temporary)
+
             # Send out through backends
             if moderatorListeners.length > 0
                 for listener in moderatorListeners
-                    notification = Object.create(@req)
-                    notification.listener = listener
-                    @router.notify notification
+                    myReq = if listener.indexOf("@") >= 0 then localReq else @req
+                    if myReq.length > 0
+                        notification = Object.create(myReq)
+                        notification.node = @req.node
+                        notification.listener = listener
+                        @router.notify notification
+
             if otherListeners.length > 0
-                req = @req.filter (update) =>
+                reqFilter = (update) =>
                     switch update.type
                         when 'subscription'
                             PrivilegedOperation::filterSubscription update
@@ -1319,11 +1328,14 @@ class Notify extends ModelOperation
                             PrivilegedOperation::filterAffiliation update
                         else
                             yes
-                # Any left after filtering? Don't send empty
-                # notification when somebody got banned.
-                if req.length > 0
-                    for listener in otherListeners
-                        notification = Object.create(req)
+                req = @req.filter reqFilter
+                localReq = localReq.filter reqFilter
+                for listener in otherListeners
+                    myReq = if listener.indexOf("@") >= 0 then localReq else req
+                    # Any left after filtering? Don't send empty notification
+                    # when somebody got banned.
+                    if myReq.length > 0
+                        notification = Object.create(myReq)
                         notification.node = @req.node
                         notification.listener = listener
                         @router.notify notification
