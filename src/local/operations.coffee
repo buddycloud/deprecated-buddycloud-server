@@ -273,7 +273,7 @@ class BrowseInfo extends Operation
             features: [
                 NS.DISCO_INFO, NS.DISCO_ITEMS,
                 NS.REGISTER,
-                NS.PUBSUB, NS.PUBSUB_OWNER
+                NS.PUBSUB, NS.PUBSUB_OWNER, NS.PUBSUB_SUBSCRIPTION_OPTIONS
             ]
             identities: [{
                 category: "pubsub"

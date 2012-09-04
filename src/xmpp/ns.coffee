@@ -5,6 +5,7 @@ module.exports =
     PUBSUB_NODE_CONFIG: "http://jabber.org/protocol/pubsub#node_config"
     PUBSUB_META_DATA: "http://jabber.org/protocol/pubsub#meta-data"
     PUBSUB_SUBSCRIBE_AUTHORIZATION: "http://jabber.org/protocol/pubsub#subscribe_authorization"
+    PUBSUB_SUBSCRIPTION_OPTIONS: "http://jabber.org/protocol/pubsub#subscription-options"
     DISCO_INFO: "http://jabber.org/protocol/disco#info"
     DISCO_ITEMS: "http://jabber.org/protocol/disco#items"
     DATA: "jabber:x:data"
