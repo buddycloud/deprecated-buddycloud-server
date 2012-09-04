@@ -346,6 +346,13 @@ class Transaction
             cb2 null, subscribers
         ], cb
 
+    getUserTemporarySubscriptions: (user, cb) ->
+        unless user
+            return cb(new Error("No user"))
+
+        @db.query "SELECT node, listener, subscription FROM subscriptions WHERE \"user\"=$1 AND temporary=FALSE ORDER BY updated DESC", [ user ], (err, res) ->
+            cb err, res?.rows
+
     ##
     # Not only by users but also by listeners.
     # @param cb {Function} cb(Error, { user, node, subscription })
@@ -408,6 +415,9 @@ class Transaction
     clearUserSubscriptions: (user, cb) ->
         @db.query "DELETE FROM subscriptions WHERE \"user\"=$1", [user], (err) ->
             cb err
+
+    clearUserTemporarySubscriptions: (user, cb) ->
+        @db.query "DELETE FROM subscriptions WHERE \"user\"=$1 AND temporary=TRUE", [user], cb
 
     ##
     # Affiliation management

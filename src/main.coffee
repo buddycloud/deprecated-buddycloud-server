@@ -118,7 +118,7 @@ config.load (args, opts) ->
         opts.operation = 'confirm-subscriber-authorization'
         router.run opts, ->
 
-    # Clean-up for anonymous users
+    # Clean-up for anonymous users and temporary subscriptions
     xmppConn.on 'userOffline', (user) ->
         router.onUserOffline user
 

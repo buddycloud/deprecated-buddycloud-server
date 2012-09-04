@@ -1021,6 +1021,27 @@ class RemoveUser extends ModelOperation
             t.clearUserSubscriptions @req.actor, (err) =>
                 cb err, subscriptions
 
+class CleanOfflineUser extends ModelOperation
+    transaction: (t, cb) ->
+        notification = []
+
+        # Does the user have temporary subscriptions?
+        t.getUserTemporarySubscriptions @req.actor, (err, subscriptions) =>
+            if err
+                return cb(err)
+
+            # Notify remote listeners
+            for subscription in subscriptions when subscription.listener isnt @req.actor
+                notification.push
+                    type: 'subscription'
+                    node: subscription.node
+                    actor: @req.actor
+                    subscription: 'none'
+
+            @notification = -> notification
+
+            t.clearUserTemporarySubscriptions @req.actor, (err) ->
+                cb err
 
 class AuthorizeSubscriber extends PrivilegedOperation
     requiredAffiliation: =>
@@ -1375,6 +1396,7 @@ OPERATIONS =
     'manage-node-affiliations': ManageNodeAffiliations
     'manage-node-configuration': ManageNodeConfiguration
     'remove-user': RemoveUser
+    'clean-offline-user': CleanOfflineUser
     'confirm-subscriber-authorization': AuthorizeSubscriber
     'replay-archive': ReplayArchive
     'push-inbox': PushInbox
