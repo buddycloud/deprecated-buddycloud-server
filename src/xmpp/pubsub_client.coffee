@@ -97,7 +97,12 @@ class PubsubRequest extends Request
     requestIq: ->
         pubsubEl = new xmpp.Element('iq', type: @iqType()).
             c('pubsub', xmlns: @xmlns)
-        pubsubEl.cnode(@pubsubChild().root())
+        child = @pubsubChild()
+        if child instanceof Array
+            for el in child
+                pubsubEl.cnode el.root()
+        else
+            pubsubEl.cnode child.root()
         if @opts.actor
             actorEl = pubsubEl.c('actor', xmlns: NS.BUDDYCLOUD_V1)
             actorEl.attrs.type ?= @opts.actorType
@@ -160,13 +165,23 @@ class Subscribe extends PubsubRequest
         'set'
 
     pubsubChild: ->
-        new xmpp.Element('subscribe', node: @opts.node, jid: @opts.actor)
+        els = [new xmpp.Element('subscribe', node: @opts.node, jid: @opts.actor)]
+        if @opts.temporary? and @opts.temporary
+            els.push new xmpp.Element('options', node: @opts.node, jid: @opts.actor)
+                .c('x', xmlns: NS.DATA)
+                .c('field', var: 'FORM_TYPE', type: 'hidden')
+                .c('value').t('http://jabber.org/protocol/pubsub#subscribe_options').up().up()
+                .c('field', var: 'pubsub#expire')
+                .c('value').t('presence')
+                .root()
+        return els
 
     decodeReplyEl: (el) ->
         if el.is('subscription', @xmlns) and
            el.attrs.node is @opts.node
             @results.user ?= el.attrs.jid or @opts.actor
             @results.subscription ?= el.attrs.subscription or 'subscribed'
+            @results.temporary ?= el.attrs.temporary? and el.attrs.temporary is '1'
 
     localPushData: ->
         if @results.subscription is 'subscribed'
@@ -176,6 +191,7 @@ class Subscribe extends PubsubRequest
                 user: @results.user
                 listener: @opts.sender
                 subscription: @results.subscription
+                temporary: @results.temporary
             }]
         else
             []
