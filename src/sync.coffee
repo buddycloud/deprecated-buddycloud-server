@@ -121,7 +121,7 @@ class SubscriptionsSynchronization extends PaginatedSynchronization
     writeResults: (t, results, cb) ->
         async.forEach results, (item, cb2) =>
             listener = @userListeners[item.user]
-            t.setSubscription @node, item.user, listener, item.subscription, cb2
+            t.setSubscription @node, item.user, listener, item.subscription, false, cb2
         , cb
 
 class AffiliationsSynchronization extends PaginatedSynchronization
