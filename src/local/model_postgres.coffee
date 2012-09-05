@@ -346,6 +346,17 @@ class Transaction
             cb2 null, subscribers
         ], cb
 
+    getTemporarySubscription: (node, user, cb) ->
+        unless node
+            return cb(new Error("No node"))
+        unless user
+            return cb(new Error("No user"))
+
+        @db.query "SELECT subscription, temporary FROM subscriptions WHERE node=$1 AND \"user\"=$2"
+        , [ node, user ]
+        , (err, res) ->
+            cb err, res?.rows?[0]?.subscription or "none", res?.rows?[0]?.temporary or false
+
     getUserTemporarySubscriptions: (user, cb) ->
         unless user
             return cb(new Error("No user"))

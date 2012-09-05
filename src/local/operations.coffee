@@ -608,6 +608,8 @@ class Unsubscribe extends PrivilegedOperation
             return cb new errors.Forbidden("You may not unsubscribe from your own nodes")
 
         async.waterfall [ (cb2) =>
+            t.getTemporarySubscription @req.node, @req.actor, cb2
+        , (_, @temporary, cb2) =>
             t.setSubscription @req.node, @req.actor, @req.sender, 'none', false, cb2
         , (cb2) =>
             @fetchActorAffiliation t, cb2
@@ -624,17 +626,18 @@ class Unsubscribe extends PrivilegedOperation
         ], cb
 
     notification: ->
-        [{
-            type: 'subscription'
-            node: @req.node
-            user: @req.actor
-            subscription: 'none'
-        }, {
-            type: 'affiliation'
-            node: @req.node
-            user: @req.actor
-            affiliation: @actorAffiliation
-        }]
+        unless @temporary
+            [{
+                type: 'subscription'
+                node: @req.node
+                user: @req.actor
+                subscription: 'none'
+            }, {
+                type: 'affiliation'
+                node: @req.node
+                user: @req.actor
+                affiliation: @actorAffiliation
+            }]
 
 
 class RetrieveItems extends PrivilegedOperation
