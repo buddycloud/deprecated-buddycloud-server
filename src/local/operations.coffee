@@ -1384,7 +1384,7 @@ exports.run = (router, request, cb) ->
         logger.warn "Unimplemented operation #{opName}: #{inspect request}"
         return cb?(new errors.FeatureNotImplemented("Unimplemented operation #{opName}"))
 
-    logger.debug "operations.run: #{inspect request}"
+    logger.debug "operations.run #{opName}: #{inspect request}"
     op = new opClass(router, request)
     op.run (error, result) ->
         if error
