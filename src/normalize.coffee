@@ -35,6 +35,7 @@ exports.normalizeItem = (req, oldItem, item, cb) ->
 # `oldItem' fields.
 normalizeEntry = (req, cb) ->
     try
+        normalizeTextNodes req
         normalizeAuthor req
         normalizeId req
         normalizePublished req
@@ -45,6 +46,22 @@ normalizeEntry = (req, cb) ->
     catch e
         logger.error e.stack
         cb e
+
+# Remove empty text nodes (<entry> <child/> </entry> -->
+# <entry><child/><entry>), except in content item (may contain HTML or other markup).
+normalizeTextNodes = (req) ->
+    deleteEmptyTextNodes = (el) ->
+        unless el.is('content', NS_ATOM)
+            cleanChildren = []
+            for child in el.children
+                if typeof child is 'string'
+                    unless child.trim().length is 0
+                        cleanChildren.push child
+                else
+                    cleanChildren.push deleteEmptyTextNodes(child)
+            el.children = cleanChildren
+        return el
+    req.item.el = deleteEmptyTextNodes req.item.el
 
 # <author>
 #   <uri>acct:foo@example.com</uri>
