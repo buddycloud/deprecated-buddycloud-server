@@ -82,16 +82,15 @@ normalizeUpdated = (req) ->
         t(updated)
 
 normalizeActivityStream = (req) ->
+    irtEl = req.item.el.getChild('in-reply-to', NS_THR)
     # Ensure a <activity:verb/>
     unless req.item.el.getChild('verb', NS_AS)
-        verb = 'post'
+        verb = if irtEl then 'comment' else 'post'
         req.item.el.c('verb', xmlns: NS_AS).
             t(verb)
     # Ensure a <activity:object/>
     unless req.item.el.getChild('object', NS_AS)
-        objectType = 'note'
-        if req.item.el.getChild('in-reply-to', NS_THR)
-            objectType = 'comment'
+        objectType = if irtEl then 'comment' else 'note'
         req.item.el.c('object', xmlns: NS_AS).
             c('object-type').
             t(objectType)
