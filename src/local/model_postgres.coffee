@@ -416,9 +416,6 @@ class Transaction
         @db.query "DELETE FROM subscriptions WHERE \"user\"=$1", [user], (err) ->
             cb err
 
-    clearUserTemporarySubscriptions: (user, cb) ->
-        @db.query "DELETE FROM subscriptions WHERE \"user\"=$1 AND temporary=TRUE", [user], cb
-
     ##
     # Affiliation management
     ##

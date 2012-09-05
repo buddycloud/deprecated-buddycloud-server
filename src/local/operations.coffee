@@ -1031,18 +1031,15 @@ class CleanOfflineUser extends ModelOperation
             if err
                 return cb(err)
 
-            # Notify remote listeners
-            for subscription in subscriptions when subscription.listener isnt @req.actor
-                notification.push
-                    type: 'subscription'
+            # Send unsubscribe requests to remote servers
+            async.forEach subscriptions, (subscription, cb2) =>
+                opts =
+                    operation: 'unsubscribe-node'
                     node: subscription.node
                     actor: @req.actor
-                    subscription: 'none'
-
-            @notification = -> notification
-
-            t.clearUserTemporarySubscriptions @req.actor, (err) ->
-                cb err
+                    writes: true
+                @router.run opts, cb2
+            , cb
 
 class AuthorizeSubscriber extends PrivilegedOperation
     requiredAffiliation: =>
