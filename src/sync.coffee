@@ -94,6 +94,8 @@ class SubscriptionsSynchronization extends PaginatedSynchronization
         # Preserve the subscriptions listeners that are local, which
         # is only a small subset of the global subscriptions to a
         # remote node.
+        # Also preserve temporary subscriptions since they are not included in
+        # the remote results.
         t.resetSubscriptions @node, (err, @userListeners) =>
             cb err
 

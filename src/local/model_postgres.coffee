@@ -673,7 +673,7 @@ class Transaction
     ##
     # Calls back with { User: Listener }
     resetSubscriptions: (node, cb) ->
-        @db.query "SELECT \"user\", listener FROM subscriptions WHERE node=$1 AND listener IS NOT NULL", [node], (err, res) =>
+        @db.query "SELECT \"user\", listener FROM subscriptions WHERE node=$1 AND listener IS NOT NULL AND temporary=FALSE", [node], (err, res) =>
             if err
                 return cb err
 
@@ -681,7 +681,7 @@ class Transaction
             for row in res.rows
                 userListeners[row.user] = row.listener
 
-            @db.query "DELETE FROM subscriptions WHERE node=$1", [node], (err) ->
+            @db.query "DELETE FROM subscriptions WHERE node=$1 AND temporary=FALSE", [node], (err) ->
                 cb err, userListeners
 
     resetAffiliations: (node, cb) ->
