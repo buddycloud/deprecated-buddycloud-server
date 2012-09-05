@@ -511,13 +511,6 @@ class Transaction
                 , cb2
         ], cb
 
-    deleteItem: (node, itemId, cb) ->
-        # TODO: tombstone
-        db = @db
-        @db.query "DELETE FROM items WHERE node=$1 AND id=$2", [ node, itemId ], (err) ->
-            # Don't eval result, ignore deleting non-existant items
-            cb err
-
     ##
     # sorted by time
     getItemIds: (node, cb) ->
@@ -748,4 +741,3 @@ parseEl = (xml) ->
     catch e
         logger.error "Parsing " + xml + ": " + e.stack
         return undefined
-
