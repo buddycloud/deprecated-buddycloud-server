@@ -350,7 +350,7 @@ class Transaction
         unless user
             return cb(new Error("No user"))
 
-        @db.query "SELECT node, listener, subscription FROM subscriptions WHERE \"user\"=$1 AND temporary=FALSE ORDER BY updated DESC", [ user ], (err, res) ->
+        @db.query "SELECT node, listener, subscription FROM subscriptions WHERE \"user\"=$1 AND temporary=TRUE ORDER BY updated DESC", [ user ], (err, res) ->
             cb err, res?.rows
 
     ##
