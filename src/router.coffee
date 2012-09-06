@@ -292,3 +292,8 @@ class exports.Router
                 actor: user
                 sender: user
             runLocally req, ->
+        else
+            req =
+                operation: 'remove-temporary-subscriptions'
+                actor: user
+            @runLocally req, ->

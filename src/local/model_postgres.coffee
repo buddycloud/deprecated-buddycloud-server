@@ -261,7 +261,7 @@ class Transaction
         , (err, res) ->
             cb err, res?.rows?[0]?.listener or "none"
 
-    setSubscription: (node, user, listener, subscription, cb) ->
+    setSubscription: (node, user, listener, subscription, temporary, cb) ->
         unless node
             return cb(new Error("No node"))
         unless user
@@ -277,22 +277,22 @@ class Transaction
             logger.debug "setSubscription #{node} #{user} isSet=#{isSet} toDelete=#{toDelete}"
             if isSet and not toDelete
                 if listener
-                    db.query "UPDATE subscriptions SET listener=$1, subscription=$2, updated=CURRENT_TIMESTAMP WHERE node=$3 AND \"user\"=$4"
-                    , [ listener, subscription, node, user ]
+                    db.query "UPDATE subscriptions SET listener=$1, subscription=$2, updated=CURRENT_TIMESTAMP, temporary=$3 WHERE node=$4 AND \"user\"=$5"
+                    , [ listener, subscription, temporary, node, user ]
                     , cb2
                 else
-                    db.query "UPDATE subscriptions SET subscription=$1, updated=CURRENT_TIMESTAMP WHERE node=$2 AND \"user\"=$3"
-                    , [ subscription, node, user ]
+                    db.query "UPDATE subscriptions SET subscription=$1, updated=CURRENT_TIMESTAMP, temporary=$2 WHERE node=$3 AND \"user\"=$4"
+                    , [ subscription, temporary, node, user ]
                     , cb2
             else if not isSet and not toDelete
                 # listener=null is allowed for 3rd-party inboxes
                 if listener
-                    db.query "INSERT INTO subscriptions (node, \"user\", listener, subscription, updated) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)"
-                    , [ node, user, listener, subscription ]
+                    db.query "INSERT INTO subscriptions (node, \"user\", listener, subscription, updated, temporary) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, $5)"
+                    , [ node, user, listener, subscription, temporary ]
                     , cb2
                 else
-                    db.query "INSERT INTO subscriptions (node, \"user\", subscription, updated) VALUES ($1, $2, $3, CURRENT_TIMESTAMP)"
-                    , [ node, user, subscription ]
+                    db.query "INSERT INTO subscriptions (node, \"user\", subscription, updated, temporary) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, $4)"
+                    , [ node, user, subscription, temporary ]
                     , cb2
             else if isSet and toDelete
                 db.query "DELETE FROM subscriptions WHERE node=$1 AND \"user\"=$2"
@@ -311,7 +311,7 @@ class Transaction
 
         db = @db
         async.waterfall [(cb2) ->
-            db.query "SELECT \"user\", subscription FROM subscriptions WHERE node=$1 ORDER BY updated DESC", [ node ], cb2
+            db.query "SELECT \"user\", subscription FROM subscriptions WHERE node=$1 AND temporary=FALSE ORDER BY updated DESC", [ node ], cb2
         , (res, cb2) ->
             subscribers = for row in res.rows
                 { user: row.user, subscription: row.subscription }
@@ -323,7 +323,7 @@ class Transaction
     # Not only by users but also by listeners.
     # @param cb {Function} cb(Error, { user, node, subscription })
     getSubscriptions: (actor, cb) ->
-        @db.query "SELECT \"user\", node, subscription FROM subscriptions WHERE \"user\"=$1 OR listener=$1 ORDER BY updated DESC", [ actor ], (err, res) ->
+        @db.query "SELECT \"user\", node, subscription FROM subscriptions WHERE temporary=FALSE AND (\"user\"=$1 OR listener=$1) ORDER BY updated DESC", [ actor ], (err, res) ->
             cb err, res?.rows
 
     getPending: (node, cb) ->
@@ -380,6 +380,11 @@ class Transaction
 
     clearUserSubscriptions: (user, cb) ->
         @db.query "DELETE FROM subscriptions WHERE \"user\"=$1", [user], (err) ->
+            cb err
+
+    clearTemporarySubscriptions: (user, cb) ->
+        logger.debug "clearTemporarySubscriptions #{user}"
+        @db.query "DELETE FROM subscriptions WHERE \"user\"=$1 AND temporary=TRUE", [user], (err) ->
             cb err
 
     ##
@@ -448,7 +453,7 @@ class Transaction
     getAffiliated: (node, cb) ->
         db = @db
         async.waterfall [(cb2) ->
-            db.query "SELECT \"user\", affiliation FROM affiliations WHERE node=$1 ORDER BY updated DESC", [ node ], cb2
+            db.query "SELECT affiliations.user, affiliation FROM (affiliations JOIN subscriptions ON affiliations.user = subscriptions.user AND affiliations.node = subscriptions.node AND temporary=FALSE) WHERE affiliations.node=$1 ORDER BY affiliations.updated DESC", [ node ], cb2
         , (res, cb2) ->
             affiliations = for row in res.rows
                 { user: row.user, affiliation: row.affiliation }

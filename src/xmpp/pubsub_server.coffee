@@ -319,6 +319,14 @@ class PubsubSubscribeRequest extends PubsubRequest
 
         @subscribeEl = @pubsubEl?.getChild("subscribe")
         @node = @subscribeEl?.attrs.node
+        @temporary = false
+
+        @optionsEl = @pubsubEl?.getChild("options")
+        @formEl = @optionsEl?.getChild("x")
+        if @formEl
+            for field in @formEl.getChildren("field")
+                if field.attrs.var == 'pubsub#expire'
+                    @temporary = field.getChild("value")?.getText() is 'presence'
 
     matches: () ->
         super &&

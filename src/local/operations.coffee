@@ -420,7 +420,7 @@ class Register extends ModelOperation
             created = created_
             t.setAffiliation node, user, 'owner', cb2
         , (cb2) =>
-            t.setSubscription node, user, @req.sender, 'subscribed', cb2
+            t.setSubscription node, user, @req.sender, 'subscribed', false, cb2
         , (cb2) ->
             # if already present, don't overwrite config
             if created
@@ -488,7 +488,7 @@ class CreateNode extends ModelOperation
             # Set
             t.setConfig @req.node, config, cb2
         , (cb2) =>
-            t.setSubscription @req.node, @req.actor, @req.sender, 'subscribed', cb2
+            t.setSubscription @req.node, @req.actor, @req.sender, 'subscribed', false, cb2
         , (cb2) =>
             t.setAffiliation @req.node, @req.actor, 'owner', cb2
         ], cb
@@ -542,9 +542,12 @@ class Subscribe extends PrivilegedOperation
             @fetchNodeConfig t, cb2
         , (cb2) =>
             if @nodeConfig.accessModel is 'authorize'
-                @subscription = 'pending'
-                # Immediately return:
-                return cb2()
+                if @req.temporary
+                    return cb new errors.NotAllowed('Cannot subscribe temporarily to private node')
+                else
+                    @subscription = 'pending'
+                    # Immediately return:
+                    return cb2()
 
             @subscription = 'subscribed'
             defaultAffiliation = @nodeConfig.defaultAffiliation or 'none'
@@ -561,7 +564,7 @@ class Subscribe extends PrivilegedOperation
 
     privilegedTransaction: (t, cb) ->
         async.waterfall [ (cb2) =>
-            t.setSubscription @req.node, @req.actor, @req.sender, @subscription, cb2
+            t.setSubscription @req.node, @req.actor, @req.sender, @subscription, @req.temporary, cb2
         , (cb2) =>
             if @affiliation
                 t.setAffiliation @req.node, @req.actor, @affiliation, cb2
@@ -578,6 +581,7 @@ class Subscribe extends PrivilegedOperation
                 node: @req.node
                 user: @req.actor
                 subscription: @subscription
+                temporary: @req.temporary
             }]
         if @affiliation
             ns.push
@@ -601,7 +605,7 @@ class Unsubscribe extends PrivilegedOperation
             return cb new errors.Forbidden("You may not unsubscribe from your own nodes")
 
         async.waterfall [ (cb2) =>
-            t.setSubscription @req.node, @req.actor, @req.sender, 'none', cb2
+            t.setSubscription @req.node, @req.actor, @req.sender, 'none', false, cb2
         , (cb2) =>
             @fetchActorAffiliation t, cb2
         , (cb2) =>
@@ -628,7 +632,6 @@ class Unsubscribe extends PrivilegedOperation
             user: @req.actor
             affiliation: @actorAffiliation
         }]
-
 
 class RetrieveItems extends PrivilegedOperation
     run: (cb) ->
@@ -892,7 +895,7 @@ class ManageNodeSubscriptions extends PrivilegedOperation
                        subscription isnt 'subscribed'
                         cb4 new errors.Forbidden("You may not unsubscribe the owner")
                     else
-                        t.setSubscription @req.node, user, null, subscription, cb4
+                        t.setSubscription @req.node, user, null, subscription, false, cb4
                 , (cb4) =>
                     t.getAffiliation @req.node, user, cb4
                 , (affiliation, cb4) =>
@@ -1015,6 +1018,10 @@ class RemoveUser extends ModelOperation
             t.clearUserSubscriptions @req.actor, (err) =>
                 cb err, subscriptions
 
+class RemoveTemporarySubscriptions extends ModelOperation
+    transaction: (t, cb) ->
+        t.clearTemporarySubscriptions @req.actor, (err) =>
+            cb err
 
 class AuthorizeSubscriber extends PrivilegedOperation
     requiredAffiliation: =>
@@ -1033,7 +1040,7 @@ class AuthorizeSubscriber extends PrivilegedOperation
             @subscription = 'none'
 
         async.waterfall [ (cb2) =>
-            t.setSubscription @req.node, @req.user, @req.sender, @subscription, cb2
+            t.setSubscription @req.node, @req.user, @req.sender, @subscription, false, cb2
         , (cb2) =>
             if @affiliation
                 t.setAffiliation @req.node, @req.user, @affiliation, cb2
@@ -1137,10 +1144,10 @@ class PushInbox extends ModelOperation
 
                     when 'subscription'
                         notification.push update
-                        {node, user, listener, subscription} = update
+                        {node, user, listener, subscription, temporary} = update
                         if subscription isnt 'subscribed'
                             unsubscribedNodes[node] = yes
-                        t.setSubscription node, user, listener, subscription, cb3
+                        t.setSubscription node, user, listener, subscription, temporary, cb3
 
                     when 'affiliation'
                         notification.push update
@@ -1369,6 +1376,7 @@ OPERATIONS =
     'manage-node-affiliations': ManageNodeAffiliations
     'manage-node-configuration': ManageNodeConfiguration
     'remove-user': RemoveUser
+    'remove-temporary-subscriptions': RemoveTemporarySubscriptions
     'confirm-subscriber-authorization': AuthorizeSubscriber
     'replay-archive': ReplayArchive
     'push-inbox': PushInbox
