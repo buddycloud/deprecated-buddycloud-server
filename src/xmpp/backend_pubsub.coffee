@@ -210,7 +210,9 @@ class exports.PubsubBackend extends EventEmitter
                 else
                     cb2 null, update
             , (err, updates) =>
-                # FIXME: don't ignore err
+                if err
+                    logger.error "incoming message: #{err.stack or err.message or err}"
+                    return
                 if updates? and updates.length > 0
                     updates.sender = sender
                     updates.actor = sender
