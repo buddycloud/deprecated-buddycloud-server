@@ -172,6 +172,18 @@ class Subscribe extends PubsubRequest
     iqType: ->
         'set'
 
+    checkFeatures: (cb) ->
+        if @opts.temporary? and @opts.temporary
+            @disco.findFeatures @opts.jid, (err, features) =>
+                if err
+                    return cb err
+                if NS.PUBSUB_SUBSCRIPTION_OPTIONS in features
+                    return cb null
+                else
+                    return cb new errors.FeatureNotImplemented("Subscription options not implemented on #{@opts.jid}")
+        else
+            return cb null
+
     pubsubChild: ->
         els = [new xmpp.Element('subscribe', node: @opts.node, jid: @opts.actor)]
         if @opts.temporary? and @opts.temporary
