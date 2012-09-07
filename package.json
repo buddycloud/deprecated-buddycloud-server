@@ -1,5 +1,5 @@
 { "name": "buddycloud-server"
-,"version": "0.3.4"
+,"version": "0.3.5"
 ,"bin": { "buddycloud-server": "./bin/buddycloud-server" }
 ,"description": "buddycloud channels service for XMPP"
 ,"dependencies": {
