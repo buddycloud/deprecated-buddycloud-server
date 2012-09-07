@@ -7,23 +7,31 @@ forms = require('./forms')
 RSM = require('./rsm')
 
 class Request
-    constructor: (conn, @opts, cb) ->
+    constructor: (conn, @disco, @opts, cb) ->
         @myJid = conn.jid
-        iq = @requestIq().root()
-        iq.attrs.to = @opts.jid
-        conn.sendIq iq, (err, replyStanza) =>
+        @checkFeatures (err) =>
             if err
-                # wrap <error/> child
+                logger.warn err
                 return cb err
 
-            result = null
-            err = null
-            try
-                result = @decodeReply replyStanza
-            catch e
-                logger.error e.stack
-                err = e
-            cb err, result
+            iq = @requestIq().root()
+            iq.attrs.to = @opts.jid
+            conn.sendIq iq, (err, replyStanza) =>
+                if err
+                    # wrap <error/> child
+                    return cb err
+
+                result = null
+                err = null
+                try
+                    result = @decodeReply replyStanza
+                catch e
+                    logger.error e.stack
+                    err = e
+                cb err, result
+
+    checkFeatures: (cb) ->
+        cb null
 
     requestIq: ->
         throw new TypeError("Unimplemented request")
@@ -322,7 +330,7 @@ class ManageNodeConfiguration extends PubsubOwnerRequest
 
 # No <iq/> but a <message/> without expected reply
 class AuthorizeSubscriber
-    constructor: (conn, @opts, cb) ->
+    constructor: (conn, disco, @opts, cb) ->
         conn.send @makeStanza()
         cb()
 
