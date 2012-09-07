@@ -264,6 +264,10 @@ class BuddycloudDiscovery
             # `pending' initialized with 1, to not miss the items=[] case
             done()
 
+    findFeatures: (jid, cb) =>
+        @infoCache.get jid, (err, results) ->
+            cb err, results?.features
+
     ##
     # @param user {String} Bare JID
     # @param cb {Function} callback(error, isAnonymous)
