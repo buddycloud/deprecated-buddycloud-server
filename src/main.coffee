@@ -61,6 +61,7 @@ config.load (args, opts) ->
 
     model = require('./local/model_postgres')
     model.start config.modelConfig
+    model.checkSchemaVersion()
 
     router = new (require('./router').Router)(model, config.checkCreateNode, config.autosubscribeNewUsers)
 
@@ -132,9 +133,19 @@ config.load (args, opts) ->
             xmppConn.probePresence(listener)
 
         # wait for a fully initialised server before starting tasks
-        sync = ->
-          router.setupSync Math.ceil((config.modelConfig.poolSize or 2) / 2)
-        setTimeout sync, 5000
+        startup = ->
+            async.series [(cb) ->
+                model.cleanupTemporaryData (err) ->
+                    if err
+                        logger.error "cleanup temporary data: #{err.stack or err}"
+                    cb err
+            , (cb) ->
+                router.setupSync Math.ceil((config.modelConfig.poolSize or 2) / 2)
+                cb null
+            ], (err) ->
+                if err
+                    logger.error err
+        setTimeout startup, 5000
 
     if !config.advertiseComponents?
       config.advertiseComponents = []

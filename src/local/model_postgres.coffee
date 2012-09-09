@@ -11,6 +11,9 @@ ltx = require("ltx")  # for item XML parsing & serialization
 async = require("async")
 errors = require("../errors")
 
+# Required schema version -- don't forget to bump it as needed!
+required_schema_version = 1
+
 # ready DB connections
 pool = []
 # waiting transaction requests
@@ -66,6 +69,30 @@ withNextDb = (cb) ->
 exports.start = (config) ->
     for i in [0..(config.poolSize or 4)]
         connectDB config
+
+exports.checkSchemaVersion = ->
+    withNextDb (db) ->
+        db.query "SELECT MAX(version) FROM schema_version", (err, res) ->
+            process.nextTick ->
+                dbIsAvailable(db)
+
+            version = 0
+            if res?.rows?[0]?.max?
+                version = res.rows[0].max
+
+            if version < required_schema_version
+                logger.error "Database schema too old: require version #{required_schema_version} but using #{version}. Please backup your DB and upgrade it using the scripts in the postgres folder."
+                process.exit 1
+            else if version > required_schema_version
+                logger.error "Database schema too recent: require version #{required_schema_version} but using #{version}. Please update the server to a version that matches your DB."
+                process.exit 1
+
+exports.cleanupTemporaryData = (cb) ->
+    withNextDb (db) ->
+        db.query "DELETE FROM subscriptions WHERE anonymous=TRUE OR temporary=TRUE", (err) ->
+            process.nextTick ->
+                dbIsAvailable db
+            cb err
 
 exports.transaction = (cb) ->
     withNextDb (db) ->
@@ -494,19 +521,26 @@ class Transaction
             isSet = res and res.rows and res.rows[0]
             xml = el.toString()
             params = [ node, id, xml ]
+            pos = 4
             updated = el.getChildText('updated') or
                 el.getChildText('published')
             if updated
                 params.push updated
-                updated_query = "$4"
+                updated_query = "$" + (pos++)
             else
                 updated_query = "CURRENT_TIMESTAMP"
+            irtEl = el.getChild('in-reply-to', 'http://purl.org/syndication/thread/1.0')
+            if irtEl?.attrs.ref?
+                params.push irtEl.attrs.ref
+                irt_query = "$" + (pos++)
+            else
+                irt_query = "NULL"
             if isSet
                 db.query "UPDATE items SET xml=$3, updated=#{updated_query} WHERE node=$1 AND id=$2"
                 , params
                 , cb2
-            else unless isSet
-                db.query "INSERT INTO items (node, id, xml, updated) VALUES ($1, $2, $3, #{updated_query})"
+            else
+                db.query "INSERT INTO items (node, id, xml, updated, in_reply_to) VALUES ($1, $2, $3, #{updated_query}, #{irt_query})"
                 , params
                 , cb2
         ], cb
