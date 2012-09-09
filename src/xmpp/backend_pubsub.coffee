@@ -35,7 +35,7 @@ class exports.PubsubBackend extends EventEmitter
             unless reqClass
                 return cb(new errors.FeatureNotImplemented("Operation #{opts.operation} not implemented for remote pubsub"))
 
-            req = new reqClass @conn, opts, (err, result) ->
+            req = new reqClass @conn, @disco, opts, (err, result) ->
                 if err
                     cb err
                 else
@@ -223,10 +223,10 @@ class exports.PubsubBackend extends EventEmitter
 class BuddycloudDiscovery
     constructor: (@conn) ->
         @infoCache = new RequestCache (id, cb) =>
-            new pubsubClient.DiscoverInfo(@conn, { jid: id }, cb)
+            new pubsubClient.DiscoverInfo(@conn, @, { jid: id }, cb)
         @itemsCache = new RequestCache (id, cb) =>
             logger.debug "discover items of #{id}"
-            new pubsubClient.DiscoverItems(@conn, { jid: id }, cb)
+            new pubsubClient.DiscoverItems(@conn, @, { jid: id }, cb)
 
     authorizeFor: (sender, actor, cb) =>
         @itemsCache.get getUserDomain(actor), (err, items) ->
@@ -266,6 +266,10 @@ class BuddycloudDiscovery
                 pending++
             # `pending' initialized with 1, to not miss the items=[] case
             done()
+
+    findFeatures: (jid, cb) =>
+        @infoCache.get jid, (err, results) ->
+            cb err, results?.features
 
     ##
     # @param user {String} Bare JID

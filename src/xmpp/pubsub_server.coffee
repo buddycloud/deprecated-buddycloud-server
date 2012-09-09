@@ -311,6 +311,14 @@ class PubsubCreateRequest extends PubsubRequest
 #     id='sub1'>
 #   <pubsub xmlns='http://jabber.org/protocol/pubsub'>
 #     <subscribe node='princely_musings'/>
+#     <options node='princely_musings' jid='francisco@denmark.lit'>
+#       <x xmlns='jabber:x:data' type='submit'>
+#         <field var='FORM_TYPE' type='hidden'>
+#           <value>http://jabber.org/protocol/pubsub#subscribe_options</value>
+#         </field>
+#         <field var='pubsub#expire'><value>presence</value></field>
+#       </x>
+#     </options>
 #   </pubsub>
 # </iq>
 class PubsubSubscribeRequest extends PubsubRequest
@@ -319,6 +327,14 @@ class PubsubSubscribeRequest extends PubsubRequest
 
         @subscribeEl = @pubsubEl?.getChild("subscribe")
         @node = @subscribeEl?.attrs.node
+        @temporary = false
+
+        optionsEl = @pubsubEl?.getChild("options")
+        formEl = optionsEl?.getChild("x")
+        if formEl
+            for field in formEl.getChildren("field")
+                if field.attrs.var == 'pubsub#expire'
+                    @temporary = field.getChild("value")?.getText() is 'presence'
 
     matches: () ->
         super &&
@@ -328,8 +344,9 @@ class PubsubSubscribeRequest extends PubsubRequest
     reply: (result) ->
         attrs =
             node: @node
-        attrs.jid ?= result?.user
-        attrs.subscription ?= result?.subscription
+            jid: result?.user
+            subscription: result?.subscription
+            temporary: if result?.temporary then '1' else '0'
         super new xmpp.Element("subscription", attrs)
 
     operation: 'subscribe-node'

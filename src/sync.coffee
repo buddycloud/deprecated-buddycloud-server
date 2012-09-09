@@ -94,6 +94,8 @@ class SubscriptionsSynchronization extends PaginatedSynchronization
         # Preserve the subscriptions listeners that are local, which
         # is only a small subset of the global subscriptions to a
         # remote node.
+        # Also preserve temporary subscriptions since they are not included in
+        # the remote results.
         t.resetSubscriptions @node, (err, @userListeners) =>
             cb err
 
@@ -121,7 +123,7 @@ class SubscriptionsSynchronization extends PaginatedSynchronization
     writeResults: (t, results, cb) ->
         async.forEach results, (item, cb2) =>
             listener = @userListeners[item.user]
-            t.setSubscription @node, item.user, listener, item.subscription, cb2
+            t.setSubscription @node, item.user, listener, item.subscription, false, cb2
         , cb
 
 class AffiliationsSynchronization extends PaginatedSynchronization

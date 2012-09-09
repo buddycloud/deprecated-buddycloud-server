@@ -273,7 +273,7 @@ class BrowseInfo extends Operation
             features: [
                 NS.DISCO_INFO, NS.DISCO_ITEMS,
                 NS.REGISTER,
-                NS.PUBSUB, NS.PUBSUB_OWNER
+                NS.PUBSUB, NS.PUBSUB_OWNER, NS.PUBSUB_SUBSCRIPTION_OPTIONS
             ]
             identities: [{
                 category: "pubsub"
@@ -420,7 +420,7 @@ class Register extends ModelOperation
             created = created_
             t.setAffiliation node, user, 'owner', cb2
         , (cb2) =>
-            t.setSubscription node, user, @req.sender, 'subscribed', cb2
+            t.setSubscription node, user, @req.sender, 'subscribed', false, cb2
         , (cb2) ->
             # if already present, don't overwrite config
             if created
@@ -488,7 +488,7 @@ class CreateNode extends ModelOperation
             # Set
             t.setConfig @req.node, config, cb2
         , (cb2) =>
-            t.setSubscription @req.node, @req.actor, @req.sender, 'subscribed', cb2
+            t.setSubscription @req.node, @req.actor, @req.sender, 'subscribed', false, cb2
         , (cb2) =>
             t.setAffiliation @req.node, @req.actor, 'owner', cb2
         ], cb
@@ -542,15 +542,20 @@ class Subscribe extends PrivilegedOperation
             @fetchNodeConfig t, cb2
         , (cb2) =>
             if @nodeConfig.accessModel is 'authorize'
-                @subscription = 'pending'
-                # Immediately return:
-                return cb2()
+                if @req.temporary
+                    return cb2 new errors.NotAllowed('Cannot subscribe temporarily to private node')
+                else
+                    @subscription = 'pending'
+                    # Immediately return:
+                    return cb2()
 
             @subscription = 'subscribed'
-            defaultAffiliation = @nodeConfig.defaultAffiliation or 'none'
-            unless isAffiliationAtLeast @actorAffiliation, defaultAffiliation
-                # Less than current affiliation? Bump up to defaultAffiliation
-                @affiliation = @nodeConfig.defaultAffiliation or 'member'
+            # Temporary subscriptions always have affiliation 'none'
+            unless @req.temporary
+                defaultAffiliation = @nodeConfig.defaultAffiliation or 'none'
+                unless isAffiliationAtLeast @actorAffiliation, defaultAffiliation
+                    # Less than current affiliation? Bump up to defaultAffiliation
+                    @affiliation = @nodeConfig.defaultAffiliation or 'member'
 
             @checkAccessModel t, cb2
         ], (err) =>
@@ -561,7 +566,7 @@ class Subscribe extends PrivilegedOperation
 
     privilegedTransaction: (t, cb) ->
         async.waterfall [ (cb2) =>
-            t.setSubscription @req.node, @req.actor, @req.sender, @subscription, cb2
+            t.setSubscription @req.node, @req.actor, @req.sender, @subscription, @req.temporary, cb2
         , (cb2) =>
             if @affiliation
                 t.setAffiliation @req.node, @req.actor, @affiliation, cb2
@@ -571,21 +576,23 @@ class Subscribe extends PrivilegedOperation
             cb err,
                 user: @req.actor
                 subscription: @subscription
+                temporary: @req.temporary
 
     notification: ->
-        ns = [{
-                type: 'subscription'
-                node: @req.node
-                user: @req.actor
-                subscription: @subscription
-            }]
-        if @affiliation
-            ns.push
-                type: 'affiliation'
-                node: @req.node
-                user: @req.actor
-                affiliation: @affiliation
-        ns
+        unless @req.temporary
+            ns = [{
+                    type: 'subscription'
+                    node: @req.node
+                    user: @req.actor
+                    subscription: @subscription
+                }]
+            if @affiliation
+                ns.push
+                    type: 'affiliation'
+                    node: @req.node
+                    user: @req.actor
+                    affiliation: @affiliation
+            ns
 
     moderatorNotification: ->
         if @subscription is 'pending'
@@ -601,7 +608,9 @@ class Unsubscribe extends PrivilegedOperation
             return cb new errors.Forbidden("You may not unsubscribe from your own nodes")
 
         async.waterfall [ (cb2) =>
-            t.setSubscription @req.node, @req.actor, @req.sender, 'none', cb2
+            t.getTemporarySubscription @req.node, @req.actor, cb2
+        , (_, @temporary, cb2) =>
+            t.setSubscription @req.node, @req.actor, @req.sender, 'none', false, cb2
         , (cb2) =>
             @fetchActorAffiliation t, cb2
         , (cb2) =>
@@ -617,17 +626,18 @@ class Unsubscribe extends PrivilegedOperation
         ], cb
 
     notification: ->
-        [{
-            type: 'subscription'
-            node: @req.node
-            user: @req.actor
-            subscription: 'none'
-        }, {
-            type: 'affiliation'
-            node: @req.node
-            user: @req.actor
-            affiliation: @actorAffiliation
-        }]
+        unless @temporary
+            [{
+                type: 'subscription'
+                node: @req.node
+                user: @req.actor
+                subscription: 'none'
+            }, {
+                type: 'affiliation'
+                node: @req.node
+                user: @req.actor
+                affiliation: @actorAffiliation
+            }]
 
 
 class RetrieveItems extends PrivilegedOperation
@@ -892,7 +902,7 @@ class ManageNodeSubscriptions extends PrivilegedOperation
                        subscription isnt 'subscribed'
                         cb4 new errors.Forbidden("You may not unsubscribe the owner")
                     else
-                        t.setSubscription @req.node, user, null, subscription, cb4
+                        t.setSubscription @req.node, user, null, subscription, false, cb4
                 , (cb4) =>
                     t.getAffiliation @req.node, user, cb4
                 , (affiliation, cb4) =>
@@ -1015,6 +1025,24 @@ class RemoveUser extends ModelOperation
             t.clearUserSubscriptions @req.actor, (err) =>
                 cb err, subscriptions
 
+class CleanOfflineUser extends ModelOperation
+    transaction: (t, cb) ->
+        notification = []
+
+        # Does the user have temporary subscriptions?
+        t.getUserTemporarySubscriptions @req.actor, (err, subscriptions) =>
+            if err
+                return cb(err)
+
+            # Send unsubscribe requests to remote servers
+            async.forEach subscriptions, (subscription, cb2) =>
+                opts =
+                    operation: 'unsubscribe-node'
+                    node: subscription.node
+                    actor: @req.actor
+                    writes: true
+                @router.run opts, cb2
+            , cb
 
 class AuthorizeSubscriber extends PrivilegedOperation
     requiredAffiliation: =>
@@ -1033,7 +1061,7 @@ class AuthorizeSubscriber extends PrivilegedOperation
             @subscription = 'none'
 
         async.waterfall [ (cb2) =>
-            t.setSubscription @req.node, @req.user, @req.sender, @subscription, cb2
+            t.setSubscription @req.node, @req.user, @req.sender, @subscription, false, cb2
         , (cb2) =>
             if @affiliation
                 t.setAffiliation @req.node, @req.user, @affiliation, cb2
@@ -1136,11 +1164,12 @@ class PushInbox extends ModelOperation
                         , cb3
 
                     when 'subscription'
-                        notification.push update
-                        {node, user, listener, subscription} = update
+                        {node, user, listener, subscription, temporary} = update
+                        unless temporary
+                            notification.push update
                         if subscription isnt 'subscribed'
                             unsubscribedNodes[node] = yes
-                        t.setSubscription node, user, listener, subscription, cb3
+                        t.setSubscription node, user, listener, subscription, temporary, cb3
 
                     when 'affiliation'
                         notification.push update
@@ -1369,6 +1398,7 @@ OPERATIONS =
     'manage-node-affiliations': ManageNodeAffiliations
     'manage-node-configuration': ManageNodeConfiguration
     'remove-user': RemoveUser
+    'clean-offline-user': CleanOfflineUser
     'confirm-subscriber-authorization': AuthorizeSubscriber
     'replay-archive': ReplayArchive
     'push-inbox': PushInbox
@@ -1467,7 +1497,8 @@ generateSubscriptionsNotifications = (updates) ->
     itemIdsSeen = {}
     updates.filter((update) ->
         (update.type is 'subscription' and
-         update.subscription is 'subscribed') or
+         update.subscription is 'subscribed' and
+         not (update.temporary? and update.temporary)) or
         update.type is 'affiliation'
     ).map((update) ->
         followee = update.node.match(NODE_OWNER_TYPE_REGEXP)?[1]
