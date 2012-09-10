@@ -291,4 +291,4 @@ class exports.Router
                 operation: 'remove-user'
                 actor: user
                 sender: user
-            runLocally req, ->
+            @runLocally req, ->
