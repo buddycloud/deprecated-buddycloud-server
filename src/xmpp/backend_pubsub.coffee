@@ -201,12 +201,10 @@ class exports.PubsubBackend extends EventEmitter
             async.map updates, (update, cb2) =>
                 if update.type is 'subscription'
                     @disco.findService update.user, (err, service) =>
-                        if err
-                            cb2 err, null
-                        else
+                        if service?
                             # If remote user, listener = sender. If local user, listener = user.
                             update.listener = if @getMyJids().indexOf(service) >= 0 then update.user else sender
-                            cb2 null, update
+                        cb2 err, update
                 else
                     cb2 null, update
             , (err, updates) =>
