@@ -285,14 +285,10 @@ class exports.Router
     # * Disco info may not be available anymore
     # * If missing from anonymousUsers no clean-up is needed
     onUserOffline: (user) ->
-        req =
-            operation: 'clean-offline-user'
-            actor: user
-        @runLocally req, =>
-            if @anonymousUsers.hasOwnProperty(user) and @anonymousUsers[user]
-                delete @anonymousUsers[user]
-                req =
-                    operation: 'remove-user'
-                    actor: user
-                    sender: user
-                @runLocally req, ->
+        if @anonymousUsers.hasOwnProperty(user) and @anonymousUsers[user]
+            delete @anonymousUsers[user]
+            req =
+                operation: 'remove-user'
+                actor: user
+                sender: user
+            @runLocally req, ->
