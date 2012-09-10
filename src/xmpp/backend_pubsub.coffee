@@ -312,5 +312,6 @@ class RequestCache
         else
             # Result already present
             logger.trace "Cache hit for #{id}"
-            process.nextTick =>
-                cb @entries[id].err, @entries[id].results
+            entry = @entries[id]
+            process.nextTick ->
+                cb entry.err, entry.results
