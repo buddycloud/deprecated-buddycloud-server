@@ -1,5 +1,9 @@
+fs = require 'fs'
 path = require 'path'
-{ run, compileScript, readFile, writeFile, notify } = require 'muffin'
+{ run, compileScript, readFile, writeFile, exec, notify } = require 'muffin'
+
+# In Node.js 0.8.x, existsSync moved from path to fs.
+existsSync = fs.existsSync or path.existsSync
 
 task 'build', 'compile coffeescript → javascript', (options) ->
     run
@@ -13,11 +17,20 @@ task 'build', 'compile coffeescript → javascript', (options) ->
                 compileScript m[0], path.join("lib" ,"#{m[1]}.js"), options
 
             'package.json': (m) ->
-                readFile(m[0]).then (item) ->
-                    json = JSON.parse(item)
-                    data = "module.exports=\"#{json.version}\"\n"
+                writeNameAndVersion = (name, version) ->
+                    data = "module.exports=\"#{version}\"\n"
                     writeFile("lib/version.js", data).then ->
-                        notify m[0], "Extracted version: #{json.version}"
-                    data = "module.exports=\"#{json.name}\"\n"
+                        notify m[0], "Extracted version: #{version}"
+                    data = "module.exports=\"#{name}\"\n"
                     writeFile("lib/name.js", data).then ->
-                        notify m[0], "Extracted name: #{json.name}"
+                    notify m[0], "Extracted name: #{name}"
+
+                readFile(m[0]).then (item) ->
+                    { name, version } = JSON.parse(item)
+                    if existsSync('.git')
+                        exec('git describe --tags')[1].then (out) ->
+                            # Remove leading "v" and trailing \n
+                            version = out[0].slice(1, -1)
+                            writeNameAndVersion name, version
+                    else
+                        writeNameAndVersion name, version
