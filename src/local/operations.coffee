@@ -541,6 +541,18 @@ class Subscribe extends PrivilegedOperation
         , (cb2) =>
             @fetchNodeConfig t, cb2
         , (cb2) =>
+            # Prevent existing persistent subscriptions from being made temporary
+            if @req.temporary
+                t.getTemporarySubscription @req.node, @req.actor, (err, subscription, temporary) ->
+                    if err
+                        return cb2 err
+                    if subscription is 'subscribed' and not temporary
+                        return cb2 new errors.NotAllowed('Cannot make existing subscription temporary')
+                    else
+                        return cb2()
+            else
+                return cb2()
+        , (cb2) =>
             if @nodeConfig.accessModel is 'authorize'
                 if @req.temporary
                     return cb2 new errors.NotAllowed('Cannot subscribe temporarily to private node')
