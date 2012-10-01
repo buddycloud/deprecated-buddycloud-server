@@ -18,7 +18,9 @@
         "colors": ">=0.6.0-1",
         "tarballify": ">=0.0.5",
         "muffin": ">=0.2.7",
-        "coffee-script": ">=1.2.0"
+        "coffee-script": ">=1.2.0",
+        "mocha": ">=1.4.0",
+        "should": ">=1.2.0"
         }
 ,"repositories": [{"type": "git"
         ,"path": "git://github.com/buddycloud/buddycloud-server.git"
