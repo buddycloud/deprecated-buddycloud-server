@@ -151,53 +151,53 @@ config.load (args, opts) ->
         setTimeout startup, 5000
 
     if !config.advertiseComponents?
-      config.advertiseComponents = []
+        config.advertiseComponents = []
     for index of config.advertiseComponents
-      componentConfig = {}
-      for key, value of config.xmpp
-        componentConfig[key] = value
-      componentConfig.jid = config.advertiseComponents[index]
-      componentConfig.reconnect = true
-      connection = new xmpp.Component(componentConfig)
-      connection.on "error", (e) ->
-          logger.error e
-      connection.on "stanza", (stanza) =>
-          # Just debug output:
-          logger.trace "<< Extra connection request: #{stanza.toString()}"
-          from = stanza.attrs.from
+        componentConfig = {}
+        for key, value of config.xmpp
+            componentConfig[key] = value
+        componentConfig.jid = config.advertiseComponents[index]
+        componentConfig.reconnect = true
+        connection = new xmpp.Component(componentConfig)
+        connection.on "error", (e) ->
+            logger.error e
+        connection.on "stanza", (stanza) =>
+            # Just debug output:
+            logger.trace "<< Extra connection request: #{stanza.toString()}"
+            from = stanza.attrs.from
 
-          if stanza.name is 'iq' and stanza.attrs.type is 'get'
-              # IQ requests
-              if !stanza.children?
-                stanza.children = []
-              for i, child of stanza.children
-                if child.name is 'query'
-                  query = child
-              if !query?
-                  return
-              switch query.attrs.xmlns
-                when NS.DISCO_ITEMS
-                    reply = new xmpp.Element("iq",
-                        from: stanza.attrs.to
-                        to: stanza.attrs.from
-                        id: stanza.attrs.id or ""
-                        type: "result"
-                        xmlns: Connection.NS_STREAM).
-                        c('query', xmlns: NS.DISCO_ITEMS).
-                        c('item', jid: config.xmpp.jid, name: 'buddycloud-server')
-                when NS.DISCO_INFO
-                    reply = new xmpp.Element("iq",
-                        from: stanza.attrs.to
-                        to: stanza.attrs.from
-                        id: stanza.attrs.id or ""
-                        type: "result"
-                        xmlns: Connection.NS_STREAM).
-                        c('query', xmlns: NS.DISCO_INFO).
-                        c('feature', var: NS.DISCO_INFO).up().
-                        c('feature', var: NS.DISCO_ITEMS).up().
-                        c('feature', var: NS.REGISTER).up().
-                        c('identity', category:'pubsub', type:'service', name:'Buddycloud proxy domain')
-                else
+            if stanza.name is 'iq' and stanza.attrs.type is 'get'
+                # IQ requests
+                if !stanza.children?
+                    stanza.children = []
+                for i, child of stanza.children
+                    if child.name is 'query'
+                        query = child
+                if !query?
                     return
-              logger.trace "<< Extra connection response: #{reply.root().toString()}"
-              connection.send reply
+                switch query.attrs.xmlns
+                    when NS.DISCO_ITEMS
+                        reply = new xmpp.Element("iq",
+                            from: stanza.attrs.to
+                            to: stanza.attrs.from
+                            id: stanza.attrs.id or ""
+                            type: "result"
+                            xmlns: Connection.NS_STREAM).
+                            c('query', xmlns: NS.DISCO_ITEMS).
+                            c('item', jid: config.xmpp.jid, name: 'buddycloud-server')
+                    when NS.DISCO_INFO
+                        reply = new xmpp.Element("iq",
+                            from: stanza.attrs.to
+                            to: stanza.attrs.from
+                            id: stanza.attrs.id or ""
+                            type: "result"
+                            xmlns: Connection.NS_STREAM).
+                            c('query', xmlns: NS.DISCO_INFO).
+                            c('feature', var: NS.DISCO_INFO).up().
+                            c('feature', var: NS.DISCO_ITEMS).up().
+                            c('feature', var: NS.REGISTER).up().
+                            c('identity', category:'pubsub', type:'service', name:'Buddycloud proxy domain')
+                    else
+                        return
+                logger.trace "<< Extra connection response: #{reply.root().toString()}"
+                connection.send reply
