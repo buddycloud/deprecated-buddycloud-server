@@ -28,7 +28,7 @@ task 'build', 'compile coffeescript → javascript', (options) ->
                 readFile(m[0]).then (item) ->
                     { name, version } = JSON.parse(item)
                     if existsSync('.git')
-                        exec('git describe --tags')[1].then (out) ->
+                        exec('git describe --tags --dirty')[1].then (out) ->
                             # Remove leading "v" and trailing \n
                             version = out[0].slice(1, -1)
                             writeNameAndVersion name, version
