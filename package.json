@@ -27,7 +27,8 @@
         }]
 ,"scripts": {
     "install": "cake build",
-    "start": "./bin/buddycloud-server --nobuild"
+    "start": "./bin/buddycloud-server --nobuild",
+    "test": "./test/prepare-db.sh && ./node_modules/.bin/mocha -r should -R spec --compilers coffee:coffee-script"
 }
 ,"homepage": "http://buddycloud.org"
 ,"bugs": "http://github.com/buddycloud/buddycloud-server/issues"
