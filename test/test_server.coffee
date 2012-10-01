@@ -28,6 +28,16 @@ class exports.TestServer extends EventEmitter
             autosubscribeNewUsers: []
         @server = server.startServer config
 
+        # Disco replies to the buddycloud server.
+        # Elements of @disco.info must be like:
+        #     { identities: [{type: "...", name: "...", category: "..."}, ...],
+        #       features: [ns1, ns2, ...] }
+        # Elements of @disco.items must be like:
+        #     [ {item_attr1: val1, item_attr2: val2, ...}, ... ]
+        @disco =
+            info: {}
+            items: {}
+
         # Cache IQs sent by the buddycloud server
         @iqs =
             get: {}
@@ -66,6 +76,20 @@ class exports.TestServer extends EventEmitter
                 @iqs[type][id] = stanza
                 @emit "got-iq-#{type}-#{id}", stanza
 
+                # Handle disco queries
+                discoInfoQuery = stanza.getChild("query", "http://jabber.org/protocol/disco#info")
+                if type is "get" and discoInfoQuery? and stanza.attrs.to of @disco.info
+                    info = @disco.info[stanza.attrs.to]
+                    queryEl = new ltx.Element("query", xmlns: "http://jabber.org/protocol/disco#info")
+                    for identity in info.identities
+                        queryEl.c "identity", identity
+                    for feature in info.features
+                        queryEl.c "feature",
+                            var: feature
+                    iq = @makeIq("result", stanza.attrs.to, stanza.attrs.from, id)
+                        .cnode(queryEl)
+                        .root()
+                    @emit "stanza", iq
             else
                 @emit "got-stanza", stanza
 
