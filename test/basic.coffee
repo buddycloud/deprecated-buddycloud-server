@@ -46,6 +46,7 @@ describe "buddycloud-server", ->
                 "http://jabber.org/protocol/disco#info",
                 "http://jabber.org/protocol/disco#items",
                 "http://jabber.org/protocol/pubsub",
+                "http://jabber.org/protocol/pubsub#create-and-configure",
                 "http://jabber.org/protocol/pubsub#create-nodes",
                 "http://jabber.org/protocol/pubsub#owner",
                 "http://jabber.org/protocol/pubsub#subscription-options",

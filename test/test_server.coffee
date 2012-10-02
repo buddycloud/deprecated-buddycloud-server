@@ -64,7 +64,26 @@ class exports.TestServer extends EventEmitter
                 to: to
                 id: id
 
+    makeForm: (type, form_type, fields) ->
+        el = new ltx.Element("x", xmlns: "jabber:x:data", type: type)
+            .c("field", var: "FORM_TYPE", type: "hidden")
+            .c("value").t(form_type)
+            .up().up()
+        for name, value of fields
+            el.c("field", var: name)
+                .c("value").t(value)
+                .up().up()
+        return el.root()
+
     # Helpers to parse XMPP stanzas
+    parseForm: (xEl) ->
+        fields = {}
+        for field in xEl.getChildren "field"
+            name = field.attrs.var
+            value = field.getChildText("value")
+            fields[name] = value
+        return fields
+
     parseDiscoInfo: (iq) ->
         qEl = iq.getChild("query", "http://jabber.org/protocol/disco#info")
         should.exist(qEl)
@@ -78,6 +97,10 @@ class exports.TestServer extends EventEmitter
             disco.identities.push identity.attrs
         for feature in qEl.getChildren "feature"
             disco.features.push feature.attrs.var
+
+        xEl = qEl.getChild("x", "jabber:x:data")
+        if xEl?
+            disco.form = @parseForm xEl
 
         return disco
 
