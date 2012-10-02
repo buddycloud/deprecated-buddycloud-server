@@ -3,10 +3,6 @@ should = require('should')
 
 describe "Creating a channel", ->
     server = new TestServer()
-    server.disco.info["test@example.org"] =
-        identities: []
-        features: []
-    server.disco.items["example.org"] = [{ jid: "buddycloud.example.org" }]
 
     it "must be possible for a local user", (done) ->
         iq = server.makeIq("set", "test@example.org", "buddycloud.example.org", "create1")

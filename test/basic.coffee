@@ -2,9 +2,6 @@
 
 describe "buddycloud-server", ->
     server = new TestServer()
-    server.disco.info["test@example.org"] =
-        identities: []
-        features: []
 
     it "should support Software Version requests (XEP-0092)", (done) ->
         iq = server.makeIq("get", "test@example.org", "buddycloud.example.org", "info1")

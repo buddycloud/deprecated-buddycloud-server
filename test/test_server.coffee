@@ -35,8 +35,12 @@ class exports.TestServer extends EventEmitter
         # Elements of @disco.items must be like:
         #     [ {item_attr1: val1, item_attr2: val2, ...}, ... ]
         @disco =
-            info: {}
-            items: {}
+            info:
+                "test@example.org":
+                    identities: []
+                    features: []
+            items:
+                "example.org": [{jid: "buddycloud.example.org"}]
 
         # Cache IQs sent by the buddycloud server
         @iqs =
