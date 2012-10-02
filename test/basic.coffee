@@ -32,25 +32,15 @@ describe "buddycloud-server", ->
                 type: "result"
             iq.children.should.have.length 1
 
-            q = iq.children[0]
-            q.should.have.property "name", "query"
-            q.attrs.should.have.property "xmlns", "http://jabber.org/protocol/disco#info"
-
-            identities = []
-            features = []
-            for child in q.children
-                if child.name is "identity"
-                    identities.push child.attrs
-                if child.name is "feature"
-                    features.push child.attrs.var
+            disco = server.parseDiscoInfo iq
 
             expectedIdentities = [
-                { category: "pubsub", type: "service", name: "XEP-0060 service" },
-                { category: "pubsub", type: "channels", name: "Channels service" },
-                { category: "pubsub", type: "inbox", name: "Channels inbox service" }
+                { category: "pubsub", type: "service" },
+                { category: "pubsub", type: "channels" },
+                { category: "pubsub", type: "inbox" }
             ]
             for identity in expectedIdentities
-                identities.should.includeEql identity
+                disco.identities.should.includeEql identity
 
             expectedFeatures = [
                 "http://jabber.org/protocol/disco#info",
@@ -63,7 +53,7 @@ describe "buddycloud-server", ->
                 "jabber:iq:version"
             ]
             for feature in expectedFeatures
-                features.should.include feature
+                disco.features.should.include feature
 
     it "should support disco#items (XEP-0030)", (done) ->
         iq = server.makeIq("get", "test@example.org", "buddycloud.example.org", "disco2")

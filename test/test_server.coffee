@@ -1,5 +1,7 @@
 { EventEmitter } = require('events')
 ltx = require('ltx')
+should = require('should')
+
 server = require('../lib/server')
 
 class exports.TestServer extends EventEmitter
@@ -61,6 +63,23 @@ class exports.TestServer extends EventEmitter
                 from: from
                 to: to
                 id: id
+
+    # Helpers to parse XMPP stanzas
+    parseDiscoInfo: (iq) ->
+        qEl = iq.getChild("query", "http://jabber.org/protocol/disco#info")
+        should.exist(qEl)
+
+        disco =
+            identities: []
+            features: []
+
+        for identity in qEl.getChildren "identity"
+            delete identity.attrs.name
+            disco.identities.push identity.attrs
+        for feature in qEl.getChildren "feature"
+            disco.features.push feature.attrs.var
+
+        return disco
 
     # Used by the buddycloud server to send XML stanzas to the XMPP server. This
     # parses and route these stanzas. Don't use this in tests! If you want to
