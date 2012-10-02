@@ -77,19 +77,28 @@ class exports.TestServer extends EventEmitter
                 @emit "got-iq-#{type}-#{id}", stanza
 
                 # Handle disco queries
-                discoInfoQuery = stanza.getChild("query", "http://jabber.org/protocol/disco#info")
-                if type is "get" and discoInfoQuery? and stanza.attrs.to of @disco.info
-                    info = @disco.info[stanza.attrs.to]
-                    queryEl = new ltx.Element("query", xmlns: "http://jabber.org/protocol/disco#info")
-                    for identity in info.identities
-                        queryEl.c "identity", identity
-                    for feature in info.features
-                        queryEl.c "feature",
-                            var: feature
-                    iq = @makeIq("result", stanza.attrs.to, stanza.attrs.from, id)
-                        .cnode(queryEl)
-                        .root()
-                    @emit "stanza", iq
+                if type is "get"
+                    if stanza.getChild("query", "http://jabber.org/protocol/disco#info")? and stanza.attrs.to of @disco.info
+                        info = @disco.info[stanza.attrs.to]
+                        queryEl = new ltx.Element("query", xmlns: "http://jabber.org/protocol/disco#info")
+                        for identity in info.identities
+                            queryEl.c "identity", identity
+                        for feature in info.features
+                            queryEl.c "feature",
+                                var: feature
+                        iq = @makeIq("result", stanza.attrs.to, stanza.attrs.from, id)
+                            .cnode(queryEl)
+                            .root()
+                        @emit "stanza", iq
+                    if stanza.getChild("query", "http://jabber.org/protocol/disco#items")? and stanza.attrs.to of @disco.items
+                        items = @disco.items[stanza.attrs.to]
+                        queryEl = new ltx.Element("query", xmlns: "http://jabber.org/protocol/disco#items")
+                        for item in items
+                            queryEl.c "item", item
+                        iq = @makeIq("result", stanza.attrs.to, stanza.attrs.from, id)
+                            .cnode(queryEl)
+                            .root()
+                        @emit "stanza", iq
             else
                 @emit "got-stanza", stanza
 
