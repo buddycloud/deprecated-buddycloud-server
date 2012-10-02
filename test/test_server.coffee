@@ -89,6 +89,7 @@ class exports.TestServer extends EventEmitter
         should.exist(qEl)
 
         disco =
+            attrs: qEl.attrs
             identities: []
             features: []
 
