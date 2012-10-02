@@ -5,17 +5,15 @@ describe "Creating a channel", ->
     server = new TestServer()
 
     it "must be possible for a local user", (done) ->
-        iq = server.makeIq("set", "test@example.org", "buddycloud.example.org", "create1")
-            .c("pubsub", xmlns: "http://jabber.org/protocol/pubsub")
+        iq = server.makePubsubSetIq("test@example.org", "buddycloud.example.org", "create1")
             .c("create", node: "/user/test@example.org/posts")
-            .root()
+
         server.doTest iq, "got-iq-result-create1", done, (iq) ->
 
     it "must fail if a node already exists", (done) ->
-        iq = server.makeIq("set", "test@example.org", "buddycloud.example.org", "create2")
-            .c("pubsub", xmlns: "http://jabber.org/protocol/pubsub")
+        iq = server.makePubsubSetIq("test@example.org", "buddycloud.example.org", "create2")
             .c("create", node: "/user/test@example.org/posts")
-            .root()
+
         server.doTest iq, "got-iq-error-create2", done, (iq) ->
             iq.children.should.have.length 1
             err = iq.children[0]
@@ -26,10 +24,9 @@ describe "Creating a channel", ->
     # Skip this test. It fails because the server responds with
     # "not-implemented" instead of "not-acceptable", but it's good enough....
     it.skip "requires a node ID", (done) ->
-        iq = server.makeIq("set", "test@example.org", "buddycloud.example.org", "create3")
-            .c("pubsub", xmlns: "http://jabber.org/protocol/pubsub")
+        iq = server.makePubsubSetIq("test@example.org", "buddycloud.example.org", "create3")
             .c("create")
-            .root()
+
         server.doTest iq, "got-iq-error-create3", done, (iq) ->
             iq.children.should.have.length 1
             err = iq.children[0]
@@ -39,9 +36,9 @@ describe "Creating a channel", ->
             should.exist(err.getChild("nodeid-required", "http://jabber.org/protocol/pubsub#errors"))
 
     it "must set default configuration", (done) ->
-        iq = server.makeIq("get", "test@example.org", "buddycloud.example.org", "disco1")
-            .c("query", xmlns: "http://jabber.org/protocol/disco#info", node: "/user/test@example.org/posts")
-            .root()
+        iq = server.makeDiscoInfoIq "test@example.org", "buddycloud.example.org", "disco1"
+        iq.attrs.node = "/user/test@example.org/posts"
+
         server.doTest iq, "got-iq-result-disco1", done, (iq) ->
             iq.children.should.have.length 1
 
@@ -68,17 +65,16 @@ describe "Creating a channel", ->
         form = server.makeForm "submit", "http://jabber.org/protocol/pubsub#node_config",
             "pubsub#title": "Status for test user"
             "pubsub#description": "What test user is currently doing"
-        iq = server.makeIq("set", "test@example.org", "buddycloud.example.org", "create4")
-            .c("pubsub", xmlns: "http://jabber.org/protocol/pubsub")
+        iq = server.makePubsubSetIq("test@example.org", "buddycloud.example.org", "create4")
             .c("create", node: "/user/test@example.org/status").up()
             .c("configure").cnode(form)
-            .root()
+
         server.doTest iq, "got-iq-result-create4", done, (iq) ->
 
     it "should respect initial node configuration", (done) ->
-        iq = server.makeIq("get", "test@example.org", "buddycloud.example.org", "disco2")
-            .c("query", xmlns: "http://jabber.org/protocol/disco#info", node: "/user/test@example.org/status")
-            .root()
+        iq = server.makeDiscoInfoIq "test@example.org", "buddycloud.example.org", "disco2"
+        iq.attrs.node = "/user/test@example.org/status"
+
         server.doTest iq, "got-iq-result-disco2", done, (iq) ->
             iq.children.should.have.length 1
 

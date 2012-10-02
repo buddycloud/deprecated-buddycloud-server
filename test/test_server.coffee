@@ -75,6 +75,18 @@ class exports.TestServer extends EventEmitter
                 .up().up()
         return el.root()
 
+    makeDiscoInfoIq: (from, to, id) ->
+        return @makeIq("get", from, to, id)
+            .c("query", xmlns: "http://jabber.org/protocol/disco#info")
+
+    makeDiscoItemsIq: (from, to, id) ->
+        return @makeIq("get", from, to, id)
+            .c("query", xmlns: "http://jabber.org/protocol/disco#items")
+
+    makePubsubSetIq: (from, to, id) ->
+        return @makeIq("set", from, to, id)
+            .c("pubsub", xmlns: "http://jabber.org/protocol/pubsub")
+
     # Helpers to parse XMPP stanzas
     parseForm: (xEl) ->
         fields = {}
@@ -157,4 +169,4 @@ class exports.TestServer extends EventEmitter
             catch e
                 cb_done(e)
 
-        @emit "stanza", stanza
+        @emit "stanza", stanza.root()

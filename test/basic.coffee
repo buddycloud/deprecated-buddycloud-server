@@ -20,9 +20,7 @@ describe "buddycloud-server", ->
             # TODO: check for name, version, os
 
     it "should support disco#info (XEP-0030)", (done) ->
-        iq = server.makeIq("get", "test@example.org", "buddycloud.example.org", "disco1")
-            .c("query", xmlns: "http://jabber.org/protocol/disco#info")
-            .root()
+        iq = server.makeDiscoInfoIq "test@example.org", "buddycloud.example.org", "disco1"
 
         server.doTest iq, "got-iq-result-disco1", done, (iq) ->
             iq.attrs.should.eql
@@ -57,9 +55,7 @@ describe "buddycloud-server", ->
                 disco.features.should.include feature
 
     it "should support disco#items (XEP-0030)", (done) ->
-        iq = server.makeIq("get", "test@example.org", "buddycloud.example.org", "disco2")
-            .c("query", xmlns: "http://jabber.org/protocol/disco#items")
-            .root()
+        iq = server.makeDiscoItemsIq "test@example.org", "buddycloud.example.org", "disco2"
 
         server.doTest iq, "got-iq-result-disco2", done, (iq) ->
             iq.attrs.should.eql
