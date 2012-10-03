@@ -29,7 +29,7 @@ class exports.TestServer extends EventEmitter
     # Construct a new test server with a configuration suitable for unit
     # testing.
     constructor: ->
-        config =
+        @config =
             modelBackend: "postgres"
             modelConfig:
                 host: "localhost"
@@ -51,7 +51,7 @@ class exports.TestServer extends EventEmitter
                 file: "test-suite.log"
             checkCreateNode: -> true
             autosubscribeNewUsers: []
-        @server = server.startServer config
+        @server = server.startServer @config
 
         # Cache IQs sent by the buddycloud server
         @iqs =
@@ -169,6 +169,22 @@ class exports.TestServer extends EventEmitter
     send: (data) ->
         stanza = if data instanceof ltx.Element then data else ltx.parse data
         switch stanza.name
+            when "presence"
+                stanza.attrs.should.have.property "to"
+                stanza.attrs.should.have.property "type"
+                if stanza.attrs.type is "probe"
+                    # Reply to presence probes. If the probed JID is a client,
+                    # reply with 2 online resources: "abc" and "def".
+                    to = stanza.attrs.from ? @config.xmpp.jid
+                    bareFrom = stanza.attrs.to
+                    if "@" in bareFrom
+                        froms = [bareFrom + "/abc", bareFrom + "/def"]
+                    else
+                        froms = [bareFrom]
+                    for from in froms
+                        p = new ltx.Element("presence", from: from, to: to)
+                        @emit "stanza", p.root()
+
             when "iq"
                 stanza.attrs.should.have.property "from"
                 stanza.attrs.should.have.property "to"
@@ -193,8 +209,7 @@ class exports.TestServer extends EventEmitter
                                 var: feature
                         iq = @makeIq("result", stanza.attrs.to, stanza.attrs.from, id)
                             .cnode(queryEl)
-                            .root()
-                        @emit "stanza", iq
+                        @emit "stanza", iq.root()
                     if stanza.getChild("query", "http://jabber.org/protocol/disco#items")? and stanza.attrs.to of @disco.items
                         items = @disco.items[stanza.attrs.to]
                         queryEl = new ltx.Element("query", xmlns: "http://jabber.org/protocol/disco#items")
@@ -202,7 +217,6 @@ class exports.TestServer extends EventEmitter
                             queryEl.c "item", item
                         iq = @makeIq("result", stanza.attrs.to, stanza.attrs.from, id)
                             .cnode(queryEl)
-                            .root()
-                        @emit "stanza", iq
+                        @emit "stanza", iq.root()
             else
                 @emit "got-stanza", stanza
