@@ -167,7 +167,7 @@ class exports.TestServer extends EventEmitter
     # to communicate with the buddycloud server, emit a "stanza" event instead.
     # @private
     send: (data) ->
-        stanza = ltx.parse(data)
+        stanza = if data instanceof ltx.Element then data else ltx.parse data
         switch stanza.name
             when "iq"
                 stanza.attrs.should.have.property "from"
