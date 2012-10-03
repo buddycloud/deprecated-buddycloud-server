@@ -1,5 +1,7 @@
 #!/bin/sh
 
+basedir=$(dirname $0)/..
+
 psql -U postgres &>/dev/null <<EOF
 CREATE USER "buddycloud-server-test"
        PASSWORD 'tellnoone';
@@ -10,7 +12,7 @@ CREATE DATABASE "buddycloud-server-test"
        ENCODING 'UTF-8';
 EOF
 
-psql -U buddycloud-server-test -d buddycloud-server-test -f postgres/install.sql &>/dev/null
-for sql in postgres/upgrade-*.sql; do
+psql -U buddycloud-server-test -d buddycloud-server-test -f $basedir/postgres/install.sql &>/dev/null
+for sql in $basedir/postgres/upgrade-*.sql; do
     psql -U buddycloud-server-test -d buddycloud-server-test -f $sql &>/dev/null
 done
