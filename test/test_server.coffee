@@ -9,16 +9,21 @@ class exports.TestServer extends EventEmitter
     # @property [Object] Info and items discoverable by the buddycloud server.
     disco: {
         info:
-            "test@example.org":    { identities: [], features: [] }
-            "user1@server-a.org":  { identities: [], features: [] }
-            "user2@server-a.org":  { identities: [], features: [] }
-            "user@server-b.org":   { identities: [], features: [] }
-            "user@server-c.org":   { identities: [], features: [] }
+            "test@example.org":      { identities: [], features: [] }
+            "picard@enterprise.sf":  { identities: [], features: [] }
+            "data@enterprise.sf":    { identities: [], features: [] }
+            "laforge@enterprise.sf": { identities: [], features: [] }
+            "sisko@ds9.sf":          { identities: [], features: [] }
+            "odo@ds9.sf":            { identities: [], features: [] }
+            "dax@ds9.sf":            { identities: [], features: [] }
+            "janeway@voyager.sf":    { identities: [], features: [] }
+            "neelix@voyager.sf":     { identities: [], features: [] }
+            "7of9@voyager.sf":       { identities: [], features: [] }
         items:
-            "example.org":  [{jid: "buddycloud.example.org"}]
-            "server-a.org": [{jid: "buddycloud.example.org"}]
-            "server-b.org": [{jid: "buddycloud.server-b.org"}]
-            "server-c.org": [{jid: "buddycloud.server-c.org"}]
+            "example.org":   [{jid: "buddycloud.example.org"}]
+            "enterprise.sf": [{jid: "buddycloud.example.org"}]
+            "ds9.sf":        [{jid: "buddycloud.ds9.sf"}]
+            "voyager.sf":    [{jid: "buddycloud.voyager.sf"}]
     }
 
     # Construct a new test server with a configuration suitable for unit
