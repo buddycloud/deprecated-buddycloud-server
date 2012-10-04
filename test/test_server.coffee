@@ -294,6 +294,7 @@ class exports.TestServer extends EventEmitter
             when "iq"
                 stanza.attrs.should.have.property "from"
                 stanza.attrs.should.have.property "to"
+                to = stanza.attrs.to
                 stanza.attrs.should.have.property "type"
                 type = stanza.attrs.type
                 [ "get", "set", "result", "error"].should.include type
@@ -301,13 +302,15 @@ class exports.TestServer extends EventEmitter
                 id = stanza.attrs.id
 
                 @iqs[type][id] = stanza
-                event = "got-iq-#{type}-#{id}"
+                eventId = "got-iq-#{type}-#{id}"
+                eventTo = "got-iq-#{type}-to-#{to}"
 
                 # If it's an error, throw an exception unless it was expected
-                if type is "error" and @listeners(event).length == 0
+                if type is "error" and @listeners(eventId).length == 0
                     throw new ErrorStanza stanza
 
-                @emit event, stanza
+                @emit eventId, stanza
+                @emit eventTo, stanza
 
                 # Handle disco queries
                 if type is "get"
