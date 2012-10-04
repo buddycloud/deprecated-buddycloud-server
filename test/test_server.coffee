@@ -12,6 +12,10 @@ NS.THR  = "http://purl.org/syndication/thread/1.0"
 
 exports.NS = NS
 
+class ErrorStanza extends Error
+    constructor: (@stanza) ->
+        @message = "ErrorStanza: #{@stanza.toString()}"
+
 # Fake XMPP server used to test the buddycloud server
 class exports.TestServer extends EventEmitter
     # @property [Object] Info and items discoverable by the buddycloud server.
@@ -265,7 +269,13 @@ class exports.TestServer extends EventEmitter
                 id = stanza.attrs.id
 
                 @iqs[type][id] = stanza
-                @emit "got-iq-#{type}-#{id}", stanza
+                event = "got-iq-#{type}-#{id}"
+
+                # If it's an error, throw an exception unless it was expected
+                if type is "error" and @listeners(event).length == 0
+                    throw new ErrorStanza stanza
+
+                @emit event, stanza
 
                 # Handle disco queries
                 if type is "get"
