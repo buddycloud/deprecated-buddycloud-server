@@ -3,6 +3,14 @@ ltx = require('ltx')
 should = require('should')
 
 server = require('../lib/server')
+NS = require('../lib/xmpp/ns')
+
+# Useful namespaces
+NS.ATOM = "http://www.w3.org/2005/Atom"
+NS.AS   = "http://activitystrea.ms/spec/1.0/"
+NS.THR  = "http://purl.org/syndication/thread/1.0"
+
+exports.NS = NS
 
 # Fake XMPP server used to test the buddycloud server
 class exports.TestServer extends EventEmitter
@@ -78,7 +86,7 @@ class exports.TestServer extends EventEmitter
     # @param [Object] fields Fields to add to the form
     # @return [ltx.Element] `<x xmlns="jabber:x:data>...</x>`
     makeForm: (type, form_type, fields) ->
-        el = new ltx.Element("x", xmlns: "jabber:x:data", type: type)
+        el = new ltx.Element("x", xmlns: NS.DATA, type: type)
             .c("field", var: "FORM_TYPE", type: "hidden")
             .c("value").t(form_type)
             .up().up()
@@ -87,24 +95,6 @@ class exports.TestServer extends EventEmitter
                 .c("value").t(value)
                 .up().up()
         return el.root()
-
-    # Prepare a disco#info stanza.
-    # @return [ltx.Element] Stanza with `<query/>` as active sub-Element
-    makeDiscoInfoIq: (from, to, id) ->
-        return @makeIq("get", from, to, id)
-            .c("query", xmlns: "http://jabber.org/protocol/disco#info")
-
-    # Prepare a disco#items stanza.
-    # @return [ltx.Element] Stanza with `<query/>` as active sub-Element
-    makeDiscoItemsIq: (from, to, id) ->
-        return @makeIq("get", from, to, id)
-            .c("query", xmlns: "http://jabber.org/protocol/disco#items")
-
-    # Prepare a PubSub "set" stanza.
-    # @return [ltx.Element] Stanza with `<pubsub/>` as active sub-Element
-    makePubsubSetIq: (from, to, id) ->
-        return @makeIq("set", from, to, id)
-            .c("pubsub", xmlns: "http://jabber.org/protocol/pubsub")
 
     # Parse an XMPP data form.
     # @param [ltx.Element] xEl data form element (`<x/>`)
@@ -117,6 +107,12 @@ class exports.TestServer extends EventEmitter
             fields[name] = value
         return fields
 
+    # Prepare a disco#info stanza.
+    # @return [ltx.Element] Stanza with `<query/>` as active sub-Element
+    makeDiscoInfoIq: (from, to, id) ->
+        return @makeIq("get", from, to, id)
+            .c("query", xmlns: NS.DISCO_INFO)
+
     # Parse a disco#info result stanza.
     # @param [ltx.Element] iq IQ stanza containing the disco result
     # @return [Object] Parsed results. `attrs` has the attributes of the
@@ -124,7 +120,7 @@ class exports.TestServer extends EventEmitter
     #   name, for easier matching), `features` the returned features, and `form`
     #   a parsed data form if there was one.
     parseDiscoInfo: (iq) ->
-        qEl = iq.getChild("query", "http://jabber.org/protocol/disco#info")
+        qEl = iq.getChild("query", NS.DISCO_INFO)
         should.exist(qEl)
 
         disco =
@@ -138,11 +134,23 @@ class exports.TestServer extends EventEmitter
         for feature in qEl.getChildren "feature"
             disco.features.push feature.attrs.var
 
-        xEl = qEl.getChild("x", "jabber:x:data")
+        xEl = qEl.getChild("x", NS.DATA)
         if xEl?
             disco.form = @parseForm xEl
 
         return disco
+
+    # Prepare a disco#items stanza.
+    # @return [ltx.Element] Stanza with `<query/>` as active sub-Element
+    makeDiscoItemsIq: (from, to, id) ->
+        return @makeIq("get", from, to, id)
+            .c("query", xmlns: NS.DISCO_ITEMS)
+
+    # Prepare a PubSub "set" stanza.
+    # @return [ltx.Element] Stanza with `<pubsub/>` as active sub-Element
+    makePubsubSetIq: (from, to, id) ->
+        return @makeIq("set", from, to, id)
+            .c("pubsub", xmlns: NS.PUBSUB)
 
     # Run an asynchronous test safely.
     # @param [ltx.Element] stanza Stanza to send to the buddycloud server
@@ -199,9 +207,9 @@ class exports.TestServer extends EventEmitter
 
                 # Handle disco queries
                 if type is "get"
-                    if stanza.getChild("query", "http://jabber.org/protocol/disco#info")? and stanza.attrs.to of @disco.info
+                    if stanza.getChild("query", NS.DISCO_INFO)? and stanza.attrs.to of @disco.info
                         info = @disco.info[stanza.attrs.to]
-                        queryEl = new ltx.Element("query", xmlns: "http://jabber.org/protocol/disco#info")
+                        queryEl = new ltx.Element("query", xmlns: NS.DISCO_INFO)
                         for identity in info.identities
                             queryEl.c "identity", identity
                         for feature in info.features
@@ -210,9 +218,9 @@ class exports.TestServer extends EventEmitter
                         iq = @makeIq("result", stanza.attrs.to, stanza.attrs.from, id)
                             .cnode(queryEl)
                         @emit "stanza", iq.root()
-                    if stanza.getChild("query", "http://jabber.org/protocol/disco#items")? and stanza.attrs.to of @disco.items
+                    if stanza.getChild("query", NS.DISCO_ITEMS)? and stanza.attrs.to of @disco.items
                         items = @disco.items[stanza.attrs.to]
-                        queryEl = new ltx.Element("query", xmlns: "http://jabber.org/protocol/disco#items")
+                        queryEl = new ltx.Element("query", xmlns: NS.DISCO_ITEMS)
                         for item in items
                             queryEl.c "item", item
                         iq = @makeIq("result", stanza.attrs.to, stanza.attrs.from, id)
