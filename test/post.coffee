@@ -228,9 +228,36 @@ describe "Posting", ->
             server.doTests publishEl, done, events
 
     describe "to a remote channel", ->
-        it.skip "must be submitted to the authoritative server", (done) ->
+        it "must be submitted to the authoritative server", (done) ->
+            publishEl = server.makePublishIq "picard@enterprise.sf", "buddycloud.example.org",
+                "publish-C-1", "/user/sisko@ds9.sf/posts", content: "Test post C1"
 
-        it.skip "must be replicated locally", (done) ->
+            server.doTest publishEl, "got-iq-set-to-buddycloud.ds9.sf", done, (iq) ->
+                entryEl = iq.getChild("pubsub", NS.PUBSUB)
+                    ?.getChild("publish")
+                    ?.getChild("item")
+                    ?.getChild("entry", NS.ATOM)
+                should.exist entryEl
+                atom = server.parseAtom entryEl
+                atom.should.have.property "content", "Test post C1"
+
+        it "must be replicated locally", (done) ->
+            entryEl = server.makeAtom content: "Test post C2", author: "sisko@ds9.sf", id: "test-C-2"
+            msgEl = server.makePubsubEventMessage("buddycloud.ds9.sf", "buddycloud.example.org")
+                .c("items", node: "/user/sisko@ds9.sf/posts")
+                .c("item", id: "test-C-2")
+                .cnode(entryEl)
+
+            server.doTest msgEl, "got-message-picard@enterprise.sf/abc", done, (msg) ->
+                msg.attrs.should.have.property "from", "buddycloud.example.org"
+                itemsEl = msg.getChild("event", NS.PUBSUB_EVENT)
+                    ?.getChild("items")
+                should.exist itemsEl
+                itemsEl.attrs.should.have.property "node", "/user/sisko@ds9.sf/posts"
+                itemEl = itemsEl.getChild "item"
+                should.exist itemEl
+                itemEl.attrs.should.have.property "id", "test-C-2"
+                should.exist itemEl.getChild "entry", NS.ATOM
 
     describe "a reply", ->
         it.skip "should succeed if the post exists", (done) ->

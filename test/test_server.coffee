@@ -171,6 +171,12 @@ class exports.TestServer extends EventEmitter
         return @makeIq("set", from, to, id)
             .c("pubsub", xmlns: NS.PUBSUB)
 
+    # Prepare a PubSub event message.
+    # @return [ltx.Element] Message stanza with `<event/>` as active sub-Element
+    makePubsubEventMessage: (from, to) ->
+        return new ltx.Element("message", type: "headline", from: from, to: to)
+            .c("event", xmlns: NS.PUBSUB_EVENT)
+
     # Prepare an Atom element.
     # @param [Object] opts Data to store in the Atom
     # @options opts [String] author Name of the author
