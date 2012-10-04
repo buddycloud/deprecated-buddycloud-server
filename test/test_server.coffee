@@ -235,6 +235,29 @@ class exports.TestServer extends EventEmitter
 
         @emit "stanza", stanza.root()
 
+    # Run an asynchronous test that triggers several stanzas.
+    # @param [ltx.Element] stanza Stanza to send to the buddycloud server
+    # @param [callback] cb_done Function to call when all the tests are over or
+    #   when an exception has been caught
+    # @param [Object] events A mapping of event names to check functions
+    doTests: (stanza, cb_done, events) ->
+        eventsLeft = 0
+        cb_partial = ->
+            eventsLeft -= 1
+            if eventsLeft == 0
+                cb_done()
+
+        for event, cb_check of events
+            eventsLeft += 1
+            @once event, (data) ->
+                try
+                    cb_check(data)
+                    cb_partial()
+                catch e
+                    cb_done(e)
+
+        @emit "stanza", stanza.root()
+
     # Used by the buddycloud server to send XML stanzas to the XMPP server.
     #
     # This parses and route these stanzas. Don't use this in tests! If you want
