@@ -298,5 +298,18 @@ class exports.TestServer extends EventEmitter
                         iq = @makeIq("result", stanza.attrs.to, stanza.attrs.from, id)
                             .cnode(queryEl)
                         @emit "stanza", iq.root()
+
+            when "message"
+                stanza.attrs.should.have.property "from"
+                stanza.attrs.should.have.property "to"
+
+                to = stanza.attrs.to
+                if to of @messages
+                    @messages[to].push stanza
+                else
+                    @messages[to] = [stanza]
+
+                @emit "got-message-#{to}", stanza
+
             else
                 @emit "got-stanza", stanza
