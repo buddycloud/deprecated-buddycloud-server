@@ -47,9 +47,9 @@ class Request
                     # Retry with smaller result set
                     logger.warn "MaxStanzaSizeExceeded: #{results.length} items"
                     if results.length >= 20
-                        newLength = results.length - 1
+                        newLength = Math.floor(results.length / 2)
                     else
-                        newLength = results.length - 10
+                        newLength = results.length - 1
                     smallerResults = results?.slice(0, newLength)
                     smallerResults.rsm ?= results?.rsm
                     @callback err, smallerResults
