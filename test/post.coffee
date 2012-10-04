@@ -144,15 +144,33 @@ describe "Posting", ->
                     itemEl.attrs.should.have.property "id", "test-A-3"
             ], done
 
+        it.skip "must fail if the node does not exist", (done) ->
+
+        it.skip "must fail if the payload is not an Atom", (done) ->
+
+
     describe "to a local channel", ->
-        it.skip "must be possible for its owner", (done) ->
-            done()
+        it "must be possible for its owner", (done) ->
+            publishEl = server.makePublishIq "picard@enterprise.sf", "buddycloud.example.org",
+                "publish-B-1", "/user/picard@enterprise.sf/posts", content: "Test post B1"
 
-        it.skip "must be possible for a publisher", (done) ->
-            done()
+            server.doTest publishEl, "got-iq-result-publish-B-1", done, testPublishResultIq
 
-        it.skip "must not be possible for a member", (done) ->
-            done()
+        it "must be possible for a publisher", (done) ->
+            publishEl = server.makePublishIq "laforge@enterprise.sf", "buddycloud.example.org",
+                "publish-B-2", "/user/picard@enterprise.sf/posts", content: "Test post B2"
+
+            server.doTest publishEl, "got-iq-result-publish-B-2", done, testPublishResultIq
+
+        it "must not be possible for a member", (done) ->
+            publishEl = server.makePublishIq "data@enterprise.sf", "buddycloud.example.org",
+                "publish-B-3", "/user/picard@enterprise.sf/posts", content: "Test post B3"
+
+            server.doTest publishEl, "got-iq-error-publish-B-3", done, (iq) ->
+                errEl = iq.getChild "error"
+                should.exist errEl
+                errEl.attrs.should.have.property "type", "auth"
+                should.exist errEl.getChild "forbidden", "urn:ietf:params:xml:ns:xmpp-stanzas"
 
         it.skip "must not be possible for an outcast", (done) ->
             done()
