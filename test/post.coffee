@@ -8,6 +8,14 @@ TestServer::makePublishIq = (from, to, id, node, atomOpts) ->
         .c("item", id: atomOpts.id)
         .cnode @makeAtom atomOpts
 
+testPublishResultIq = (iq) ->
+    itemEl = iq.getChild("pubsub", NS.PUBSUB)
+        ?.getChild("publish")
+        ?.getChild("item")
+    should.exist itemEl
+    itemEl.attrs.should.have.property "id"
+    return itemEl.attrs.id
+
 describe "Posting", ->
     server = new TestServer()
 
@@ -78,11 +86,8 @@ describe "Posting", ->
                     content: "Test reply", id: "reply-A-2", in_reply_to: postId
 
                 server.doTest publishEl, "got-iq-result-publish-A-2", cb, (iq) ->
-                    itemEl = iq.getChild("pubsub", NS.PUBSUB)
-                        ?.getChild("publish")
-                        ?.getChild("item")
-                    should.exist itemEl
-                    itemEl.attrs.should.have.property "id", "reply-A-2"
+                    id = testPublishResultIq iq
+                    id.should.equal "reply-A-2"
 
             , (cb) ->
                 # Fetch reply from channel
