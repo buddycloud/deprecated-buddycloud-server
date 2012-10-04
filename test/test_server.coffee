@@ -146,11 +146,73 @@ class exports.TestServer extends EventEmitter
         return @makeIq("get", from, to, id)
             .c("query", xmlns: NS.DISCO_ITEMS)
 
+    # Prepare a PubSub "get" stanza.
+    # @return [ltx.Element] Stanza with `<pubsub/>` as active sub-Element
+    makePubsubGetIq: (from, to, id) ->
+        return @makeIq("get", from, to, id)
+            .c("pubsub", xmlns: NS.PUBSUB)
+
     # Prepare a PubSub "set" stanza.
     # @return [ltx.Element] Stanza with `<pubsub/>` as active sub-Element
     makePubsubSetIq: (from, to, id) ->
         return @makeIq("set", from, to, id)
             .c("pubsub", xmlns: NS.PUBSUB)
+
+    # Prepare an Atom element.
+    # @param [Object] opts Data to store in the Atom
+    # @options opts [String] author Name of the author
+    # @options opts [String] author_uri URI of the author account
+    # @options opts [String] content Post content
+    # @options opts [String] id Post ID
+    # @options opts [String] in_reply_to ID of the original post
+    # @options opts [String] link Post link
+    # @options opts [String] object Object type (comment or note)
+    # @options opts [String] published Publication date
+    # @options opts [String] updated Update date
+    # @options opts [String] verb Post verb (comment or post)
+    # @reeturn [ltx.Element] Atom element
+    makeAtom: (opts) ->
+        atom = new ltx.Element("entry", xmlns: NS.ATOM)
+        if opts.author or opts.author_uri
+            author = atom.c("author")
+            if opts.author
+                author.c("name").t(opts.author)
+            if opts.author_uri
+                author.c("uri").t(opts.author_uri)
+        if opts.content
+            atom.c("content").t(opts.content)
+        if opts.id
+            atom.c("id").t(opts.id)
+        if opts.in_reply_to
+            atom.c("in-reply-to", xmlns: NS.THR, rel: opts.in_reply_to)
+        if opts.link
+            atom.c("link", rel: "self", href: opts.link)
+        if opts.object
+            atom.c("object", xmlns: NS.AS).c("object-type").t(opts.object)
+        if opts.published
+            atom.c("published").t(opts.published)
+        if opts.updated
+            atom.c("updated").t(opts.updated)
+        if opts.verb
+            atom.c("verb", xmlns: NS.AS).t(opts.verb)
+        return atom
+
+    # Parse an Atom element.
+    # @param [ltx.Element] entryEl Atom element
+    # @return [Object] Object with the same content as the parameter of
+    #   #makeAtom
+    parseAtom: (entry) ->
+        entry.is("entry", NS.ATOM).should.be.ok
+        atom =
+            author: entry.getChild("author")?.getChildText "name"
+            author_uri: entry.getChild("author")?.getChildText "uri"
+            in_reply_to: entry.getChild("in-reply-to", NS.THR)?.attrs.rel
+            link: entry.getChild("link")?.attrs.href
+            object: entry.getChild("object", NS.AS)?.getChildText("object-type")
+            verb: entry.getChild("verb", NS.AS)?.getText()
+        for name in ["content", "id", "published", "updated"]
+            atom[name] = entry.getChildText name
+        return atom
 
     # Run an asynchronous test safely.
     # @param [ltx.Element] stanza Stanza to send to the buddycloud server
