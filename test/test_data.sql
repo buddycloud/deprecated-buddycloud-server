@@ -17,6 +17,14 @@ select test_create_channel('7of9@voyager.sf',    FALSE);
 select test_subscribe('picard@enterprise.sf', TRUE, 'data@enterprise.sf',    TRUE, 'subscribed', 'member');
 select test_subscribe('picard@enterprise.sf', TRUE, 'laforge@enterprise.sf', TRUE, 'subscribed', 'publisher');
 
+-- Laforge follows Data as a member. Data is banned from Laforge's channel.
+select test_subscribe('data@enterprise.sf', TRUE, 'laforge@enterprise.sf', TRUE, 'subscribed',   'member');
+select test_subscribe('laforge@enterprise.sf', TRUE, 'data@enterprise.sf', TRUE, 'unsubscribed', 'outcast');
+
+-- All subscribers can post into Data's channel, anyone can post in Laforge's.
+select test_set_config('/user/data@enterprise.sf/posts',    'publishModel', 'subscribers');
+select test_set_config('/user/laforge@enterprise.sf/posts', 'publishModel', 'open');
+
 -- Picard and Sisko follow each other as publishers
 select test_subscribe('sisko@ds9.sf', FALSE, 'picard@enterprise.sf', TRUE, 'subscribed', 'publisher');
 select test_subscribe('picard@enterprise.sf', TRUE, 'sisko@ds9.sf', FALSE, 'subscribed', 'publisher');

@@ -16,6 +16,12 @@ testPublishResultIq = (iq) ->
     itemEl.attrs.should.have.property "id"
     return itemEl.attrs.id
 
+testPublishForbiddenIq = (iq) ->
+    errEl = iq.getChild "error"
+    should.exist errEl
+    errEl.attrs.should.have.property "type", "auth"
+    should.exist errEl.getChild "forbidden", "urn:ietf:params:xml:ns:xmpp-stanzas"
+
 describe "Posting", ->
     server = new TestServer()
 
@@ -144,39 +150,82 @@ describe "Posting", ->
                     itemEl.attrs.should.have.property "id", "test-A-3"
             ], done
 
-        it.skip "must fail if the node does not exist", (done) ->
+        it "must fail if the node does not exist", (done) ->
+            publishEl = server.makePublishIq "picard@enterprise.sf", "buddycloud.example.org",
+                "publish-A-5", "/user/random-red-shirt@enterprise.sf/posts", content: "Test post A5", id: "test-A-5"
 
-        it.skip "must fail if the payload is not an Atom", (done) ->
+            server.doTest publishEl, "got-iq-error-publish-A-5", done, (iq) ->
+                errEl = iq.getChild "error"
+                should.exist errEl
+                errEl.attrs.should.have.property "type", "cancel"
+                should.exist errEl.getChild "item-not-found", "urn:ietf:params:xml:ns:xmpp-stanzas"
 
+        it "must fail if the payload is not an Atom", (done) ->
+            publishEl = server.makePubsubSetIq("picard@enterprise.sf", "buddycloud.example.org", "publish-A-6")
+                .c("publish", node: "/user/picard@enterprise.sf/posts").c("item")
+                .c("invalid-element").t("Test post A6")
+
+            server.doTest publishEl, "got-iq-error-publish-A-6", done, (iq) ->
+                errEl = iq.getChild "error"
+                should.exist errEl
+                errEl.attrs.should.have.property "type", "modify"
+                should.exist errEl.getChild "bad-request", "urn:ietf:params:xml:ns:xmpp-stanzas"
 
     describe "to a local channel", ->
         it "must be possible for its owner", (done) ->
             publishEl = server.makePublishIq "picard@enterprise.sf", "buddycloud.example.org",
                 "publish-B-1", "/user/picard@enterprise.sf/posts", content: "Test post B1"
-
             server.doTest publishEl, "got-iq-result-publish-B-1", done, testPublishResultIq
 
         it "must be possible for a publisher", (done) ->
             publishEl = server.makePublishIq "laforge@enterprise.sf", "buddycloud.example.org",
                 "publish-B-2", "/user/picard@enterprise.sf/posts", content: "Test post B2"
-
             server.doTest publishEl, "got-iq-result-publish-B-2", done, testPublishResultIq
 
-        it "must not be possible for a member", (done) ->
+        it "must not be possible for a member if publishModel is 'publishers'", (done) ->
             publishEl = server.makePublishIq "data@enterprise.sf", "buddycloud.example.org",
                 "publish-B-3", "/user/picard@enterprise.sf/posts", content: "Test post B3"
+            server.doTest publishEl, "got-iq-error-publish-B-3", done, testPublishForbiddenIq
 
-            server.doTest publishEl, "got-iq-error-publish-B-3", done, (iq) ->
-                errEl = iq.getChild "error"
-                should.exist errEl
-                errEl.attrs.should.have.property "type", "auth"
-                should.exist errEl.getChild "forbidden", "urn:ietf:params:xml:ns:xmpp-stanzas"
+        it "must be possible for a member if publishModel is 'subscribers'", (done) ->
+            publishEl = server.makePublishIq "laforge@enterprise.sf", "buddycloud.example.org",
+                "publish-B-4", "/user/data@enterprise.sf/posts", content: "Test post B4"
+            server.doTest publishEl, "got-iq-result-publish-B-4", done, testPublishResultIq
 
-        it.skip "must not be possible for an outcast", (done) ->
-            done()
+        it "must not be possible for a non-member if publishModel is 'subscribers'", (done) ->
+            publishEl = server.makePublishIq "picard@enterprise.sf", "buddycloud.example.org",
+                "publish-B-5", "/user/data@enterprise.sf/posts", content: "Test post B5"
+            server.doTest publishEl, "got-iq-error-publish-B-5", done, testPublishForbiddenIq
 
-        it.skip "must be notified to subscribers", (done) ->
-            done()
+        it "must be possible for a non-member if publishModel is 'open'", (done) ->
+            publishEl = server.makePublishIq "picard@enterprise.sf", "buddycloud.example.org",
+                "publish-B-6", "/user/laforge@enterprise.sf/posts", content: "Test post B6"
+            server.doTest publishEl, "got-iq-result-publish-B-6", done, testPublishResultIq
+
+        it "must not be possible for an outcast", (done) ->
+            publishEl = server.makePublishIq "data@enterprise.sf", "buddycloud.example.org",
+                "publish-B-7", "/user/laforge@enterprise.sf/posts", content: "Test post B7"
+            server.doTest publishEl, "got-iq-error-publish-B-7", done, testPublishForbiddenIq
+
+        it "must be notified to subscribers", (done) ->
+            publishEl = server.makePublishIq "picard@enterprise.sf", "buddycloud.example.org",
+                "publish-B-8", "/user/picard@enterprise.sf/posts", content: "Test post B8"
+
+            events = {}
+            for sub in ["picard@enterprise.sf/abc", "buddycloud.ds9.sf",
+                        "laforge@enterprise.sf/abc", "laforge@enterprise.sf/def"]
+                events["got-message-#{sub}"] = (msg) ->
+                    msg.attrs.should.have.property "from", "buddycloud.example.org"
+                    itemsEl = msg.getChild("event", NS.PUBSUB_EVENT)
+                        ?.getChild("items")
+                    should.exist itemsEl
+                    itemsEl.attrs.should.have.property "node", "/user/picard@enterprise.sf/posts"
+                    itemEl = itemsEl.getChild "item"
+                    should.exist itemEl
+                    itemEl.attrs.should.have.property "id"
+                    should.exist itemEl.getChild "entry", NS.ATOM
+
+            server.doTests publishEl, done, events
 
     describe "to a remote channel", ->
         it.skip "must be submitted to the authoritative server", (done) ->
