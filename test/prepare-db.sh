@@ -16,3 +16,6 @@ psql -U buddycloud-server-test -d buddycloud-server-test -f $basedir/postgres/in
 for sql in $basedir/postgres/upgrade-*.sql; do
     psql -U buddycloud-server-test -d buddycloud-server-test -f $sql &>/dev/null
 done
+
+psql -U buddycloud-server-test -d buddycloud-server-test -f $basedir/test/test_functions.sql &>/dev/null
+psql -U buddycloud-server-test -d buddycloud-server-test -f $basedir/test/test_data.sql &>/dev/null
