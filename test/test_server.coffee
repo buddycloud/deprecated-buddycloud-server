@@ -19,6 +19,13 @@ class ErrorStanza extends Error
 # Fake XMPP server used to test the buddycloud server
 class exports.TestServer extends EventEmitter
     # @property [Object] Info and items discoverable by the buddycloud server.
+    serverInfo =
+        identities: [
+            { category: "pubsub", type: "service" },
+            { category: "pubsub", type: "channels" },
+            { category: "pubsub", type: "inbox" }
+        ]
+        features: []
     disco: {
         info:
             "test@example.org":      { identities: [], features: [] }
@@ -31,6 +38,8 @@ class exports.TestServer extends EventEmitter
             "janeway@voyager.sf":    { identities: [], features: [] }
             "neelix@voyager.sf":     { identities: [], features: [] }
             "7of9@voyager.sf":       { identities: [], features: [] }
+            "buddycloud.ds9.sf":     serverInfo
+            "buddycloud.voyager.sf": serverInfo
         items:
             "example.org":   [{jid: "buddycloud.example.org"}]
             "enterprise.sf": [{jid: "buddycloud.example.org"}]
