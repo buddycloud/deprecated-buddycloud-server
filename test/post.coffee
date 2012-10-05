@@ -9,6 +9,7 @@ TestServer::makePublishIq = (from, to, id, node, atomOpts) ->
         .cnode @makeAtom atomOpts
 
 testPublishResultIq = (iq) ->
+    iq.attrs.should.have.property "type", "result"
     itemEl = iq.getChild("pubsub", NS.PUBSUB)
         ?.getChild("publish")
         ?.getChild("item")
@@ -16,11 +17,13 @@ testPublishResultIq = (iq) ->
     itemEl.attrs.should.have.property "id"
     return itemEl.attrs.id
 
-testPublishForbiddenIq = (iq) ->
-    errEl = iq.getChild "error"
-    should.exist errEl
-    errEl.attrs.should.have.property "type", "auth"
-    should.exist errEl.getChild "forbidden", "urn:ietf:params:xml:ns:xmpp-stanzas"
+testErrorIq = (errType, childName, childNS = "urn:ietf:params:xml:ns:xmpp-stanzas") ->
+    return (iq) ->
+        iq.attrs.should.have.property "type", "error"
+        errEl = iq.getChild "error"
+        should.exist errEl
+        errEl.attrs.should.have.property "type", errType
+        should.exist errEl.getChild childName, childNS
 
 describe "Posting", ->
     server = new TestServer()
@@ -35,7 +38,9 @@ describe "Posting", ->
                     "publish-A-1", "/user/picard@enterprise.sf/posts",
                     content: "Test post", author_uri: "dummy", published: "dummy", updated: "dummy"
 
-                server.doTest publishEl, "got-iq-result-publish-A-1", cb, (iq) ->
+                server.doTest publishEl, "got-iq-publish-A-1", cb, (iq) ->
+                    iq.attrs.should.have.property "type", "result"
+
                     pubsubEl = iq.getChild "pubsub", NS.PUBSUB
                     should.exist pubsubEl
 
@@ -56,7 +61,9 @@ describe "Posting", ->
                     .c("items", node: "/user/picard@enterprise.sf/posts")
                     .c("item", id: postId)
 
-                server.doTest iq, "got-iq-result-retrieve-A-1", cb, (iq) ->
+                server.doTest iq, "got-iq-retrieve-A-1", cb, (iq) ->
+                    iq.attrs.should.have.property "type", "result"
+
                     pubsubEl = iq.getChild "pubsub", NS.PUBSUB
                     should.exist pubsubEl
 
@@ -91,7 +98,8 @@ describe "Posting", ->
                     "publish-A-2", "/user/picard@enterprise.sf/posts",
                     content: "Test reply", id: "reply-A-2", in_reply_to: postId
 
-                server.doTest publishEl, "got-iq-result-publish-A-2", cb, (iq) ->
+                server.doTest publishEl, "got-iq-publish-A-2", cb, (iq) ->
+                    iq.attrs.should.have.property "type", "result"
                     id = testPublishResultIq iq
                     id.should.equal "reply-A-2"
 
@@ -101,7 +109,8 @@ describe "Posting", ->
                     .c("items", node: "/user/picard@enterprise.sf/posts")
                     .c("item", id: "reply-A-2")
 
-                server.doTest iq, "got-iq-result-retrieve-A-2", cb, (iq) ->
+                server.doTest iq, "got-iq-retrieve-A-2", cb, (iq) ->
+                    iq.attrs.should.have.property "type", "result"
                     entryEl = iq.getChild("pubsub", NS.PUBSUB)
                         ?.getChild("items")
                         ?.getChild("item")
@@ -124,7 +133,9 @@ describe "Posting", ->
                 publishEl = server.makePublishIq "picard@enterprise.sf", "buddycloud.example.org",
                     "publish-A-3", "/user/picard@enterprise.sf/posts", content: "Test post A3", id: "test-A-3"
 
-                server.doTest publishEl, "got-iq-result-publish-A-3", cb, (iq) ->
+                server.doTest publishEl, "got-iq-publish-A-3", cb, (iq) ->
+                    iq.attrs.should.have.property "type", "result"
+
                     publishEl = iq.getChild("pubsub", NS.PUBSUB)
                         ?.getChild("publish")
                     should.exist publishEl
@@ -139,7 +150,9 @@ describe "Posting", ->
                 publishEl = server.makePublishIq "data@enterprise.sf", "buddycloud.example.org",
                     "publish-A-4", "/user/data@enterprise.sf/posts", content: "Test post A3 bis", id: "test-A-3"
 
-                server.doTest publishEl, "got-iq-result-publish-A-4", cb, (iq) ->
+                server.doTest publishEl, "got-iq-publish-A-4", cb, (iq) ->
+                    iq.attrs.should.have.property "type", "result"
+
                     publishEl = iq.getChild("pubsub", NS.PUBSUB)
                         ?.getChild("publish")
                     should.exist publishEl
@@ -154,58 +167,50 @@ describe "Posting", ->
             publishEl = server.makePublishIq "picard@enterprise.sf", "buddycloud.example.org",
                 "publish-A-5", "/user/random-red-shirt@enterprise.sf/posts", content: "Test post A5", id: "test-A-5"
 
-            server.doTest publishEl, "got-iq-error-publish-A-5", done, (iq) ->
-                errEl = iq.getChild "error"
-                should.exist errEl
-                errEl.attrs.should.have.property "type", "cancel"
-                should.exist errEl.getChild "item-not-found", "urn:ietf:params:xml:ns:xmpp-stanzas"
+            server.doTest publishEl, "got-iq-publish-A-5", done, testErrorIq "cancel", "item-not-found"
 
         it "must fail if the payload is not an Atom", (done) ->
             publishEl = server.makePubsubSetIq("picard@enterprise.sf", "buddycloud.example.org", "publish-A-6")
                 .c("publish", node: "/user/picard@enterprise.sf/posts").c("item")
                 .c("invalid-element").t("Test post A6")
 
-            server.doTest publishEl, "got-iq-error-publish-A-6", done, (iq) ->
-                errEl = iq.getChild "error"
-                should.exist errEl
-                errEl.attrs.should.have.property "type", "modify"
-                should.exist errEl.getChild "bad-request", "urn:ietf:params:xml:ns:xmpp-stanzas"
+            server.doTest publishEl, "got-iq-publish-A-6", done, testErrorIq "modify", "bad-request"
 
     describe "to a local channel", ->
         it "must be possible for its owner", (done) ->
             publishEl = server.makePublishIq "picard@enterprise.sf", "buddycloud.example.org",
                 "publish-B-1", "/user/picard@enterprise.sf/posts", content: "Test post B1"
-            server.doTest publishEl, "got-iq-result-publish-B-1", done, testPublishResultIq
+            server.doTest publishEl, "got-iq-publish-B-1", done, testPublishResultIq
 
         it "must be possible for a publisher", (done) ->
             publishEl = server.makePublishIq "laforge@enterprise.sf", "buddycloud.example.org",
                 "publish-B-2", "/user/picard@enterprise.sf/posts", content: "Test post B2"
-            server.doTest publishEl, "got-iq-result-publish-B-2", done, testPublishResultIq
+            server.doTest publishEl, "got-iq-publish-B-2", done, testPublishResultIq
 
         it "must not be possible for a member if publishModel is 'publishers'", (done) ->
             publishEl = server.makePublishIq "data@enterprise.sf", "buddycloud.example.org",
                 "publish-B-3", "/user/picard@enterprise.sf/posts", content: "Test post B3"
-            server.doTest publishEl, "got-iq-error-publish-B-3", done, testPublishForbiddenIq
+            server.doTest publishEl, "got-iq-publish-B-3", done, testErrorIq "auth", "forbidden"
 
         it "must be possible for a member if publishModel is 'subscribers'", (done) ->
             publishEl = server.makePublishIq "laforge@enterprise.sf", "buddycloud.example.org",
                 "publish-B-4", "/user/data@enterprise.sf/posts", content: "Test post B4"
-            server.doTest publishEl, "got-iq-result-publish-B-4", done, testPublishResultIq
+            server.doTest publishEl, "got-iq-publish-B-4", done, testPublishResultIq
 
         it "must not be possible for a non-member if publishModel is 'subscribers'", (done) ->
             publishEl = server.makePublishIq "picard@enterprise.sf", "buddycloud.example.org",
                 "publish-B-5", "/user/data@enterprise.sf/posts", content: "Test post B5"
-            server.doTest publishEl, "got-iq-error-publish-B-5", done, testPublishForbiddenIq
+            server.doTest publishEl, "got-iq-publish-B-5", done, testErrorIq "auth", "forbidden"
 
         it "must be possible for a non-member if publishModel is 'open'", (done) ->
             publishEl = server.makePublishIq "picard@enterprise.sf", "buddycloud.example.org",
                 "publish-B-6", "/user/laforge@enterprise.sf/posts", content: "Test post B6"
-            server.doTest publishEl, "got-iq-result-publish-B-6", done, testPublishResultIq
+            server.doTest publishEl, "got-iq-publish-B-6", done, testPublishResultIq
 
         it "must not be possible for an outcast", (done) ->
             publishEl = server.makePublishIq "data@enterprise.sf", "buddycloud.example.org",
                 "publish-B-7", "/user/laforge@enterprise.sf/posts", content: "Test post B7"
-            server.doTest publishEl, "got-iq-error-publish-B-7", done, testPublishForbiddenIq
+            server.doTest publishEl, "got-iq-publish-B-7", done, testErrorIq "auth", "forbidden"
 
         it "must be notified to subscribers", (done) ->
             publishEl = server.makePublishIq "picard@enterprise.sf", "buddycloud.example.org",
@@ -232,7 +237,8 @@ describe "Posting", ->
             publishEl = server.makePublishIq "picard@enterprise.sf", "buddycloud.example.org",
                 "publish-C-1", "/user/sisko@ds9.sf/posts", content: "Test post C1"
 
-            server.doTest publishEl, "got-iq-set-to-buddycloud.ds9.sf", done, (iq) ->
+            server.doTest publishEl, "got-iq-to-buddycloud.ds9.sf", done, (iq) ->
+                iq.attrs.should.have.property "type", "set"
                 entryEl = iq.getChild("pubsub", NS.PUBSUB)
                     ?.getChild("publish")
                     ?.getChild("item")

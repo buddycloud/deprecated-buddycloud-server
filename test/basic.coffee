@@ -8,7 +8,7 @@ describe "buddycloud-server", ->
             .c("query", xmlns: "jabber:iq:version")
             .root()
 
-        server.doTest iq, "got-iq-result-info1", done, (iq) ->
+        server.doTest iq, "got-iq-info1", done, (iq) ->
             iq.attrs.should.eql
                 from: "buddycloud.example.org"
                 to: "test@example.org"
@@ -22,7 +22,7 @@ describe "buddycloud-server", ->
     it "should support disco#info (XEP-0030)", (done) ->
         iq = server.makeDiscoInfoIq "test@example.org", "buddycloud.example.org", "disco1"
 
-        server.doTest iq, "got-iq-result-disco1", done, (iq) ->
+        server.doTest iq, "got-iq-disco1", done, (iq) ->
             iq.attrs.should.eql
                 from: "buddycloud.example.org"
                 to: "test@example.org"
@@ -57,7 +57,7 @@ describe "buddycloud-server", ->
     it "should support disco#items (XEP-0030)", (done) ->
         iq = server.makeDiscoItemsIq "test@example.org", "buddycloud.example.org", "disco2"
 
-        server.doTest iq, "got-iq-result-disco2", done, (iq) ->
+        server.doTest iq, "got-iq-disco2", done, (iq) ->
             iq.attrs.should.eql
                 from: "buddycloud.example.org"
                 to: "test@example.org"

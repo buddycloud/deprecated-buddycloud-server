@@ -308,17 +308,15 @@ class exports.TestServer extends EventEmitter
                 id = stanza.attrs.id
 
                 @iqs[type][id] = stanza
-                eventId = "got-iq-#{type}-#{id}"
-                eventTo = "got-iq-#{type}-to-#{to}"
+                eventId = "got-iq-#{id}"
+                eventTo = "got-iq-to-#{to}"
 
                 # If it's an error, throw an exception unless it was expected
                 if type is "error" and @listeners(eventId).length == 0
                     throw new ErrorStanza stanza
 
-                @emit eventId, stanza
-                @emit eventTo, stanza
-
-                # Handle disco queries
+                # Handle disco queries. The tests don't need to know about them.
+                handled = false
                 if type is "get"
                     if stanza.getChild("query", NS.DISCO_INFO)? and stanza.attrs.to of @disco.info
                         info = @disco.info[stanza.attrs.to]
@@ -331,6 +329,7 @@ class exports.TestServer extends EventEmitter
                         iq = @makeIq("result", stanza.attrs.to, stanza.attrs.from, id)
                             .cnode(queryEl)
                         @emit "stanza", iq.root()
+                        handled = true
                     if stanza.getChild("query", NS.DISCO_ITEMS)? and stanza.attrs.to of @disco.items
                         items = @disco.items[stanza.attrs.to]
                         queryEl = new ltx.Element("query", xmlns: NS.DISCO_ITEMS)
@@ -339,6 +338,11 @@ class exports.TestServer extends EventEmitter
                         iq = @makeIq("result", stanza.attrs.to, stanza.attrs.from, id)
                             .cnode(queryEl)
                         @emit "stanza", iq.root()
+                        handled = true
+
+                unless handled
+                    @emit eventId, stanza
+                    @emit eventTo, stanza
 
             when "message"
                 stanza.attrs.should.have.property "from"

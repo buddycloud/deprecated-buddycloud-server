@@ -8,13 +8,15 @@ describe "Creating a channel", ->
         iq = server.makePubsubSetIq("test@example.org", "buddycloud.example.org", "create1")
             .c("create", node: "/user/test@example.org/posts")
 
-        server.doTest iq, "got-iq-result-create1", done, (iq) ->
+        server.doTest iq, "got-iq-create1", done, (iq) ->
+            iq.attrs.should.have.property "type", "result"
 
     it "must fail if a node already exists", (done) ->
         iq = server.makePubsubSetIq("test@example.org", "buddycloud.example.org", "create2")
             .c("create", node: "/user/test@example.org/posts")
 
-        server.doTest iq, "got-iq-error-create2", done, (iq) ->
+        server.doTest iq, "got-iq-create2", done, (iq) ->
+            iq.attrs.should.have.property "type", "error"
             iq.children.should.have.length 1
             err = iq.children[0]
             err.name.should.equal "error"
@@ -27,7 +29,8 @@ describe "Creating a channel", ->
         iq = server.makePubsubSetIq("test@example.org", "buddycloud.example.org", "create3")
             .c("create")
 
-        server.doTest iq, "got-iq-error-create3", done, (iq) ->
+        server.doTest iq, "got-iq-create3", done, (iq) ->
+            iq.attrs.should.have.property "type", "error"
             iq.children.should.have.length 1
             err = iq.children[0]
             err.name.should.equal "error"
@@ -39,7 +42,8 @@ describe "Creating a channel", ->
         iq = server.makeDiscoInfoIq "test@example.org", "buddycloud.example.org", "disco1"
         iq.attrs.node = "/user/test@example.org/posts"
 
-        server.doTest iq, "got-iq-result-disco1", done, (iq) ->
+        server.doTest iq, "got-iq-disco1", done, (iq) ->
+            iq.attrs.should.have.property "type", "result"
             iq.children.should.have.length 1
 
             disco = server.parseDiscoInfo iq
@@ -69,13 +73,15 @@ describe "Creating a channel", ->
             .c("create", node: "/user/test@example.org/status").up()
             .c("configure").cnode(form)
 
-        server.doTest iq, "got-iq-result-create4", done, (iq) ->
+        server.doTest iq, "got-iq-create4", done, (iq) ->
+            iq.attrs.should.have.property "type", "result"
 
     it "should respect initial node configuration", (done) ->
         iq = server.makeDiscoInfoIq "test@example.org", "buddycloud.example.org", "disco2"
         iq.attrs.node = "/user/test@example.org/status"
 
-        server.doTest iq, "got-iq-result-disco2", done, (iq) ->
+        server.doTest iq, "got-iq-disco2", done, (iq) ->
+            iq.attrs.should.have.property "type", "result"
             iq.children.should.have.length 1
 
             disco = server.parseDiscoInfo iq
