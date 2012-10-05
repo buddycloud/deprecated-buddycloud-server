@@ -149,6 +149,7 @@ class exports.Router
                                 req = Object.create(opts)
                                 req.operation = 'subscribe-node'
                                 req.node = "/user/#{userid}/#{type}"
+                                req.temporary = false
                                 req.writes = yes
                                 @run req
             else if opts.writes
