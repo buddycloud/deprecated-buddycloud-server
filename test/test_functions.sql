@@ -76,3 +76,7 @@ BEGIN
     PERFORM test_subscribe(jid, localchan, jid, localchan, 'subscribed', 'owner');
 END;
 $$ LANGUAGE plpgsql;
+
+-- Local Variables:
+-- sql-product: postgres
+-- End:

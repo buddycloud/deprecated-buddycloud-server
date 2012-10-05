@@ -2,6 +2,7 @@
 -- "enterprise.sf" is local, "ds9.sf" and "voyager.sf" are remote.
 -- Data, Odo and Neelix have private channels.
 select test_create_channel('picard@enterprise.sf',  TRUE);
+select test_create_channel('riker@enterprise.sf',   TRUE);
 select test_create_channel('data@enterprise.sf',    TRUE, TRUE);
 select test_create_channel('laforge@enterprise.sf', TRUE);
 
@@ -13,18 +14,33 @@ select test_create_channel('janeway@voyager.sf', FALSE);
 select test_create_channel('neelix@voyager.sf',  FALSE, TRUE);
 select test_create_channel('7of9@voyager.sf',    FALSE);
 
--- Data and Laforge follow Picard. Data is a member, Laforge a publisher.
-select test_subscribe('picard@enterprise.sf', TRUE, 'data@enterprise.sf',    TRUE, 'subscribed', 'member');
-select test_subscribe('picard@enterprise.sf', TRUE, 'laforge@enterprise.sf', TRUE, 'subscribed', 'publisher');
+-- Follow matrix for the Enterprise: "X follows Y and is a ...".
+--
+-- | X\Y          | Picard     | Riker      | Data        | Laforge |
+-- |--------------+------------+------------+-------------+---------|
+-- | Picard       | owner      | moderator  |             |         |
+-- | Riker        |            | owner      |             |         |
+-- | Data         | member     | outcast    | owner       | member  |
+-- | Laforge      | publisher  |            | member      | owner   |
+-- |--------------+------------+------------+-------------+---------|
+-- | publishModel | publishers | publishers | subscribers | open    |
+-- | accessModel  | open       | open       | authorize   | open    |
 
--- Laforge follows Data as a member. Data is banned from Laforge's channel.
-select test_subscribe('data@enterprise.sf', TRUE, 'laforge@enterprise.sf', TRUE, 'subscribed',   'member');
-select test_subscribe('laforge@enterprise.sf', TRUE, 'data@enterprise.sf', TRUE, 'unsubscribed', 'outcast');
+select test_subscribe('picard@enterprise.sf',  TRUE, 'data@enterprise.sf',    TRUE, 'subscribed',   'member');
+select test_subscribe('picard@enterprise.sf',  TRUE, 'laforge@enterprise.sf', TRUE, 'subscribed',   'publisher');
+select test_subscribe('riker@enterprise.sf',   TRUE, 'picard@enterprise.sf',  TRUE, 'subscribed',   'moderator');
+select test_subscribe('riker@enterprise.sf',   TRUE, 'data@enterprise.sf',    TRUE, 'unsubscribed', 'outcast');
+select test_subscribe('data@enterprise.sf',    TRUE, 'laforge@enterprise.sf', TRUE, 'subscribed',   'member');
+select test_subscribe('laforge@enterprise.sf', TRUE, 'data@enterprise.sf',    TRUE, 'subscribed',   'member');
 
--- All subscribers can post into Data's channel, anyone can post in Laforge's.
 select test_set_config('/user/data@enterprise.sf/posts',    'publishModel', 'subscribers');
 select test_set_config('/user/laforge@enterprise.sf/posts', 'publishModel', 'open');
 
--- Picard and Sisko follow each other as publishers
+-- Picard and Sisko follow each other as publishers.
 select test_subscribe('sisko@ds9.sf', FALSE, 'picard@enterprise.sf', TRUE, 'subscribed', 'publisher');
 select test_subscribe('picard@enterprise.sf', TRUE, 'sisko@ds9.sf', FALSE, 'subscribed', 'publisher');
+
+-- Local Variables:
+-- sql-product: postgres
+-- eval: (orgtbl-mode 1)
+-- End:

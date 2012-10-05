@@ -176,6 +176,7 @@ describe "Posting", ->
 
             server.doTest publishEl, "got-iq-publish-A-6", done, testErrorIq "modify", "bad-request"
 
+
     describe "to a local channel", ->
         it "must be possible for its owner", (done) ->
             publishEl = server.makePublishIq "picard@enterprise.sf", "buddycloud.example.org",
@@ -209,7 +210,7 @@ describe "Posting", ->
 
         it "must not be possible for an outcast", (done) ->
             publishEl = server.makePublishIq "data@enterprise.sf", "buddycloud.example.org",
-                "publish-B-7", "/user/laforge@enterprise.sf/posts", content: "Test post B7"
+                "publish-B-7", "/user/riker@enterprise.sf/posts", content: "Test post B7"
             server.doTest publishEl, "got-iq-publish-B-7", done, testErrorIq "auth", "forbidden"
 
         it "must be notified to subscribers", (done) ->
@@ -232,6 +233,7 @@ describe "Posting", ->
 
             server.doTests publishEl, done, events
 
+
     describe "to a remote channel", ->
         it "must be submitted to the authoritative server", (done) ->
             publishEl = server.makePublishIq "picard@enterprise.sf", "buddycloud.example.org",
@@ -239,8 +241,14 @@ describe "Posting", ->
 
             server.doTest publishEl, "got-iq-to-buddycloud.ds9.sf", done, (iq) ->
                 iq.attrs.should.have.property "type", "set"
-                entryEl = iq.getChild("pubsub", NS.PUBSUB)
-                    ?.getChild("publish")
+                pubsubEl = iq.getChild("pubsub", NS.PUBSUB)
+                should.exist pubsubEl
+
+                actorEl = pubsubEl.getChild("actor", NS.BUDDYCLOUD_V1)
+                should.exist actorEl
+                actorEl.getText().should.equal "picard@enterprise.sf"
+
+                entryEl = pubsubEl.getChild("publish")
                     ?.getChild("item")
                     ?.getChild("entry", NS.ATOM)
                 should.exist entryEl
@@ -265,10 +273,12 @@ describe "Posting", ->
                 itemEl.attrs.should.have.property "id", "test-C-2"
                 should.exist itemEl.getChild "entry", NS.ATOM
 
+
     describe "a reply", ->
         it.skip "should succeed if the post exists", (done) ->
 
         it.skip "should fail if the post does not exist", (done) ->
+
 
     describe "an update", ->
         it.skip "should be possible for the author", (done) ->
@@ -293,6 +303,10 @@ describe "Retracting", ->
         it.skip "should be notified to subscribers", (done) ->
 
     describe "a remote item", ->
-        it.skip "must be submitted to the authoritative server", (done) ->
+        it.skip "must be possible for authorized users", (done) ->
+            # Submitted remotely
+
+        it.skip "must not be possible for unauthorized users", (done) ->
+            # Not submitted remotely
 
         it.skip "must be replicated locally", (done) ->
