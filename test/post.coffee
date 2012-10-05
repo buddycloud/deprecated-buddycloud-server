@@ -234,6 +234,30 @@ describe "Posting", ->
             server.doTests publishEl, done, events
 
 
+    describe "from a remote service", ->
+        it.skip "must check if server is authoritative", (done) ->
+
+        it.skip "must reject remote posts without <actor/>", (done) ->
+
+        it "must check for permissions of remote posters", (done) ->
+            async.series [(cb) ->
+                publishEl = server.makePublishIq "buddycloud.ds9.sf", "buddycloud.example.org",
+                    "publish-B-10", "/user/picard@enterprise.sf/posts",
+                    author: "sisko@ds9.sf", content: "Test post B10"
+                publishEl.up().up().up().c("actor", xmlns: NS.BUDDYCLOUD_V1).t("sisko@ds9.sf")
+
+                server.doTest publishEl, "got-iq-publish-B-10", cb, testPublishResultIq
+
+            , (cb) ->
+                publishEl = server.makePublishIq "buddycloud.ds9.sf", "buddycloud.example.org",
+                    "publish-B-11", "/user/picard@enterprise.sf/posts",
+                    author: "odo@ds9.sf", content: "Test post B11"
+                publishEl.up().up().up().c("actor", xmlns: NS.BUDDYCLOUD_V1).t("odo@ds9.sf")
+
+                server.doTest publishEl, "got-iq-publish-B-11", cb, testErrorIq "auth", "forbidden"
+            ], done
+
+
     describe "to a remote channel", ->
         it "must be submitted to the authoritative server", (done) ->
             publishEl = server.makePublishIq "picard@enterprise.sf", "buddycloud.example.org",
@@ -275,26 +299,160 @@ describe "Posting", ->
 
 
     describe "a reply", ->
-        it.skip "should succeed if the post exists", (done) ->
+        it "should succeed if the post exists", (done) ->
+            async.series [(cb) ->
+                # Publish a post
+                publishEl = server.makePublishIq "picard@enterprise.sf", "buddycloud.example.org",
+                    "publish-D-1", "/user/picard@enterprise.sf/posts", content: "Test post D1", id: "test-D-1"
 
-        it.skip "should fail if the post does not exist", (done) ->
+                server.doTest publishEl, "got-iq-publish-D-1", cb, testPublishResultIq
+
+            , (cb) ->
+                # Publish a reply to the previous post
+                publishEl = server.makePublishIq "picard@enterprise.sf", "buddycloud.example.org",
+                    "publish-D-2", "/user/picard@enterprise.sf/posts",
+                    content: "Test reply D1", id: "test-D-2", in_reply_to: "test-D-1"
+
+                server.doTest publishEl, "got-iq-publish-D-2", cb, testPublishResultIq
+
+            , (cb) ->
+                # Fetch the reply to see how it was normalized
+                iq = server.makePubsubGetIq("picard@enterprise.sf", "buddycloud.example.org", "retrieve-D-3")
+                    .c("items", node: "/user/picard@enterprise.sf/posts")
+                    .c("item", id: "test-D-2")
+
+                server.doTest iq, "got-iq-retrieve-D-3", cb, (iq) ->
+                    iq.attrs.should.have.property "type", "result"
+
+                    entryEl = iq.getChild("pubsub", NS.PUBSUB)
+                        ?.getChild("items")
+                        ?.getChild("item")
+                        ?.getChild("entry", NS.ATOM)
+                    should.exist entryEl
+                    atom = server.parseAtom entryEl
+
+                    expectedProperties =
+                        id: "test-D-2", in_reply_to: "test-D-1"
+                        object: "comment", verb: "comment"
+                    for name, val of expectedProperties
+                        atom.should.have.property name, val
+            ], done
+
+        it "should fail if the post does not exist", (done) ->
+            publishEl = server.makePublishIq "picard@enterprise.sf", "buddycloud.example.org",
+                "publish-D-4", "/user/picard@enterprise.sf/posts",
+                content: "Test reply D4", id: "test-D-4", in_reply_to: "missing-post"
+
+            server.doTest publishEl, "got-iq-publish-D-4", done, (iq) ->
+                iq.attrs.should.have.property "type", "error"
+                errEl = iq.getChild "error"
+                should.exist errEl
+                errEl.attrs.should.have.property "type", "modify"
+                should.exist errEl.getChild "not-acceptable", "urn:ietf:params:xml:ns:xmpp-stanzas"
+                should.exist errEl.getChild "item-not-found", "http://buddycloud.org/v1#errors"
 
 
     describe "an update", ->
-        it.skip "should be possible for the author", (done) ->
+        it "should be possible for the author", (done) ->
+            async.series [(cb) ->
+                publishEl = server.makePublishIq "laforge@enterprise.sf", "buddycloud.example.org",
+                    "publish-E-1", "/user/picard@enterprise.sf/posts",
+                    author: "laforge@enterprise.sf", content: "Test post E1", id: "test-E-1"
+                server.doTest publishEl, "got-iq-publish-E-1", cb, testPublishResultIq
 
-        it.skip "should not be possible for anyone else", (done) ->
+            , (cb) ->
+                publishEl = server.makePublishIq "laforge@enterprise.sf", "buddycloud.example.org",
+                    "publish-E-2", "/user/picard@enterprise.sf/posts",
+                    author: "laforge@enterprise.sf", content: "Updated post E1", id: "test-E-1"
+                server.doTest publishEl, "got-iq-publish-E-2", cb, testPublishResultIq
+
+            ,(cb) ->
+                iq = server.makePubsubGetIq("picard@enterprise.sf", "buddycloud.example.org", "retrieve-E-3")
+                    .c("items", node: "/user/picard@enterprise.sf/posts")
+                    .c("item", id: "test-E-1")
+                server.doTest iq, "got-iq-retrieve-E-3", cb, (iq) ->
+                    iq.attrs.should.have.property "type", "result"
+
+                    entryEl = iq.getChild("pubsub", NS.PUBSUB)
+                        ?.getChild("items")
+                        ?.getChild("item")
+                        ?.getChild("entry", NS.ATOM)
+                    should.exist entryEl
+                    atom = server.parseAtom entryEl
+
+                    atom.should.have.property "author", "laforge@enterprise.sf"
+                    atom.should.have.property "content", "Updated post E1"
+                    atom.should.have.property "published"
+                    atom.should.have.property "updated"
+                    atom.published.should.not.equal atom.updated
+            ], done
+
+        it "should not be possible for anyone else", (done) ->
+            async.series [(cb) ->
+                publishEl = server.makePublishIq "laforge@enterprise.sf", "buddycloud.example.org",
+                    "publish-E-4", "/user/picard@enterprise.sf/posts",
+                    author: "laforge@enterprise.sf", content: "Test post E4", id: "test-E-4"
+                server.doTest publishEl, "got-iq-publish-E-4", cb, testPublishResultIq
+
+            , (cb) ->
+                publishEl = server.makePublishIq "picard@enterprise.sf", "buddycloud.example.org",
+                    "publish-E-5", "/user/picard@enterprise.sf/posts",
+                    author: "laforge@ds9.sf", content: "Updated post E1", id: "test-E-4"
+                server.doTest publishEl, "got-iq-publish-E-5", cb, testErrorIq "auth", "forbidden"
+            ], done
 
         it.skip "should not be possible for a deleted item", (done) ->
 
 
 describe "Retracting", ->
+    server = new TestServer()
+    retractIq = (from, to, id, node, itemId) ->
+        server.makePubsubSetIq(from, to, id)
+            .c("retract", node: node)
+            .c("item", id: itemId)
+
     describe "a local item", ->
-        it.skip "should be possible for the author", (done) ->
+        it "should be possible for the author", (done) ->
+            async.series [(cb) ->
+                publishEl = server.makePublishIq "laforge@enterprise.sf", "buddycloud.example.org",
+                    "retract-F-1", "/user/picard@enterprise.sf/posts",
+                    author: "laforge@enterprise.sf", content: "Test post F1", id: "test-F-1"
+                server.doTest publishEl, "got-iq-retract-F-1", cb, testPublishResultIq
 
-        it.skip "should be possible for the channel owner", (done) ->
+            , (cb) ->
+                retEl = retractIq "laforge@enterprise.sf", "buddycloud.example.org",
+                    "retract-F-2", "/user/picard@enterprise.sf/posts", "test-F-1"
+                server.doTest retEl, "got-iq-retract-F-2", cb, (iq) ->
+                    iq.attrs.should.have.property "type", "result"
+            ], done
 
-        it.skip "should be possible for the channel moderator", (done) ->
+        it "should be possible for an owner", (done) ->
+            async.series [(cb) ->
+                publishEl = server.makePublishIq "laforge@enterprise.sf", "buddycloud.example.org",
+                    "retract-F-3", "/user/picard@enterprise.sf/posts",
+                    author: "laforge@enterprise.sf", content: "Test post F3", id: "test-F-3"
+                server.doTest publishEl, "got-iq-retract-F-3", cb, testPublishResultIq
+
+            , (cb) ->
+                retEl = retractIq "picard@enterprise.sf", "buddycloud.example.org",
+                    "retract-F-4", "/user/picard@enterprise.sf/posts", "test-F-3"
+                server.doTest retEl, "got-iq-retract-F-4", cb, (iq) ->
+                    iq.attrs.should.have.property "type", "result"
+            ], done
+
+        it "should be possible for a moderator", (done) ->
+            async.series [(cb) ->
+                publishEl = server.makePublishIq "laforge@enterprise.sf", "buddycloud.example.org",
+                    "retract-F-5", "/user/picard@enterprise.sf/posts",
+                    author: "laforge@enterprise.sf", content: "Test post F5", id: "test-F-5"
+                server.doTest publishEl, "got-iq-retract-F-5", cb, testPublishResultIq
+
+            , (cb) ->
+                retEl = retractIq "buddycloud.voyager.sf", "buddycloud.example.org",
+                    "retract-F-6", "/user/picard@enterprise.sf/posts", "test-F-5"
+                server.doTest retEl, "got-iq-retract-F-6", cb, (iq) ->
+                    iq.attrs.should.have.property "type", "result"
+            ], done
 
         it.skip "should not be possible for anyone else", (done) ->
 
