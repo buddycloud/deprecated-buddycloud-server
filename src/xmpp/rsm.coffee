@@ -35,7 +35,7 @@ class exports.RSM
             if beforeIdx >= 0
                 results = results.slice(0, beforeIdx)
         # RSM crop item amount
-        @max = Math.min(100, @max or 100)
+        @max = Math.min(1000, @max or 1000)
         if 'before' of @
             # Paging backwards
             results = results.slice(Math.max(0, results.length - @max), results.length)
