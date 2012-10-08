@@ -243,6 +243,7 @@ class exports.TestServer extends EventEmitter
     #   an exception has been caught
     # @param [callback] cb_check Function to call when event is received
     doTest: (stanza, event, cb_done, cb_check) ->
+        @removeAllListeners event
         @once event, (data) ->
             try
                 cb_check(data)
@@ -257,7 +258,8 @@ class exports.TestServer extends EventEmitter
     # @param [callback] cb_done Function to call when all the tests are over or
     #   when an exception has been caught
     # @param [Object] events A mapping of event names to check functions
-    doTests: (stanza, cb_done, events) ->
+    # @param [Array<String>] badEvents A list of events that should not happen
+    doTests: (stanza, cb_done, events, badEvents) ->
         eventsLeft = 0
         cb_partial = ->
             eventsLeft -= 1
@@ -274,7 +276,18 @@ class exports.TestServer extends EventEmitter
 
         for event, cb_check of events
             eventsLeft += 1
+            @removeAllListeners event
             @once event, runner cb_check
+
+        badRunner = (event) ->
+            return (data) ->
+                process.nextTick ->
+                    cb_done new Error "bad event: #{event}"
+
+        if badEvents?
+            for event in badEvents
+                @removeAllListeners event
+                @once event, badRunner event
 
         @emit "stanza", stanza.root()
 

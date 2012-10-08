@@ -265,7 +265,8 @@ describe "Posting", ->
                     itemEl.attrs.should.have.property "id"
                     should.exist itemEl.getChild("entry", NS.ATOM), "missing element: <entry/>"
 
-            server.doTests publishEl, done, events
+            server.doTests publishEl, done, events,
+                ["got-message-riker@enterprise.sf/abc", "got-message-buddycloud.voyager.sf"]
 
 
     describe "from a remote service", ->
@@ -562,7 +563,8 @@ describe "Retracting", ->
                         should.exist tsEl, "missing element: <deleted-entry/>"
                         testTombstone tsEl, "test-F-12"
 
-                server.doTests retEl, cb, events
+                server.doTests retEl, cb, events,
+                    ["got-message-riker@enterprise.sf/abc", "got-message-buddycloud.voyager.sf"]
             ], done
 
     describe "a remote item", ->
