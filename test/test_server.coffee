@@ -136,7 +136,7 @@ class exports.TestServer extends EventEmitter
     #   a parsed data form if there was one.
     parseDiscoInfo: (iq) ->
         qEl = iq.getChild("query", NS.DISCO_INFO)
-        should.exist(qEl)
+        should.exist qEl, "missing element: <query/>"
 
         disco =
             attrs: qEl.attrs

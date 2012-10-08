@@ -13,7 +13,7 @@ testPublishResultIq = (iq) ->
     itemEl = iq.getChild("pubsub", NS.PUBSUB)
         ?.getChild("publish")
         ?.getChild("item")
-    should.exist itemEl
+    should.exist itemEl, "missing element: <item/>"
     itemEl.attrs.should.have.property "id"
     return itemEl.attrs.id
 
@@ -21,38 +21,41 @@ testErrorIq = (errType, childName, childNS = "urn:ietf:params:xml:ns:xmpp-stanza
     return (iq) ->
         iq.attrs.should.have.property "type", "error"
         errEl = iq.getChild "error"
-        should.exist errEl
+        should.exist errEl, "missing element: <error/>"
         errEl.attrs.should.have.property "type", errType
-        should.exist errEl.getChild childName, childNS
+        should.exist errEl.getChild(childName, childNS),
+            "missing element: <#{childName} xmlns=\"#{childNS}\"/>, " +
+            "got these instead: #{errEl.children}"
 
 testTombstone = (tsEl, id) ->
     tsEl.attrs.should.have.property "ref"
     tsEl.attrs.should.have.property "when"
 
     upEd = tsEl.getChild "updated", NS.ATOM
-    should.exist upEd
+    should.exist upEd, "missing element: <updated/>"
     upEd.getText().should.equal tsEl.attrs.when
 
-    should.exist tsEl.getChild "published", NS.ATOM
+    should.exist tsEl.getChild("published", NS.ATOM), "missing element: <published/>"
 
     idEl = tsEl.getChild "id", NS.ATOM
+    should.exist idEl, "missing element: <id/>"
     idEl.getText().should.equal id
 
     linkEl = tsEl.getChild "link", NS.ATOM
-    should.exist linkEl
+    should.exist linkEl, "missing element: <link/>"
     linkEl.attrs.should.have.property "rel", "self"
     linkEl.attrs.should.have.property "href", tsEl.attrs.ref
 
     otEl = tsEl.getChild("object", NS.AS)?.getChild "object-type"
-    should.exist otEl
+    should.exist otEl, "missing element: <object-type/>"
     otEl.getText().should.equal "note"
 
     verbEl = tsEl.getChild "verb", NS.AS
-    should.exist verbEl
+    should.exist verbEl, "missing element: <verb/>"
     verbEl.getText().should.equal "post"
 
-    should.not.exist tsEl.getChild "author", NS.ATOM
-    should.not.exist tsEl.getChild "content", NS.ATOM
+    should.not.exist tsEl.getChild("author", NS.ATOM), "found element: <author/>"
+    should.not.exist tsEl.getChild("content", NS.ATOM), "found element: <content/>"
 
 
 describe "Posting", ->
@@ -72,18 +75,17 @@ describe "Posting", ->
                     iq.attrs.should.have.property "type", "result"
 
                     pubsubEl = iq.getChild "pubsub", NS.PUBSUB
-                    should.exist pubsubEl
+                    should.exist pubsubEl, "missing element: <pubsub/>"
 
                     publishEl = pubsubEl.getChild "publish"
-                    should.exist publishEl
+                    should.exist publishEl, "missing element: <pubsub/>"
                     publishEl.attrs.should.have.property "node", "/user/picard@enterprise.sf/posts"
                     publishEl.children.should.have.length 1
 
                     itemEl = publishEl.getChild "item"
-                    should.exist itemEl
+                    should.exist itemEl, "missing element: <item/>"
                     itemEl.attrs.should.have.property "id"
                     postId = itemEl.attrs.id
-                    should.exist postId
 
             , (cb) ->
                 # Fetch previously posted item from channel
@@ -95,20 +97,20 @@ describe "Posting", ->
                     iq.attrs.should.have.property "type", "result"
 
                     pubsubEl = iq.getChild "pubsub", NS.PUBSUB
-                    should.exist pubsubEl
+                    should.exist pubsubEl, "missing element: <pubsub/>"
 
                     itemsEl = pubsubEl.getChild "items"
-                    should.exist itemsEl
+                    should.exist itemsEl, "missing element: <items/>"
                     itemsEl.attrs.should.have.property "node", "/user/picard@enterprise.sf/posts"
                     itemsEl.children.should.have.length 1
 
                     itemEl = itemsEl.getChild "item"
-                    should.exist itemEl
+                    should.exist itemEl, "missing element: <item/>"
                     itemEl.attrs.should.have.property "id", postId
                     itemEl.children.should.have.length 1
 
                     entryEl = itemEl.getChild "entry", NS.ATOM
-                    should.exist entryEl
+                    should.exist entryEl, "missing element: <entry/>"
                     atom = server.parseAtom entryEl
 
                     expectedProperties =
@@ -145,7 +147,7 @@ describe "Posting", ->
                         ?.getChild("items")
                         ?.getChild("item")
                         ?.getChild("entry", NS.ATOM)
-                    should.exist entryEl
+                    should.exist entryEl, "missing element: <entry/>"
                     atom = server.parseAtom entryEl
 
                     expectedProperties =
@@ -168,11 +170,11 @@ describe "Posting", ->
 
                     publishEl = iq.getChild("pubsub", NS.PUBSUB)
                         ?.getChild("publish")
-                    should.exist publishEl
+                    should.exist publishEl, "missing element: <pubsub/>"
                     publishEl.attrs.should.have.property "node", "/user/picard@enterprise.sf/posts"
 
                     itemEl = publishEl.getChild("item")
-                    should.exist itemEl
+                    should.exist itemEl, "missing element: <item/>"
                     itemEl.attrs.should.have.property "id", "test-A-3"
 
             , (cb) ->
@@ -185,11 +187,11 @@ describe "Posting", ->
 
                     publishEl = iq.getChild("pubsub", NS.PUBSUB)
                         ?.getChild("publish")
-                    should.exist publishEl
+                    should.exist publishEl, "missing element: <publish/>"
                     publishEl.attrs.should.have.property "node", "/user/data@enterprise.sf/posts"
 
                     itemEl = publishEl.getChild("item")
-                    should.exist itemEl
+                    should.exist itemEl, "missing element: <item/>"
                     itemEl.attrs.should.have.property "id", "test-A-3"
             ], done
 
@@ -256,12 +258,12 @@ describe "Posting", ->
                     msg.attrs.should.have.property "from", "buddycloud.example.org"
                     itemsEl = msg.getChild("event", NS.PUBSUB_EVENT)
                         ?.getChild("items")
-                    should.exist itemsEl
+                    should.exist itemsEl, "missing element: <items/>"
                     itemsEl.attrs.should.have.property "node", "/user/picard@enterprise.sf/posts"
                     itemEl = itemsEl.getChild "item"
-                    should.exist itemEl
+                    should.exist itemEl, "missing element: <item/>"
                     itemEl.attrs.should.have.property "id"
-                    should.exist itemEl.getChild "entry", NS.ATOM
+                    should.exist itemEl.getChild("entry", NS.ATOM), "missing element: <entry/>"
 
             server.doTests publishEl, done, events
 
@@ -298,16 +300,16 @@ describe "Posting", ->
             server.doTest publishEl, "got-iq-to-buddycloud.ds9.sf", done, (iq) ->
                 iq.attrs.should.have.property "type", "set"
                 pubsubEl = iq.getChild("pubsub", NS.PUBSUB)
-                should.exist pubsubEl
+                should.exist pubsubEl, "missing element: <pubsub/>"
 
                 actorEl = pubsubEl.getChild("actor", NS.BUDDYCLOUD_V1)
-                should.exist actorEl
+                should.exist actorEl, "missing element: <actor/>"
                 actorEl.getText().should.equal "picard@enterprise.sf"
 
                 entryEl = pubsubEl.getChild("publish")
                     ?.getChild("item")
                     ?.getChild("entry", NS.ATOM)
-                should.exist entryEl
+                should.exist entryEl, "missing element: <entry/>"
                 atom = server.parseAtom entryEl
                 atom.should.have.property "content", "Test post C1"
 
@@ -322,12 +324,12 @@ describe "Posting", ->
                 msg.attrs.should.have.property "from", "buddycloud.example.org"
                 itemsEl = msg.getChild("event", NS.PUBSUB_EVENT)
                     ?.getChild("items")
-                should.exist itemsEl
+                should.exist itemsEl, "missing element: <items/>"
                 itemsEl.attrs.should.have.property "node", "/user/sisko@ds9.sf/posts"
                 itemEl = itemsEl.getChild "item"
-                should.exist itemEl
+                should.exist itemEl, "missing element: <item/>"
                 itemEl.attrs.should.have.property "id", "test-C-2"
-                should.exist itemEl.getChild "entry", NS.ATOM
+                should.exist itemEl.getChild("entry", NS.ATOM), "missing element: <entry/>"
 
 
     describe "a reply", ->
@@ -360,7 +362,7 @@ describe "Posting", ->
                         ?.getChild("items")
                         ?.getChild("item")
                         ?.getChild("entry", NS.ATOM)
-                    should.exist entryEl
+                    should.exist entryEl, "missing element: <entry/>"
                     atom = server.parseAtom entryEl
 
                     expectedProperties =
@@ -376,12 +378,10 @@ describe "Posting", ->
                 content: "Test reply D4", id: "test-D-4", in_reply_to: "missing-post"
 
             server.doTest publishEl, "got-iq-publish-D-4", done, (iq) ->
-                iq.attrs.should.have.property "type", "error"
-                errEl = iq.getChild "error"
-                should.exist errEl
-                errEl.attrs.should.have.property "type", "modify"
-                should.exist errEl.getChild "not-acceptable", "urn:ietf:params:xml:ns:xmpp-stanzas"
-                should.exist errEl.getChild "item-not-found", "http://buddycloud.org/v1#errors"
+                (testErrorIq "modify", "not-acceptable") iq
+                infEl = iq.getChild("error")
+                    ?.getChild("item-not-found", "http://buddycloud.org/v1#errors")
+                should.exist infEl, "missing element: <item-not-found/>"
 
 
     describe "an update", ->
@@ -409,7 +409,7 @@ describe "Posting", ->
                         ?.getChild("items")
                         ?.getChild("item")
                         ?.getChild("entry", NS.ATOM)
-                    should.exist entryEl
+                    should.exist entryEl, "missing element: <entry/>"
                     atom = server.parseAtom entryEl
 
                     atom.should.have.property "author", "laforge@enterprise.sf"
@@ -520,11 +520,11 @@ describe "Retracting", ->
                     itemEl = iq.getChild("pubsub", NS.PUBSUB)
                         ?.getChild("items")
                         ?.getChild("item")
-                    should.exist itemEl
+                    should.exist itemEl, "missing element: <item/>"
                     itemEl.attrs.should.have.property "id", "test-F-9"
 
                     tsEl = itemEl.getChild "deleted-entry", NS.TS
-                    should.exist tsEl
+                    should.exist tsEl, "missing element: <deleted-entry/>"
                     testTombstone tsEl, "test-F-9"
             ], done
 
@@ -548,18 +548,18 @@ describe "Retracting", ->
                         msg.attrs.should.have.property "from", "buddycloud.example.org"
                         itemsEl = msg.getChild("event", NS.PUBSUB_EVENT)
                             ?.getChild("items")
-                        should.exist itemsEl
+                        should.exist itemsEl, "missing element: <items/>"
                         itemsEl.attrs.should.have.property "node", "/user/picard@enterprise.sf/posts"
 
                         retEl = itemsEl.getChild "retract"
-                        should.exist retEl
+                        should.exist retEl, "missing element: <retract/>"
                         retEl.attrs.should.have.property "id", "test-F-12"
 
                         itemEl = itemsEl.getChild "item"
-                        should.exist itemEl
+                        should.exist itemEl, "missing element: <item/>"
                         itemEl.attrs.should.have.property "id"
                         tsEl = itemEl.getChild "deleted-entry", NS.TS
-                        should.exist tsEl
+                        should.exist tsEl, "missing element: <deleted-entry/>"
                         testTombstone tsEl, "test-F-12"
 
                 server.doTests retEl, cb, events

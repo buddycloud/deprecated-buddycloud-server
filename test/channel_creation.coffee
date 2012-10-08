@@ -21,7 +21,8 @@ describe "Creating a channel", ->
             err = iq.children[0]
             err.name.should.equal "error"
             err.attrs.should.have.property "type", "cancel"
-            should.exist(err.getChild("conflict", "urn:ietf:params:xml:ns:xmpp-stanzas"))
+            should.exist err.getChild("conflict", "urn:ietf:params:xml:ns:xmpp-stanzas"),
+                "missing element: <conflict/>"
 
     # Skip this test. It fails because the server responds with
     # "not-implemented" instead of "not-acceptable", but it's good enough....
@@ -35,8 +36,10 @@ describe "Creating a channel", ->
             err = iq.children[0]
             err.name.should.equal "error"
             err.attrs.should.have.property "type", "modify"
-            should.exist(err.getChild("not-acceptable", "urn:ietf:params:xml:ns:xmpp-stanzas"))
-            should.exist(err.getChild("nodeid-required", "http://jabber.org/protocol/pubsub#errors"))
+            should.exist err.getChild("not-acceptable", "urn:ietf:params:xml:ns:xmpp-stanzas"),
+                "missing element: <not-acceptable/>"
+            should.exist err.getChild("nodeid-required", "http://jabber.org/protocol/pubsub#errors"),
+                "missing element: <nodeid-required/>"
 
     it "must set default configuration", (done) ->
         iq = server.makeDiscoInfoIq "test@example.org", "buddycloud.example.org", "disco1"
