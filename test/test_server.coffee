@@ -262,14 +262,17 @@ class exports.TestServer extends EventEmitter
             if eventsLeft == 0
                 cb_done()
 
-        for event, cb_check of events
-            eventsLeft += 1
-            @once event, (data) ->
+        runner = (cb_check) ->
+            return (data) ->
                 try
                     cb_check(data)
                     cb_partial()
                 catch e
                     cb_done(e)
+
+        for event, cb_check of events
+            eventsLeft += 1
+            @once event, runner cb_check
 
         @emit "stanza", stanza.root()
 
