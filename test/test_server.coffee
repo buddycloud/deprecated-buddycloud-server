@@ -9,6 +9,7 @@ NS = require('../lib/xmpp/ns')
 NS.ATOM = "http://www.w3.org/2005/Atom"
 NS.AS   = "http://activitystrea.ms/spec/1.0/"
 NS.THR  = "http://purl.org/syndication/thread/1.0"
+NS.TS   = "http://purl.org/atompub/tombstones/1.0"
 
 exports.NS = NS
 
@@ -30,6 +31,7 @@ class exports.TestServer extends EventEmitter
         info:
             "test@example.org":      { identities: [], features: [] }
             "picard@enterprise.sf":  { identities: [], features: [] }
+            "riker@enterprise.sf":   { identities: [], features: [] }
             "data@enterprise.sf":    { identities: [], features: [] }
             "laforge@enterprise.sf": { identities: [], features: [] }
             "sisko@ds9.sf":          { identities: [], features: [] }

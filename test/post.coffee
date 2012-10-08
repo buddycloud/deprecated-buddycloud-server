@@ -25,6 +25,36 @@ testErrorIq = (errType, childName, childNS = "urn:ietf:params:xml:ns:xmpp-stanza
         errEl.attrs.should.have.property "type", errType
         should.exist errEl.getChild childName, childNS
 
+testTombstone = (tsEl, id) ->
+    tsEl.attrs.should.have.property "ref"
+    tsEl.attrs.should.have.property "when"
+
+    upEd = tsEl.getChild "updated", NS.ATOM
+    should.exist upEd
+    upEd.getText().should.equal tsEl.attrs.when
+
+    should.exist tsEl.getChild "published", NS.ATOM
+
+    idEl = tsEl.getChild "id", NS.ATOM
+    idEl.getText().should.equal id
+
+    linkEl = tsEl.getChild "link", NS.ATOM
+    should.exist linkEl
+    linkEl.attrs.should.have.property "rel", "self"
+    linkEl.attrs.should.have.property "href", tsEl.attrs.ref
+
+    otEl = tsEl.getChild("object", NS.AS)?.getChild "object-type"
+    should.exist otEl
+    otEl.getText().should.equal "note"
+
+    verbEl = tsEl.getChild "verb", NS.AS
+    should.exist verbEl
+    verbEl.getText().should.equal "post"
+
+    should.not.exist tsEl.getChild "author", NS.ATOM
+    should.not.exist tsEl.getChild "content", NS.ATOM
+
+
 describe "Posting", ->
     server = new TestServer()
 
@@ -175,6 +205,8 @@ describe "Posting", ->
                 .c("invalid-element").t("Test post A6")
 
             server.doTest publishEl, "got-iq-publish-A-6", done, testErrorIq "modify", "bad-request"
+
+        it.skip "must ensure that the post author is correct", (done) ->
 
 
     describe "to a local channel", ->
@@ -442,23 +474,96 @@ describe "Retracting", ->
 
         it "should be possible for a moderator", (done) ->
             async.series [(cb) ->
-                publishEl = server.makePublishIq "laforge@enterprise.sf", "buddycloud.example.org",
-                    "retract-F-5", "/user/picard@enterprise.sf/posts",
-                    author: "laforge@enterprise.sf", content: "Test post F5", id: "test-F-5"
+                publishEl = server.makePublishIq "riker@enterprise.sf", "buddycloud.example.org",
+                    "retract-F-5", "/user/riker@enterprise.sf/posts",
+                    author: "riker@enterprise.sf", content: "Test post F5", id: "test-F-5"
                 server.doTest publishEl, "got-iq-retract-F-5", cb, testPublishResultIq
 
             , (cb) ->
-                retEl = retractIq "buddycloud.voyager.sf", "buddycloud.example.org",
-                    "retract-F-6", "/user/picard@enterprise.sf/posts", "test-F-5"
+                retEl = retractIq "picard@enterprise.sf", "buddycloud.example.org",
+                    "retract-F-6", "/user/riker@enterprise.sf/posts", "test-F-5"
                 server.doTest retEl, "got-iq-retract-F-6", cb, (iq) ->
                     iq.attrs.should.have.property "type", "result"
             ], done
 
-        it.skip "should not be possible for anyone else", (done) ->
+        it "should not be possible for anyone else", (done) ->
+            async.series [(cb) ->
+                publishEl = server.makePublishIq "laforge@enterprise.sf", "buddycloud.example.org",
+                    "retract-F-7", "/user/picard@enterprise.sf/posts",
+                    author: "laforge@enterprise.sf", content: "Test post F7", id: "test-F-7"
+                server.doTest publishEl, "got-iq-retract-F-7", cb, testPublishResultIq
 
-        it.skip "should replace the item with a tombstone", (done) ->
+            , (cb) ->
+                retEl = retractIq "data@enterprise.sf", "buddycloud.example.org",
+                    "retract-F-8", "/user/picard@enterprise.sf/posts", "test-F-7"
+                server.doTest retEl, "got-iq-retract-F-8", cb, testErrorIq "cancel", "forbidden"
+            ], done
 
-        it.skip "should be notified to subscribers", (done) ->
+        it "should replace the item with a tombstone", (done) ->
+            async.series [(cb) ->
+                publishEl = server.makePublishIq "laforge@enterprise.sf", "buddycloud.example.org",
+                    "retract-F-9", "/user/picard@enterprise.sf/posts",
+                    author: "laforge@enterprise.sf", content: "Test post F9", id: "test-F-9"
+                server.doTest publishEl, "got-iq-retract-F-9", cb, testPublishResultIq
+
+            , (cb) ->
+                retEl = retractIq "laforge@enterprise.sf", "buddycloud.example.org",
+                    "retract-F-10", "/user/picard@enterprise.sf/posts", "test-F-9"
+                server.doTest retEl, "got-iq-retract-F-10", cb, (iq) ->
+                    iq.attrs.should.have.property "type", "result"
+            , (cb) ->
+                iq = server.makePubsubGetIq("laforge@enterprise.sf", "buddycloud.example.org", "retract-F-11")
+                    .c("items", node: "/user/picard@enterprise.sf/posts")
+                    .c("item", id: "test-F-9")
+
+                server.doTest iq, "got-iq-retract-F-11", cb, (iq) ->
+                    itemEl = iq.getChild("pubsub", NS.PUBSUB)
+                        ?.getChild("items")
+                        ?.getChild("item")
+                    should.exist itemEl
+                    itemEl.attrs.should.have.property "id", "test-F-9"
+
+                    tsEl = itemEl.getChild "deleted-entry", NS.TS
+                    should.exist tsEl
+                    testTombstone tsEl, "test-F-9"
+            ], done
+
+        it "should be notified to subscribers", (done) ->
+            async.series [(cb) ->
+                publishEl = server.makePublishIq "laforge@enterprise.sf", "buddycloud.example.org",
+                    "retract-F-12", "/user/picard@enterprise.sf/posts",
+                    author: "laforge@enterprise.sf", content: "Test post F12", id: "test-F-12"
+                server.doTest publishEl, "got-iq-retract-F-12", cb, testPublishResultIq
+
+            , (cb) ->
+                retEl = retractIq "laforge@enterprise.sf", "buddycloud.example.org",
+                    "retract-F-13", "/user/picard@enterprise.sf/posts", "test-F-12"
+                events =
+                    "got-iq-retract-F-13": (iq) ->
+                        iq.attrs.should.have.property "type", "result"
+
+                for sub in ["picard@enterprise.sf/abc", "buddycloud.ds9.sf",
+                            "laforge@enterprise.sf/abc", "laforge@enterprise.sf/def"]
+                    events["got-message-#{sub}"] = (msg) ->
+                        msg.attrs.should.have.property "from", "buddycloud.example.org"
+                        itemsEl = msg.getChild("event", NS.PUBSUB_EVENT)
+                            ?.getChild("items")
+                        should.exist itemsEl
+                        itemsEl.attrs.should.have.property "node", "/user/picard@enterprise.sf/posts"
+
+                        retEl = itemsEl.getChild "retract"
+                        should.exist retEl
+                        retEl.attrs.should.have.property "id", "test-F-12"
+
+                        itemEl = itemsEl.getChild "item"
+                        should.exist itemEl
+                        itemEl.attrs.should.have.property "id"
+                        tsEl = itemEl.getChild "deleted-entry", NS.TS
+                        should.exist tsEl
+                        testTombstone tsEl, "test-F-12"
+
+                server.doTests retEl, cb, events
+            ], done
 
     describe "a remote item", ->
         it.skip "must be possible for authorized users", (done) ->
