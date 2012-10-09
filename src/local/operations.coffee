@@ -521,6 +521,9 @@ class Publish extends PrivilegedOperation
                                     cb4 err, item
                     , (oldItem, cb4) =>
                         if oldItem?
+                            if oldItem.name is 'deleted-entry'
+                                return cb4 new errors.NotAcceptable "You can't update a deleted item"
+
                             # Only the original author can update an item
                             itemActor = oldItem.getChild("author")?.getChild("uri")?.getText()
                             if itemActor is "acct:#{@req.actor}"
