@@ -208,8 +208,6 @@ describe "Posting", ->
 
             server.doTest publishEl, "got-iq-publish-A-6", done, testErrorIq "modify", "bad-request"
 
-        it.skip "must ensure that the post author is correct", (done) ->
-
 
     describe "to a local channel", ->
         it "must be possible for its owner", (done) ->
@@ -270,9 +268,74 @@ describe "Posting", ->
 
 
     describe "from a remote service", ->
-        it.skip "must check if server is authoritative", (done) ->
+        it "must reject posts from non-authoritative services", (done) ->
+            publishEl = server.makePublishIq "buddycloud.voyager.sf", "buddycloud.example.org",
+                "publish-B-12", "/user/picard@enterprise.sf/posts",
+                author: "sisko@ds9.sf", content: "Test post B12"
+            publishEl.up().up().up().c("actor", xmlns: NS.BUDDYCLOUD_V1).t("sisko@ds9.sf")
 
-        it.skip "must reject remote posts without <actor/>", (done) ->
+            server.doTest publishEl, "got-iq-publish-B-12", done, testErrorIq "modify", "bad-request"
+
+        it "must reject remote posts with no or invalid <actor/>", (done) ->
+            discoId = null
+
+            async.series [(cb) ->
+                # No actor
+                publishEl = server.makePublishIq "buddycloud.ds9.sf", "buddycloud.example.org",
+                    "publish-B-13", "/user/picard@enterprise.sf/posts",
+                    author: "sisko@ds9.sf", content: "Test post B13"
+
+                server.doTest publishEl, "got-iq-publish-B-13", cb, testErrorIq "modify", "bad-request"
+
+            , (cb) ->
+                # Invalid actor: correct server name
+                publishEl = server.makePublishIq "buddycloud.ds9.sf", "buddycloud.example.org",
+                    "publish-B-14", "/user/picard@enterprise.sf/posts",
+                    author: "sisko@ds9.sf", content: "Test post B14"
+                publishEl.up().up().up().c("actor", xmlns: NS.BUDDYCLOUD_V1).t("buddycloud.ds9.sf")
+
+                server.doTest publishEl, "got-iq-publish-B-14", cb, testErrorIq "modify", "bad-request"
+
+            , (cb) ->
+                # Invalid actor: incorrect server name
+                publishEl = server.makePublishIq "buddycloud.ds9.sf", "buddycloud.example.org",
+                    "publish-B-15", "/user/picard@enterprise.sf/posts",
+                    author: "sisko@ds9.sf", content: "Test post B15"
+                publishEl.up().up().up().c("actor", xmlns: NS.BUDDYCLOUD_V1).t("buddycloud.voyager.sf")
+
+                # This will also do a disco#items to buddycloud.voyager.sf, so tell the server how to respond to it
+                server.disco.items["buddycloud.voyager.sf"] = []
+                server.doTest publishEl, "got-iq-publish-B-15", cb, testErrorIq "modify", "bad-request"
+
+            ], (err) ->
+                # Cleanup first
+                delete server.disco.items["buddycloud.voyager.sf"]
+                done err
+
+        it "must use <actor/> for the post author", (done) ->
+            async.series [(cb) ->
+                publishEl = server.makePublishIq "buddycloud.ds9.sf", "buddycloud.example.org",
+                    "publish-B-16", "/user/picard@enterprise.sf/posts",
+                    author_uri: "acct:odo@ds9.sf", content: "Test post B16", id: "test-B-16"
+                publishEl.up().up().up().c("actor", xmlns: NS.BUDDYCLOUD_V1).t("sisko@ds9.sf")
+
+                server.doTest publishEl, "got-iq-publish-B-16", cb, testPublishResultIq
+
+            , (cb) ->
+                iq = server.makePubsubGetIq("picard@enterprise.sf", "buddycloud.example.org", "publish-B-17")
+                    .c("items", node: "/user/picard@enterprise.sf/posts")
+                    .c("item", id: "test-B-16")
+
+                server.doTest iq, "got-iq-publish-B-17", cb, (iq) ->
+                    iq.attrs.should.have.property "type", "result"
+                    entryEl = iq.getChild("pubsub", NS.PUBSUB)
+                        ?.getChild("items")
+                        ?.getChild("item")
+                        ?.getChild("entry", NS.ATOM)
+                    should.exist entryEl, "missing element: <entry/>"
+                    atom = server.parseAtom entryEl
+                    atom.should.have.property "author_uri", "acct:sisko@ds9.sf"
+            ], done
 
         it "must check for permissions of remote posters", (done) ->
             async.series [(cb) ->
@@ -378,11 +441,7 @@ describe "Posting", ->
                 "publish-D-4", "/user/picard@enterprise.sf/posts",
                 content: "Test reply D4", id: "test-D-4", in_reply_to: "missing-post"
 
-            server.doTest publishEl, "got-iq-publish-D-4", done, (iq) ->
-                (testErrorIq "modify", "not-acceptable") iq
-                infEl = iq.getChild("error")
-                    ?.getChild("item-not-found", "http://buddycloud.org/v1#errors")
-                should.exist infEl, "missing element: <item-not-found/>"
+            server.doTest publishEl, "got-iq-publish-D-4", done, testErrorIq "modify", "not-acceptable"
 
 
     describe "an update", ->
@@ -434,7 +493,29 @@ describe "Posting", ->
                 server.doTest publishEl, "got-iq-publish-E-5", cb, testErrorIq "auth", "forbidden"
             ], done
 
-        it.skip "should not be possible for a deleted item", (done) ->
+        it "should not be possible for a deleted item", (done) ->
+            async.series [(cb) ->
+                # Publish
+                publishEl = server.makePublishIq "picard@enterprise.sf", "buddycloud.example.org",
+                    "publish-E-6", "/user/picard@enterprise.sf/posts",
+                    content: "Test post E6", id: "test-E-6"
+                server.doTest publishEl, "got-iq-publish-E-6", cb, testPublishResultIq
+
+            , (cb) ->
+                # Retract
+                retEl = server.makePubsubSetIq("picard@enterprise.sf", "buddycloud.example.org", "publish-E-7")
+                    .c("retract", node: "/user/picard@enterprise.sf/posts")
+                    .c("item", id: "test-E-6")
+                server.doTest retEl, "got-iq-publish-E-7", cb, (iq) ->
+                    iq.attrs.should.have.property "type", "result"
+
+            , (cb) ->
+                # Update
+                publishEl = server.makePublishIq "picard@enterprise.sf", "buddycloud.example.org",
+                    "publish-E-8", "/user/picard@enterprise.sf/posts",
+                    content: "Updated test post E6", id: "test-E-6"
+                server.doTest publishEl, "got-iq-publish-E-8", cb, testErrorIq "modify", "not-acceptable"
+            ], done
 
 
 describe "Retracting", ->
@@ -497,7 +578,7 @@ describe "Retracting", ->
             , (cb) ->
                 retEl = retractIq "data@enterprise.sf", "buddycloud.example.org",
                     "retract-F-8", "/user/picard@enterprise.sf/posts", "test-F-7"
-                server.doTest retEl, "got-iq-retract-F-8", cb, testErrorIq "cancel", "forbidden"
+                server.doTest retEl, "got-iq-retract-F-8", cb, testErrorIq "auth", "forbidden"
             ], done
 
         it "should replace the item with a tombstone", (done) ->
@@ -528,6 +609,12 @@ describe "Retracting", ->
                     should.exist tsEl, "missing element: <deleted-entry/>"
                     testTombstone tsEl, "test-F-9"
             ], done
+
+        it "should fail if the item does not exist", (done) ->
+            retEl = retractIq "picard@enterprise.sf", "buddycloud.example.org",
+                "retract-F-14", "/user/picard@enterprise.sf/posts", "missing-post"
+
+            server.doTest retEl, "got-iq-retract-F-14", done, testErrorIq "cancel", "item-not-found"
 
         it "should be notified to subscribers", (done) ->
             async.series [(cb) ->
@@ -568,10 +655,22 @@ describe "Retracting", ->
             ], done
 
     describe "a remote item", ->
-        it.skip "must be possible for authorized users", (done) ->
-            # Submitted remotely
+        it "must be submitted to the remote service", (done) ->
+            retEl = retractIq "picard@enterprise.sf", "buddycloud.example.org",
+                "retract-G-1", "/user/sisko@ds9.sf/posts", "test-G-1"
 
-        it.skip "must not be possible for unauthorized users", (done) ->
-            # Not submitted remotely
+            server.doTest retEl, "got-iq-to-buddycloud.ds9.sf", done, (iq) ->
+                iq.attrs.should.have.property "type", "set"
 
-        it.skip "must be replicated locally", (done) ->
+                actorEl = iq.getChild("pubsub", NS.PUBSUB)
+                    ?.getChild("actor", NS.BUDDYCLOUD_V1)
+                should.exist actorEl, "missing element: <actor/>"
+                actorEl.getText().should.equal "picard@enterprise.sf"
+
+                retractEl = iq.getChild("pubsub", NS.PUBSUB)
+                    ?.getChild("retract")
+                should.exist retractEl, "missing element: <retract/>"
+                retractEl.attrs.should.have.property "node", "/user/sisko@ds9.sf/posts"
+                itemEl = retractEl.getChild "item"
+                should.exist itemEl, "missing element: <item/>"
+                itemEl.attrs.should.have.property "id", "test-G-1"
