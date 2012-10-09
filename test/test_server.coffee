@@ -205,7 +205,7 @@ class exports.TestServer extends EventEmitter
         if opts.id
             atom.c("id").t(opts.id)
         if opts.in_reply_to
-            atom.c("in-reply-to", xmlns: NS.THR, rel: opts.in_reply_to)
+            atom.c("in-reply-to", xmlns: NS.THR, ref: opts.in_reply_to)
         if opts.link
             atom.c("link", rel: "self", href: opts.link)
         if opts.object
@@ -227,7 +227,7 @@ class exports.TestServer extends EventEmitter
         atom =
             author: entry.getChild("author")?.getChildText "name"
             author_uri: entry.getChild("author")?.getChildText "uri"
-            in_reply_to: entry.getChild("in-reply-to", NS.THR)?.attrs.rel
+            in_reply_to: entry.getChild("in-reply-to", NS.THR)?.attrs.ref
             link: entry.getChild("link")?.attrs.href
             object: entry.getChild("object", NS.AS)?.getChildText("object-type")
             verb: entry.getChild("verb", NS.AS)?.getText()
