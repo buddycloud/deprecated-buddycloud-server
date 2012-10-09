@@ -501,6 +501,9 @@ class Publish extends PrivilegedOperation
         if @subscriptionsNodeOwner?
             return cb new errors.NotAllowed("The subscriptions node is automagically populated")
 
+        if @req.actorType isnt "user"
+            return cb new errors.BadRequest("Actor should be an user")
+
         async.waterfall [ (cb2) =>
             @checkPublishModel t, cb2
         , (cb2) =>
