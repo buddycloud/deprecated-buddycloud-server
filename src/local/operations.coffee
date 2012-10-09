@@ -520,6 +520,16 @@ class Publish extends PrivilegedOperation
                                 else
                                     cb4 err, item
                     , (oldItem, cb4) =>
+                        if oldItem?
+                            # Only the original author can update an item
+                            itemActor = oldItem.getChild("author")?.getChild("uri")?.getText()
+                            if itemActor is "acct:#{@req.actor}"
+                                cb4 null, oldItem
+                            else
+                                cb4 new errors.Forbidden "You're not allowed to update this item"
+                        else
+                            cb4 null, oldItem
+                    , (oldItem, cb4) =>
                         normalizeItem @req, oldItem, item, cb4
                     , (newItem, cb4) =>
                         # When replying, the original item must exist
