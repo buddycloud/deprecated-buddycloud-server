@@ -851,7 +851,7 @@ class RetractItems extends PrivilegedOperation
                 # Authenticated!
                 cb2()
             else
-                cb2 new errors.NotAllowed("You may not retract other people's posts")
+                cb2 new errors.Forbidden("You may not retract other people's posts")
         , (err) =>
             if err?
                 cb err
