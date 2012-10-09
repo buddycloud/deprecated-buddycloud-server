@@ -164,7 +164,7 @@ class RetractItems extends PubsubRequest
     pubsubChild: ->
         publishEl = new xmpp.Element('retract', node: @opts.node)
         for item in @opts.items
-            publishEl.c('item', { id: item.id })
+            publishEl.c('item', id: item)
         publishEl
 
 class Subscribe extends PubsubRequest
