@@ -112,9 +112,8 @@ class PubsubRequest extends Request
         else
             pubsubEl.cnode child.root()
         if @opts.actor
-            actorEl = pubsubEl.c('actor', xmlns: NS.BUDDYCLOUD_V1)
-            actorEl.attrs.type ?= @opts.actorType
-            actorEl.t(@opts.actor)
+            pubsubEl.c('actor', xmlns: NS.BUDDYCLOUD_V1)
+                .t(@opts.actor)
         if @opts.rsm
             pubsubEl.cnode @opts.rsm.toXml()
         pubsubEl.up()
