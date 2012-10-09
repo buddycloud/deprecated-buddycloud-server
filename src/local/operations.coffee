@@ -522,6 +522,17 @@ class Publish extends PrivilegedOperation
                     , (oldItem, cb4) =>
                         normalizeItem @req, oldItem, item, cb4
                     , (newItem, cb4) =>
+                        # When replying, the original item must exist
+                        irtEl = newItem.el.getChild('in-reply-to', 'http://purl.org/syndication/thread/1.0')
+                        if irtEl?.attrs.ref?
+                            t.getItem @req.node, irtEl.attrs.ref, (err, item) ->
+                                if err and err.constructor is errors.NotFound
+                                    cb4 new errors.NotAcceptable "Can't reply to a non-existent item"
+                                else
+                                    cb4 null, newItem
+                        else
+                            cb4 null, newItem
+                    , (newItem, cb4) =>
                         t.writeItem @req.node, newItem.id, newItem.el, (err) ->
                             cb4 err, newItem.id
                     ], cb3
