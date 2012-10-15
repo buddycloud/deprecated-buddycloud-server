@@ -52,13 +52,14 @@ class exports.TestServer extends EventEmitter
     # Construct a new test server with a configuration suitable for unit
     # testing.
     constructor: ->
+        dbUser = if process.env["TRAVIS"] is "true" then "postgres" else "buddycloud-server-test"
         @config =
             modelBackend: "postgres"
             modelConfig:
                 host: "localhost"
                 port: 5432
                 database: "buddycloud-server-test"
-                user: "buddycloud-server-test"
+                user: dbUser
                 password: "tellnoone"
                 poolSize: 4
             xmpp:
