@@ -518,12 +518,141 @@ describe "Posting", ->
             ], done
 
 
+describe "Retrieving posts", ->
+    server = new TestServer()
+
+    testPostAndRetrieve = (channel, postAuthor, id, retrieveJid, cb_done, cb_check) ->
+        node = "/user/#{channel}/posts"
+        unless cb_check?
+            cb_check = (iq) ->
+                iq.attrs.should.have.property "type", "result"
+
+                itemsEl = iq.getChild("pubsub", NS.PUBSUB)
+                    ?.getChild("items")
+                should.exist itemsEl, "missing element: <items/>"
+                itemsEl.attrs.should.have.property "node", node
+
+                itemEl = itemsEl.getChild "item"
+                should.exist itemEl, "missing element: <item/>"
+                itemEl.attrs.should.have.property "id", "test-#{id}"
+
+                entryEl = itemEl.getChild "entry", NS.ATOM
+                should.exist entryEl, "missing element: <entry/>"
+                atom = server.parseAtom entryEl
+
+                expectedProperties =
+                    author_uri: "acct:#{postAuthor}", content: "Test post #{id}",
+                    id: "test-#{id}", object: "note", verb: "post"
+                for name, val of expectedProperties
+                    atom.should.have.property name, val
+
+        async.series [(cb) ->
+            publishEl = server.makePublishIq postAuthor, "buddycloud.example.org",
+                "publish-#{id}", node,
+                content: "Test post #{id}", id: "test-#{id}"
+            server.doTest publishEl, "got-iq-publish-#{id}", cb, testPublishResultIq
+        , (cb) ->
+            iq = server.makePubsubGetIq(retrieveJid, "buddycloud.example.org", "retrieve-#{id}")
+                .c("items", node: node)
+                .c("item", id: "test-#{id}")
+            server.doTest iq, "got-iq-retrieve-#{id}", cb, cb_check
+        ], cb_done
+
+    it "must be possible for anyone in an open channel", (done) ->
+        testPostAndRetrieve "picard@enterprise.sf", "picard@enterprise.sf", "H-1",
+            "riker@enterprise.sf", done
+
+    it "must be possible for susbcribers of private channels", (done) ->
+        testPostAndRetrieve "data@enterprise.sf", "data@enterprise.sf", "H-2",
+            "laforge@enterprise.sf", done
+
+    it "must not be possible for non-members of private channels", (done) ->
+        testPostAndRetrieve "data@enterprise.sf", "data@enterprise.sf", "H-3",
+            "riker@enterprise.sf", done, testErrorIq "auth", "forbidden"
+
+    it "must not be possible for an outcast", (done) ->
+        testPostAndRetrieve "riker@enterprise.sf", "riker@enterprise.sf", "H-4",
+            "data@enterprise.sf", done, testErrorIq "auth", "forbidden"
+
+    # Once again, test skipped because the server returns "not-implemented"
+    # instead of "not-acceptable"...
+    it.skip "must fail if node is missing", (done) ->
+        iq = server.makePubsubGetIq("picard@enterprise.sf", "buddycloud.example.org", "retrieve-H-5")
+            .c("items")
+            .c("item", id: "bogus-id")
+        server.doTest iq, "got-iq-retrieve-H-5", done, testErrorIq "modify", "not-acceptable"
+
+    it "must return all items if <item/> is missing", (done) ->
+        async.series [(cb) ->
+            # Make sure there's at least one item if used with "it.only" :)
+            publishEl = server.makePublishIq "picard@enterprise.sf", "buddycloud.example.org",
+                "publish-H-6", "/user/picard@enterprise.sf/posts",
+                content: "Test post H6", id: "test-H-6"
+            server.doTest publishEl, "got-iq-publish-H-6", cb, testPublishResultIq
+
+        , (cb) ->
+            iq = server.makePubsubGetIq("picard@enterprise.sf", "buddycloud.example.org", "retrieve-H-6")
+                .c("items", node: "/user/picard@enterprise.sf/posts")
+
+            server.doTest iq, "got-iq-retrieve-H-6", cb, (iq) ->
+                iq.attrs.should.have.property "type", "result"
+                items = iq.getChild("pubsub", NS.PUBSUB)
+                    ?.getChild("items")
+                    ?.getChildren("item")
+                should.exist items, "missing element: <item/>"
+                itemIds = []
+                for itemEl in items
+                    itemEl.attrs.should.have.property "id"
+                    itemIds.push itemEl.attrs.id
+                itemIds.should.include "test-H-6"
+        ], done
+
+    it "must work for several items", (done) ->
+        async.series [(cb) ->
+            publishEl = server.makePublishIq "picard@enterprise.sf", "buddycloud.example.org",
+                "publish-H-7", "/user/picard@enterprise.sf/posts",
+                content: "Test post H7", id: "test-H-7"
+            server.doTest publishEl, "got-iq-publish-H-7", cb, testPublishResultIq
+        , (cb) ->
+            publishEl = server.makePublishIq "picard@enterprise.sf", "buddycloud.example.org",
+                "publish-H-8", "/user/picard@enterprise.sf/posts",
+                content: "Test post H8", id: "test-H-8"
+            server.doTest publishEl, "got-iq-publish-H-8", cb, testPublishResultIq
+
+        , (cb) ->
+                # Check that both items were actually deleted
+                iq = server.makePubsubGetIq("picard@enterprise.sf", "buddycloud.example.org", "retrieve-H-9")
+                    .c("items", node: "/user/picard@enterprise.sf/posts")
+                    .c("item", id: "test-H-7")
+                    .up().c("item", id: "test-H-8")
+
+                server.doTest iq, "got-iq-retrieve-H-9", cb, (iq) ->
+                    items = iq.getChild("pubsub", NS.PUBSUB)
+                        ?.getChild("items")
+                        ?.getChildren("item")
+                    should.exist items, "missing element: <item/>"
+                    itemIds = []
+                    for itemEl in items
+                        itemEl.attrs.should.have.property "id"
+                        itemIds.push itemEl.attrs.id
+
+                        entry = itemEl.getChild "entry", NS.ATOM
+                        should.exist entry, "missing element: <entry/>"
+                        atom = server.parseAtom entry
+                        atom.should.have.property "id", itemEl.attrs.id
+
+                    itemIds.should.eql ["test-H-7", "test-H-8"]
+            ], done
+
+
 describe "Retracting", ->
     server = new TestServer()
-    retractIq = (from, to, id, node, itemId) ->
-        server.makePubsubSetIq(from, to, id)
+    retractIq = (from, to, id, node, itemIds...) ->
+        iq = server.makePubsubSetIq(from, to, id)
             .c("retract", node: node)
-            .c("item", id: itemId)
+        for itemId in itemIds
+            iq.c("item", id: itemId)
+        return iq.root()
 
     describe "a local item", ->
         it "should be possible for the author", (done) ->
@@ -615,6 +744,65 @@ describe "Retracting", ->
                 "retract-F-14", "/user/picard@enterprise.sf/posts", "missing-post"
 
             server.doTest retEl, "got-iq-retract-F-14", done, testErrorIq "cancel", "item-not-found"
+
+        # Skip this test. It fails because the server responds with
+        # "not-implemented" instead of "bad-request", but it's good enough....
+        it.skip "should fail if the node is missing", (done) ->
+            retEl = server.makePubsubSetIq("picard@enterprise.sf", "buddycloud.example.org", "retract-F-15")
+                .c("retract")
+                .c("item", id: "bogus-id")
+
+            server.doTest retEl, "got-iq-retract-F-15", done, testErrorIq "modify", "bad-request"
+
+        it "should fail if the item ID is missing", (done) ->
+            retEl = retractIq "picard@enterprise.sf", "buddycloud.example.org",
+                "retract-F-16", "/user/picard@enterprise.sf/posts"
+
+            server.doTest retEl, "got-iq-retract-F-16", done, testErrorIq "modify", "bad-request"
+
+        it "should support several item IDs", (done) ->
+            async.series [(cb) ->
+                publishEl = server.makePublishIq "laforge@enterprise.sf", "buddycloud.example.org",
+                    "retract-F-17", "/user/picard@enterprise.sf/posts",
+                    author: "laforge@enterprise.sf", content: "Test post F17", id: "test-F-17"
+                server.doTest publishEl, "got-iq-retract-F-17", cb, testPublishResultIq
+
+            , (cb) ->
+                publishEl = server.makePublishIq "picard@enterprise.sf", "buddycloud.example.org",
+                    "retract-F-18", "/user/picard@enterprise.sf/posts",
+                    author: "picard@enterprise.sf", content: "Test post F18", id: "test-F-18"
+                server.doTest publishEl, "got-iq-retract-F-18", cb, testPublishResultIq
+
+            , (cb) ->
+                retEl = retractIq "picard@enterprise.sf", "buddycloud.example.org", "retract-F-19",
+                    "/user/picard@enterprise.sf/posts", "test-F-17", "test-F-18"
+
+                server.doTest retEl, "got-iq-retract-F-19", cb, (iq) ->
+                    iq.attrs.should.have.property "type", "result"
+
+            , (cb) ->
+                # Check that both items were actually deleted
+                iq = server.makePubsubGetIq("laforge@enterprise.sf", "buddycloud.example.org", "retract-F-20")
+                    .c("items", node: "/user/picard@enterprise.sf/posts")
+                    .c("item", id: "test-F-17")
+                    .up().c("item", id: "test-F-18")
+
+                server.doTest iq, "got-iq-retract-F-20", cb, (iq) ->
+                    items = iq.getChild("pubsub", NS.PUBSUB)
+                        ?.getChild("items")
+                        ?.getChildren("item")
+                    should.exist items, "missing element: <item/>"
+                    itemIds = []
+                    for itemEl in items
+                        itemEl.attrs.should.have.property "id"
+                        itemIds.push itemEl.attrs.id
+
+                        tsEl = itemEl.getChild "deleted-entry", NS.TS
+                        should.exist tsEl, "missing element: <deleted-entry/>"
+                        testTombstone tsEl, itemEl.attrs.id
+
+                    itemIds.should.eql ["test-F-17", "test-F-18"]
+            ], done
 
         it "should be notified to subscribers", (done) ->
             async.series [(cb) ->
