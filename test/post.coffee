@@ -2,6 +2,7 @@ async = require('async')
 should = require('should')
 { NS, TestServer } = require('./test_server')
 
+# {{{ Helpers
 TestServer::makePublishIq = (from, to, id, node, atomOpts) ->
     return @makePubsubSetIq(from, to, id)
         .c("publish", node: node)
@@ -56,11 +57,12 @@ testTombstone = (tsEl, id) ->
 
     should.not.exist tsEl.getChild("author", NS.ATOM), "found element: <author/>"
     should.not.exist tsEl.getChild("content", NS.ATOM), "found element: <content/>"
-
-
+# }}}
+# {{{ Posting
 describe "Posting", ->
     server = new TestServer()
 
+    # {{{ to a channel
     describe "to a channel", ->
         it "must normalize Atoms", (done) ->
             postId = null
@@ -207,8 +209,8 @@ describe "Posting", ->
                 .c("invalid-element").t("Test post A6")
 
             server.doTest publishEl, "got-iq-publish-A-6", done, testErrorIq "modify", "bad-request"
-
-
+    # }}}
+    # {{{ to a local channel
     describe "to a local channel", ->
         it "must be possible for its owner", (done) ->
             publishEl = server.makePublishIq "picard@enterprise.sf", "buddycloud.example.org",
@@ -265,8 +267,8 @@ describe "Posting", ->
 
             server.doTests publishEl, done, events,
                 ["got-message-riker@enterprise.sf/abc", "got-message-buddycloud.voyager.sf"]
-
-
+    # }}}
+    # {{{ from a remote service
     describe "from a remote service", ->
         it "must reject posts from non-authoritative services", (done) ->
             publishEl = server.makePublishIq "buddycloud.voyager.sf", "buddycloud.example.org",
@@ -354,8 +356,8 @@ describe "Posting", ->
 
                 server.doTest publishEl, "got-iq-publish-B-11", cb, testErrorIq "auth", "forbidden"
             ], done
-
-
+    # }}}
+    # {{{ to a remote channel
     describe "to a remote channel", ->
         it "must be submitted to the authoritative server", (done) ->
             publishEl = server.makePublishIq "picard@enterprise.sf", "buddycloud.example.org",
@@ -394,8 +396,8 @@ describe "Posting", ->
                 should.exist itemEl, "missing element: <item/>"
                 itemEl.attrs.should.have.property "id", "test-C-2"
                 should.exist itemEl.getChild("entry", NS.ATOM), "missing element: <entry/>"
-
-
+    # }}}
+    # {{{ a reply
     describe "a reply", ->
         it "should succeed if the post exists", (done) ->
             async.series [(cb) ->
@@ -442,8 +444,8 @@ describe "Posting", ->
                 content: "Test reply D4", id: "test-D-4", in_reply_to: "missing-post"
 
             server.doTest publishEl, "got-iq-publish-D-4", done, testErrorIq "modify", "not-acceptable"
-
-
+    # }}}
+    # {{{ an update
     describe "an update", ->
         it "should be possible for the author", (done) ->
             async.series [(cb) ->
@@ -516,8 +518,9 @@ describe "Posting", ->
                     content: "Updated test post E6", id: "test-E-6"
                 server.doTest publishEl, "got-iq-publish-E-8", cb, testErrorIq "modify", "not-acceptable"
             ], done
-
-
+    # }}}
+# }}}
+# {{{ Retrieving posts
 describe "Retrieving posts", ->
     server = new TestServer()
 
@@ -643,8 +646,8 @@ describe "Retrieving posts", ->
 
                     itemIds.should.eql ["test-H-7", "test-H-8"]
             ], done
-
-
+# }}}
+# {{{ Retracting
 describe "Retracting", ->
     server = new TestServer()
     retractIq = (from, to, id, node, itemIds...) ->
@@ -654,6 +657,7 @@ describe "Retracting", ->
             iq.c("item", id: itemId)
         return iq.root()
 
+    # {{{ a local item
     describe "a local item", ->
         it "should be possible for the author", (done) ->
             async.series [(cb) ->
@@ -841,7 +845,8 @@ describe "Retracting", ->
                 server.doTests retEl, cb, events,
                     ["got-message-riker@enterprise.sf/abc", "got-message-buddycloud.voyager.sf"]
             ], done
-
+    # }}}
+    # {{{ a remote item
     describe "a remote item", ->
         it "must be submitted to the remote service", (done) ->
             retEl = retractIq "picard@enterprise.sf", "buddycloud.example.org",
@@ -862,3 +867,5 @@ describe "Retracting", ->
                 itemEl = retractEl.getChild "item"
                 should.exist itemEl, "missing element: <item/>"
                 itemEl.attrs.should.have.property "id", "test-G-1"
+    # }}}
+# }}}
