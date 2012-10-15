@@ -2,14 +2,14 @@
 // change EXAMPLE.COM to match your domain
 
 // jid referrs to your server component
-exports.xmpp = { jid: 'buddycloud.example.com',
+exports.xmpp = { jid: 'buddycloud.EXAMPLE.COM',
 		 password: 'tellnoone',
 		 host: 'localhost',
 		 port: 5347
 	       };
 
 // uncomment and set to enable topic channels on this domain
-// exports.advertiseComponents = [ 'topics.example.com' ];
+// exports.advertiseComponents = [ 'topics.EXAMPLE.COM' ];
 
 // database settings
 exports.modelBackend = 'postgres';
@@ -28,13 +28,13 @@ exports.defaults = {
     topicChannel: { openByDefault: true },
 };
 
-// level can include "FATAL", "ERROR", "WARN", "INFO", "DEBUG", "TRACE"
-// to enable syslog set stdout to false.
+// level can be "FATAL", "ERROR", "WARN", "INFO", "DEBUG", "TRACE".
+// you should use at least one of stdout, syslog and file.
 exports.logging = {
-    stdout: true,
     colorized: false,
     level: "INFO",
-    syslog: { hostname: "localhost", port: 514 },
+    // stdout: true,
+    // syslog: { hostname: "localhost", port: 514 },
     file: "/var/log/buddycloud-server.log"
 };
 
