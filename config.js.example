@@ -1,19 +1,17 @@
-/**
- * XMPP Component connection
- *
- * change EXAMPLE.COM to match your domain
- * jid referrs to your component address. Not a user JID
- */
+// buddycloud-server config file
+// change EXAMPLE.COM to match your domain
 
+// jid referrs to your server component
 exports.xmpp = { jid: 'buddycloud.EXAMPLE.COM',
 		 password: 'tellnoone',
 		 host: 'localhost',
 		 port: 5347
 	       };
 
-/**
- * PostgreSQL backend
- */
+// uncomment and set to enable topic channels on this domain
+// exports.advertiseComponents = [ 'topics.EXAMPLE.COM' ];
+
+// database settings
 exports.modelBackend = 'postgres';
 exports.modelConfig = {
     host: 'localhost',
@@ -24,54 +22,31 @@ exports.modelConfig = {
     poolSize: 4
 };
 
-/**
- * Advertise additional components to the XMPP server e.g. for a topics domain
- */
-/*exports.advertiseComponents = [ 'topics.EXAMPLE.COM' ];*/
-
-
-/**
- * Default visibility to new channels
- */
+// default privacy for new new channels
 exports.defaults = {
     userChannel: { openByDefault:  true },
     topicChannel: { openByDefault: true },
 };
 
-/**
- * Logging
- */
+// level can be "FATAL", "ERROR", "WARN", "INFO", "DEBUG", "TRACE".
+// you should use at least one of stdout, syslog and file.
 exports.logging = {
-    colorized: true,
-    /**
-     * one of "FATAL", "ERROR", "WARN", "INFO", "DEBUG", "TRACE"
-     */
+    colorized: false,
     level: "INFO",
-    /* stdout: true, */
-    syslog: {
-	/* hostname: "localhost", port: 514 */
-    },
+    // stdout: true,
+    // syslog: { hostname: "localhost", port: 514 },
     file: "/var/log/buddycloud-server.log"
 };
 
-/**
- * Who may create what node?
- *
- * Default: only allow creating a personal channel, or a topic channel
- * on a specific domain.
- */
+// restrict creation of topic channels to just your domain - a good idea
 exports.checkCreateNode = function(opts) {
     return (opts.nodeUser === opts.actor) ||
-	(opts.nodeUser.split("@")[1] === "topics.buddycloud.org");
+	(opts.nodeUser.split("@")[1] === "topics.EXAMPLE.COM");
 };
 
-/**
- * Welcome new users by auto-subscribing them to a few channels
- */
+// autosubscribe users to a few channels
 exports.autosubscribeNewUsers = [
-    "report_bugs@topics.buddycloud.org",
     "help@topics.buddycloud.org",
     "lounge@topics.buddycloud.org",
-    "music@topics.buddycloud.org",
     "topics@topics.buddycloud.org"
 ];
