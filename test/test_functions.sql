@@ -1,7 +1,7 @@
 -- Helper functions to add coherent data to the DB. There's dark magic in here.
-CREATE FUNCTION test_set_config(node_ TEXT, key_ TEXT, value_ TEXT) RETURNS void AS $$
-    DELETE FROM node_config WHERE node=node_ AND key=key_;
-    INSERT INTO node_config(node, key, value, updated) VALUES(node_, key_, value_, CURRENT_TIMESTAMP);
+CREATE FUNCTION test_set_config(thenode TEXT, thekey TEXT, thevalue TEXT) RETURNS void AS $$
+    DELETE FROM node_config WHERE node=$1 AND key=$2;
+    INSERT INTO node_config(node, key, value, updated) VALUES($1, $2, $3, CURRENT_TIMESTAMP);
 $$ LANGUAGE SQL;
 
 CREATE FUNCTION test_subscribe(channel TEXT, localchannel BOOLEAN, jid TEXT, localjid BOOLEAN,
