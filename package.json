@@ -18,14 +18,17 @@
         "colors": ">=0.6.0-1",
         "tarballify": ">=0.0.5",
         "muffin": ">=0.2.7",
-        "coffee-script": ">=1.2.0"
+        "coffee-script": ">=1.2.0",
+        "mocha": ">=1.4.0",
+        "should": ">=1.2.0"
         }
 ,"repositories": [{"type": "git"
         ,"path": "git://github.com/buddycloud/buddycloud-server.git"
         }]
 ,"scripts": {
     "install": "cake build",
-    "start": "./bin/buddycloud-server --nobuild"
+    "start": "./bin/buddycloud-server --nobuild",
+    "test": "./test/prepare-db.sh && ./node_modules/.bin/mocha -r should -R spec --compilers coffee:coffee-script"
 }
 ,"homepage": "http://buddycloud.org"
 ,"bugs": "http://github.com/buddycloud/buddycloud-server/issues"

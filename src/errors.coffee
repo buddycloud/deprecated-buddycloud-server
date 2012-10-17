@@ -45,12 +45,16 @@ class exports.InternalServerError extends ServerError
     condition: "internal-server-error"
     type: "cancel"
 
-class exports.NotFound extends ServerError
-    condition: "item-not-found"
-    type: "cancel"
+class exports.NotAcceptable extends ServerError
+    condition: "not-acceptable"
+    type: "modify"
 
 class exports.NotAllowed extends ServerError
     condition: "not-allowed"
+    type: "cancel"
+
+class exports.NotFound extends ServerError
+    condition: "item-not-found"
     type: "cancel"
 
 ##

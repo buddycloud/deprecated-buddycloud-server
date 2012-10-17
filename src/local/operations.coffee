@@ -273,7 +273,8 @@ class BrowseInfo extends Operation
             features: [
                 NS.DISCO_INFO, NS.DISCO_ITEMS,
                 NS.REGISTER, NS.VERSION,
-                NS.PUBSUB, NS.PUBSUB_OWNER, NS.PUBSUB_SUBSCRIPTION_OPTIONS
+                NS.PUBSUB, NS.PUBSUB_CREATE_AND_CONFIGURE, NS.PUBSUB_CREATE_NODES,
+                NS.PUBSUB_OWNER, NS.PUBSUB_SUBSCRIPTION_OPTIONS
             ]
             identities: [{
                 category: "pubsub"
@@ -500,6 +501,9 @@ class Publish extends PrivilegedOperation
         if @subscriptionsNodeOwner?
             return cb new errors.NotAllowed("The subscriptions node is automagically populated")
 
+        if @req.actorType isnt "user"
+            return cb new errors.BadRequest("Actor should be an user")
+
         async.waterfall [ (cb2) =>
             @checkPublishModel t, cb2
         , (cb2) =>
@@ -516,13 +520,51 @@ class Publish extends PrivilegedOperation
                                 else
                                     cb4 err, item
                     , (oldItem, cb4) =>
-                        normalizeItem @req, oldItem, item, cb4
+                        normalizeItem @req, oldItem, item, (err, newItem) ->
+                            cb4 err, oldItem, newItem
+                    , (oldItem, newItem, cb4) =>
+                        if oldItem?
+                            @checkUpdatedItem oldItem, newItem, cb4
+                        else
+                            cb4 null, newItem
+                    , (newItem, cb4) =>
+                        # When replying, the original item must exist
+                        irtEl = newItem.el.getChild('in-reply-to', 'http://purl.org/syndication/thread/1.0')
+                        if irtEl?.attrs.ref?
+                            t.getItem @req.node, irtEl.attrs.ref, (err, item) ->
+                                if err and err.constructor is errors.NotFound
+                                    cb4 new errors.NotAcceptable "Can't reply to a non-existent item"
+                                else
+                                    cb4 null, newItem
+                        else
+                            cb4 null, newItem
                     , (newItem, cb4) =>
                         t.writeItem @req.node, newItem.id, newItem.el, (err) ->
                             cb4 err, newItem.id
                     ], cb3
             ), cb2
         ], cb
+
+    checkUpdatedItem: (oldItem, newItem, cb) ->
+        if oldItem.name is 'deleted-entry'
+            return cb new errors.NotAcceptable "You can't update a deleted item"
+
+        # Only the original author can update an item
+        itemActor = oldItem.getChild("author")?.getChild("uri")?.getText()
+        if itemActor isnt "acct:#{@req.actor}"
+            return cb new errors.Forbidden "You're not allowed to update this item"
+
+        # Check if in-reply-to is the same
+        oldIrt = oldItem.getChild('in-reply-to', 'http://purl.org/syndication/thread/1.0')?.attrs.ref
+        newIrt = newItem.el.getChild('in-reply-to', 'http://purl.org/syndication/thread/1.0')?.attrs.ref
+        if oldIrt? and not newIrt?
+            return cb new errors.NotAcceptable "You can't remove <in-reply-to/>"
+        else if newIrt? and not oldIrt?
+            return cb new errors.NotAcceptable "You can't add <in-reply-to/>"
+        else if newIrt? and newIrt isnt oldIrt
+            return cb new errors.NotAcceptable "You can't change <in-reply-to/>"
+
+        cb null, newItem
 
     notification: ->
         [{
@@ -823,7 +865,7 @@ class RetractItems extends PrivilegedOperation
                 # Authenticated!
                 cb2()
             else
-                cb2 new errors.NotAllowed("You may not retract other people's posts")
+                cb2 new errors.Forbidden("You may not retract other people's posts")
         , (err) =>
             if err?
                 cb err

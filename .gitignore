@@ -3,4 +3,4 @@ lib/*
 node_modules/*
 .project
 .settings
-
+*.log

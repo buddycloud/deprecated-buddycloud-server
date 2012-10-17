@@ -112,9 +112,8 @@ class PubsubRequest extends Request
         else
             pubsubEl.cnode child.root()
         if @opts.actor
-            actorEl = pubsubEl.c('actor', xmlns: NS.BUDDYCLOUD_V1)
-            actorEl.attrs.type ?= @opts.actorType
-            actorEl.t(@opts.actor)
+            pubsubEl.c('actor', xmlns: NS.BUDDYCLOUD_V1)
+                .t(@opts.actor)
         if @opts.rsm
             pubsubEl.cnode @opts.rsm.toXml()
         pubsubEl.up()
@@ -165,7 +164,7 @@ class RetractItems extends PubsubRequest
     pubsubChild: ->
         publishEl = new xmpp.Element('retract', node: @opts.node)
         for item in @opts.items
-            publishEl.c('item', { id: item.id })
+            publishEl.c('item', id: item)
         publishEl
 
 class Subscribe extends PubsubRequest

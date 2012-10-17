@@ -62,7 +62,6 @@ class Request
         actorEl = childEl?.getChild("actor", NS.BUDDYCLOUD_V1)
         if actorEl?
             @actor = actorEl.getText()
-            @actorType ?= actorEl.attrs.type
         # Elsewhile @actor stays @sender (see @constructor)
 
     setRSM: (childEl) ->
@@ -451,7 +450,8 @@ class PubsubRetractRequest extends PubsubRequest
     matches: () ->
         super &&
         @iq.attrs.type is 'set' &&
-        @node
+        @node &&
+        @items.length > 0
 
     operation: 'retract-node-items'
 
