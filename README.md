@@ -1,6 +1,6 @@
 # buddycloud-server
 
-[![Build Status](https://secure.travis-ci.org/Schnouki/buddycloud-server.png)](http://travis-ci.org/Schnouki/buddycloud-server)
+[![Build Status](https://secure.travis-ci.org/buddycloud/buddycloud-server.png)](http://travis-ci.org/buddycloud/buddycloud-server)
 
 The primary network protocol is [buddycloud channels](http://buddycloud.org/).
 
