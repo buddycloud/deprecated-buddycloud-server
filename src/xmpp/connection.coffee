@@ -33,7 +33,10 @@ class exports.Connection extends EventEmitter
         @jid = config.jid
         # Anyone wants reconnecting, regardless of the config file:
         config.reconnect = true
-        @conn = new xmpp.Component(config)
+        if config.conn?
+            @conn = config.conn
+        else
+            @conn = new xmpp.Component(config)
         @conn.on "error", (e) ->
             logger.error e
         @conn.on "online", =>

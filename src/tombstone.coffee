@@ -10,7 +10,7 @@ exports.makeTombstone = (item) ->
     ref = item.getChild('link', NS_ATOM).attrs.href
     now = new Date().toISOString()
     tsEl = new Element('deleted-entry', xmlns: NS_AT, ref: ref, when: now).
-        c("updated").t(now).up()
+        c("updated", xmlns: NS_ATOM).t(now).up()
 
     children = []
     children.push(item.getChild(name, NS_ATOM)?.attr('xmlns', NS_ATOM)) for name in ['id', 'link', 'published']
