@@ -520,20 +520,13 @@ class Publish extends PrivilegedOperation
                                 else
                                     cb4 err, item
                     , (oldItem, cb4) =>
+                        normalizeItem @req, oldItem, item, (err, newItem) ->
+                            cb4 err, oldItem, newItem
+                    , (oldItem, newItem, cb4) =>
                         if oldItem?
-                            if oldItem.name is 'deleted-entry'
-                                return cb4 new errors.NotAcceptable "You can't update a deleted item"
-
-                            # Only the original author can update an item
-                            itemActor = oldItem.getChild("author")?.getChild("uri")?.getText()
-                            if itemActor is "acct:#{@req.actor}"
-                                cb4 null, oldItem
-                            else
-                                cb4 new errors.Forbidden "You're not allowed to update this item"
+                            @checkUpdatedItem oldItem, newItem, cb4
                         else
-                            cb4 null, oldItem
-                    , (oldItem, cb4) =>
-                        normalizeItem @req, oldItem, item, cb4
+                            cb4 null, newItem
                     , (newItem, cb4) =>
                         # When replying, the original item must exist
                         irtEl = newItem.el.getChild('in-reply-to', 'http://purl.org/syndication/thread/1.0')
@@ -551,6 +544,17 @@ class Publish extends PrivilegedOperation
                     ], cb3
             ), cb2
         ], cb
+
+    checkUpdatedItem: (oldItem, newItem, cb) ->
+        if oldItem.name is 'deleted-entry'
+            return cb new errors.NotAcceptable "You can't update a deleted item"
+
+        # Only the original author can update an item
+        itemActor = oldItem.getChild("author")?.getChild("uri")?.getText()
+        if itemActor isnt "acct:#{@req.actor}"
+            return cb new errors.Forbidden "You're not allowed to update this item"
+
+        cb null, newItem
 
     notification: ->
         [{
