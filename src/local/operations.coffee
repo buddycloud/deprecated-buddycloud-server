@@ -554,6 +554,16 @@ class Publish extends PrivilegedOperation
         if itemActor isnt "acct:#{@req.actor}"
             return cb new errors.Forbidden "You're not allowed to update this item"
 
+        # Check if in-reply-to is the same
+        oldIrt = oldItem.getChild('in-reply-to', 'http://purl.org/syndication/thread/1.0')?.attrs.ref
+        newIrt = newItem.el.getChild('in-reply-to', 'http://purl.org/syndication/thread/1.0')?.attrs.ref
+        if oldIrt? and not newIrt?
+            return cb new errors.NotAcceptable "You can't remove <in-reply-to/>"
+        else if newIrt? and not oldIrt?
+            return cb new errors.NotAcceptable "You can't add <in-reply-to/>"
+        else if newIrt? and newIrt isnt oldIrt
+            return cb new errors.NotAcceptable "You can't change <in-reply-to/>"
+
         cb null, newItem
 
     notification: ->
