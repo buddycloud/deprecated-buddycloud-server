@@ -518,6 +518,82 @@ describe "Posting", ->
                     content: "Updated test post E6", id: "test-E-6"
                 server.doTest publishEl, "got-iq-publish-E-8", cb, testErrorIq "modify", "not-acceptable"
             ], done
+
+        it "should not allow adding an <in-reply-to/>", (done) ->
+            async.series [(cb) ->
+                # Publish E9
+                publishEl = server.makePublishIq "picard@enterprise.sf", "buddycloud.example.org",
+                    "publish-E-9", "/user/picard@enterprise.sf/posts",
+                    content: "Test post E9", id: "test-E-9"
+                server.doTest publishEl, "got-iq-publish-E-9", cb, testPublishResultIq
+
+            , (cb) ->
+                # Publish E10
+                publishEl = server.makePublishIq "picard@enterprise.sf", "buddycloud.example.org",
+                    "publish-E-10", "/user/picard@enterprise.sf/posts",
+                    content: "Test post E10", id: "test-E-10"
+                server.doTest publishEl, "got-iq-publish-E-10", cb, testPublishResultIq
+
+            , (cb) ->
+                # Update E10 to be in-reply-to E9
+                publishEl = server.makePublishIq "picard@enterprise.sf", "buddycloud.example.org",
+                    "publish-E-11", "/user/picard@enterprise.sf/posts",
+                    content: "Updated test post E10", id: "test-E-10", in_reply_to: "test-E-9"
+                server.doTest publishEl, "got-iq-publish-E-11", cb, testErrorIq "modify", "not-acceptable"
+            ], done
+
+        it "should not allow changing <in-reply-to/>", (done) ->
+            async.series [(cb) ->
+                # Publish E12
+                publishEl = server.makePublishIq "picard@enterprise.sf", "buddycloud.example.org",
+                    "publish-E-12", "/user/picard@enterprise.sf/posts",
+                    content: "Test post E12", id: "test-E-12"
+                server.doTest publishEl, "got-iq-publish-E-12", cb, testPublishResultIq
+
+            , (cb) ->
+                # Publish E13
+                publishEl = server.makePublishIq "picard@enterprise.sf", "buddycloud.example.org",
+                    "publish-E-13", "/user/picard@enterprise.sf/posts",
+                    content: "Test post E13", id: "test-E-13"
+                server.doTest publishEl, "got-iq-publish-E-13", cb, testPublishResultIq
+
+            , (cb) ->
+                # Publish E14 as reply to E13
+                publishEl = server.makePublishIq "picard@enterprise.sf", "buddycloud.example.org",
+                    "publish-E-14", "/user/picard@enterprise.sf/posts",
+                    content: "Test post E14", id: "test-E-14", in_reply_to: "test-E-13"
+                server.doTest publishEl, "got-iq-publish-E-14", cb, testPublishResultIq
+
+            , (cb) ->
+                # Update E14 to be in-reply-to E12
+                publishEl = server.makePublishIq "picard@enterprise.sf", "buddycloud.example.org",
+                    "publish-E-15", "/user/picard@enterprise.sf/posts",
+                    content: "Updated test post E14", id: "test-E-14", in_reply_to: "test-E-12"
+                server.doTest publishEl, "got-iq-publish-E-15", cb, testErrorIq "modify", "not-acceptable"
+            ], done
+
+        it "should not allow removing <in-reply-to/>", (done) ->
+            async.series [(cb) ->
+                # Publish E16
+                publishEl = server.makePublishIq "picard@enterprise.sf", "buddycloud.example.org",
+                    "publish-E-16", "/user/picard@enterprise.sf/posts",
+                    content: "Test post E16", id: "test-E-16"
+                server.doTest publishEl, "got-iq-publish-E-16", cb, testPublishResultIq
+
+            , (cb) ->
+                # Publish E17 as reply to E16
+                publishEl = server.makePublishIq "picard@enterprise.sf", "buddycloud.example.org",
+                    "publish-E-17", "/user/picard@enterprise.sf/posts",
+                    content: "Test post E17", id: "test-E-17", in_reply_to: "test-E-16"
+                server.doTest publishEl, "got-iq-publish-E-17", cb, testPublishResultIq
+
+            , (cb) ->
+                # Update E17 to not be a reply
+                publishEl = server.makePublishIq "picard@enterprise.sf", "buddycloud.example.org",
+                    "publish-E-18", "/user/picard@enterprise.sf/posts",
+                    content: "Updated test post E17", id: "test-E-17"
+                server.doTest publishEl, "got-iq-publish-E-18", cb, testErrorIq "modify", "not-acceptable"
+            ], done
     # }}}
 # }}}
 # {{{ Retrieving posts
