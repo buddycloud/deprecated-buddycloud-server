@@ -710,7 +710,7 @@ class Transaction
             ""
 
         q = (fields, table, cb2, mapper) ->
-            db.query "SELECT #{fields}, updated FROM #{table} WHERE node in (SELECT node FROM subscriptions WHERE listener=$1) #{conds} ORDER BY updated DESC #{limit}", params
+            db.query "SELECT #{fields}, updated FROM #{table} WHERE node in (SELECT node FROM subscriptions WHERE listener=$1 AND NOT temporary) #{conds} ORDER BY updated DESC #{limit}", params
             , (err, res) ->
                 if err
                     return cb2 err
@@ -722,7 +722,7 @@ class Transaction
                 cb2()
 
         async.parallel [ (cb2) ->
-            db.query "SELECT node, MAX(updated) AS updated FROM node_config WHERE node in (SELECT node FROM subscriptions WHERE listener=$1) #{conds} GROUP BY node ORDER BY updated DESC #{limit}", params
+            db.query "SELECT node, MAX(updated) AS updated FROM node_config WHERE node in (SELECT node FROM subscriptions WHERE listener=$1 AND NOT temporary) #{conds} GROUP BY node ORDER BY updated DESC #{limit}", params
             , (err, res) =>
                 if err
                     return cb2 err
