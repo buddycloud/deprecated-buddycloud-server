@@ -272,7 +272,7 @@ class BrowseInfo extends Operation
         cb null,
             features: [
                 NS.DISCO_INFO, NS.DISCO_ITEMS,
-                NS.REGISTER, NS.VERSION,
+                NS.REGISTER, NS.VERSION, NS.MAM,
                 NS.PUBSUB, NS.PUBSUB_CREATE_AND_CONFIGURE, NS.PUBSUB_CREATE_NODES,
                 NS.PUBSUB_OWNER, NS.PUBSUB_SUBSCRIPTION_OPTIONS
             ]
