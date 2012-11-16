@@ -176,4 +176,40 @@ describe "MAM", ->
             , 1000
 
 
+    it "must fail if a date is invalid", (done) ->
+        good_dates = [
+            "1969-07-21T02:56:15Z",
+            "1969-07-20T21:56:15-05:00",
+        ]
+        bad_dates = [
+            "1969-07-21 02:56:15Z",
+            "1969-07-21T02:56:15",
+            "01:23:45",
+            "notadate",
+        ]
+        n = 0
+
+        testMamDate = (date, cb, check) ->
+            n += 1
+            iq = server.makeIq("get", "picard@enterprise.sf/abc", "buddycloud.example.org", "mam-C-#{n}")
+                    .c("query", xmlns: NS.MAM)
+                    .c("start").t(date)
+            server.doTest iq, "got-iq-mam-C-#{n}", cb, check
+
+        async.series [(cb) ->
+            # Test good dates
+            async.forEachSeries good_dates, (date, cb2) ->
+                testMamDate date, cb2, (iq) ->
+                    iq.attrs.should.have.property "type", "result", date
+            , cb
+
+        , (cb) ->
+            # Test bad dates
+            async.forEachSeries bad_dates, (date, cb2) ->
+                testMamDate date, cb2, (iq) ->
+                    iq.attrs.should.have.property "type", "error", date
+            , cb
+        ], done
+
+
     it.skip "must fail when there are too many results", (done) ->
