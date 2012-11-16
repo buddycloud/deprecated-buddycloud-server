@@ -6,6 +6,7 @@ describe "MAM", ->
     server = new TestServer()
 
     it "must replay PubSub events to the sender", (done) ->
+        @timeout 5000
         mam_begin = new Date().toISOString() #TODO: timezone?
 
         async.series [(cb) ->
@@ -90,9 +91,8 @@ describe "MAM", ->
             badConfigurations = ["/user/data@enterprise.sf/status"]
 
             iqReceived = false
-            eventName = "got-message-picard@enterprise.sf/abc"
 
-            server.on eventName, (msg) ->
+            server.on "got-message-picard@enterprise.sf/abc", (msg) ->
                 iqReceived.should.be.false
                 msg.attrs.should.have.property("type", "headline")
 
@@ -142,8 +142,8 @@ describe "MAM", ->
 
             server.doTest iq, "got-iq-mam-B-1", cb, (iq) ->
                 iqReceived = true
-                server.removeAllListeners eventName
-                server.once eventName, (msg) ->
+                server.removeAllListeners "got-message-picard@enterprise.sf/abc"
+                server.once "got-message-picard@enterprise.sf/abc", (msg) ->
                     throw new Error("message after result iq")
                 iq.attrs.should.have.property "type", "result"
 
@@ -167,6 +167,13 @@ describe "MAM", ->
                 for conf in badConfigurations
                     configurations.should.not.include conf
 
-        ], done
+        ], (err) ->
+            # Wait a second before removing listeners for unwanted messages
+            setTimeout ->
+                server.removeAllListeners "got-message-picard@enterprise.sf/abc"
+                server.removeAllListeners "got-message-picard@enterprise.sf/def"
+                done err
+            , 1000
+
 
     it.skip "must fail when there are too many results", (done) ->
