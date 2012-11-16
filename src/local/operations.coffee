@@ -9,6 +9,7 @@ NS = require('../xmpp/ns')
 {normalizeItem} = require('../normalize')
 {makeTombstone} = require('../tombstone')
 {Element} = require('node-xmpp')
+isodate = require('isodate')
 
 runTransaction = null
 exports.setModel = (model) ->
@@ -1150,6 +1151,16 @@ class ReplayArchive extends ModelOperation
     transaction: (t, cb) ->
         max = @req.rsm?.max or 50
         sent = 0
+
+        try
+            if @req.start?
+                d = isodate @req.start
+                @req.start = d.toISOString()
+            if @req.end?
+                d = isodate @req.end
+                @req.end = d.toISOString()
+        catch e
+            return cb e
 
         async.waterfall [ (cb2) =>
             t.walkListenerArchive @req.sender, @req.start, @req.end, max, (results) =>
