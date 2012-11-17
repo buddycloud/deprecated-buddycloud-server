@@ -7,7 +7,7 @@ describe "MAM", ->
 
     it "must replay PubSub events to the sender", (done) ->
         @timeout 5000
-        mam_begin = new Date().toISOString() #TODO: timezone?
+        mam_begin = new Date().toISOString()
 
         async.series [(cb) ->
             # We need some data! So publish 2 posts, retract one, add an
@@ -212,4 +212,46 @@ describe "MAM", ->
         ], done
 
 
-    it.skip "must fail when there are too many results", (done) ->
+    it "must fail when there are too many results", (done) ->
+        mam_begin = new Date(Date.now() - 60000).toISOString()
+
+        # Publish 2 posts, then MAM with a RSM max
+        async.series [(cb) ->
+            iqs = [
+                server.makePublishIq("picard@enterprise.sf", "buddycloud.example.org",
+                    "mam-D-1", "/user/picard@enterprise.sf/posts",
+                    content: "Test post D1", id: "mampost-D-1"),
+                server.makePublishIq("picard@enterprise.sf", "buddycloud.example.org",
+                    "mam-D-2", "/user/picard@enterprise.sf/posts",
+                    content: "Test post D2", id: "mampost-D-2"),
+            ]
+            async.forEachSeries iqs, (iq, cb2) ->
+                id = iq.root().attrs.id
+                server.doTest iq, "got-iq-#{id}", cb2, (iq) ->
+                    iq.attrs.should.have.property "type", "result"
+            , cb
+
+        , (cb) ->
+            iq = server.makeIq("get", "picard@enterprise.sf/abc", "buddycloud.example.org", "mam-D-3")
+                    .c("query", xmlns: NS.MAM)
+                    .c("start").t(mam_begin).up()
+                    .c("set", xmlns: NS.RSM)
+                    .c("max").t("1000")
+
+            server.doTest iq, "got-iq-mam-D-3", cb, (iq) ->
+                iq.attrs.should.have.property "type", "result"
+
+        , (cb) ->
+            iq = server.makeIq("get", "picard@enterprise.sf/abc", "buddycloud.example.org", "mam-D-4")
+                    .c("query", xmlns: NS.MAM)
+                    .c("start").t(mam_begin).up()
+                    .c("set", xmlns: NS.RSM)
+                    .c("max").t("1")
+
+            server.doTest iq, "got-iq-mam-D-4", cb, (iq) ->
+                iq.attrs.should.have.property "type", "error"
+                errEl = iq.getChild "error"
+                should.exist errEl, "missing element: <error/>"
+                errEl.attrs.should.have.property "type", "modify"
+                should.exist errEl.getChild("policy-violation", "urn:ietf:params:xml:ns:xmpp-stanzas")
+        ], done
