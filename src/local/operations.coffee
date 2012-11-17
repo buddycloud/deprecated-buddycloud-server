@@ -1151,6 +1151,7 @@ class ReplayArchive extends ModelOperation
     transaction: (t, cb) ->
         max = @req.rsm?.max or 50
         sent = 0
+        total = 0
 
         try
             if @req.start?
@@ -1164,6 +1165,7 @@ class ReplayArchive extends ModelOperation
 
         async.waterfall [ (cb2) =>
             t.walkListenerArchive @req.sender, @req.start, @req.end, max, (results) =>
+                total += results.length
                 if sent < max
                     results.sort (a, b) ->
                         if a.updated < b.updated
@@ -1180,11 +1182,17 @@ class ReplayArchive extends ModelOperation
         , (cb2) =>
             sent = 0
             t.walkModeratorAuthorizationRequests @req.sender, (req) =>
+                total += 1
                 if sent < max
                     req.type = 'authorizationPrompt'
                     @sendNotification req
                     sent++
             , cb2
+        , (cb2) ->
+            if total > max
+                cb2 new errors.PolicyViolation("Too many results")
+            else
+                cb2 null
         ], cb
 
     sendNotification: (results) ->
