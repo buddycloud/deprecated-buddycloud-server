@@ -467,9 +467,9 @@ class Transaction
             isSet = res and res.rows and res.rows[0]
             toDelete = not affiliation or affiliation == "none"
             if isSet and not toDelete
-                db.query "UPDATE affiliations SET affiliation=$1 WHERE node=$2 AND \"user\"=$3", [ affiliation, node, user ], cb2
+                db.query "UPDATE affiliations SET affiliation=$1, updated=CURRENT_TIMESTAMP WHERE node=$2 AND \"user\"=$3", [ affiliation, node, user ], cb2
             else if not isSet and not toDelete
-                db.query "INSERT INTO affiliations (node, \"user\", affiliation) VALUES ($1, $2, $3)", [ node, user, affiliation ], cb2
+                db.query "INSERT INTO affiliations (node, \"user\", affiliation, updated) VALUES ($1, $2, $3, CURRENT_TIMESTAMP)", [ node, user, affiliation ], cb2
             else if isSet and toDelete
                 db.query "DELETE FROM affiliations WHERE node=$1 AND \"user\"=$2", [ node, user ], cb2
             else if not isSet and toDelete
@@ -710,7 +710,7 @@ class Transaction
             ""
 
         q = (fields, table, cb2, mapper) ->
-            db.query "SELECT #{fields}, updated FROM #{table} WHERE node in (SELECT node FROM subscriptions WHERE listener=$1) #{conds} ORDER BY updated DESC #{limit}", params
+            db.query "SELECT #{fields}, updated FROM #{table} WHERE node in (SELECT node FROM subscriptions WHERE listener=$1 AND NOT temporary) #{conds} ORDER BY updated DESC #{limit}", params
             , (err, res) ->
                 if err
                     return cb2 err
@@ -722,7 +722,7 @@ class Transaction
                 cb2()
 
         async.parallel [ (cb2) ->
-            db.query "SELECT node, MAX(updated) AS updated FROM node_config WHERE node in (SELECT node FROM subscriptions WHERE listener=$1) #{conds} GROUP BY node ORDER BY updated DESC #{limit}", params
+            db.query "SELECT node, MAX(updated) AS updated FROM node_config WHERE node in (SELECT node FROM subscriptions WHERE listener=$1 AND NOT temporary) #{conds} GROUP BY node ORDER BY updated DESC #{limit}", params
             , (err, res) =>
                 if err
                     return cb2 err

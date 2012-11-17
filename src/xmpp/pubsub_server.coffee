@@ -747,6 +747,7 @@ class MessageArchiveRequest extends Request
         @queryId = @mamEl?.attrs?.queryid
         @start = @mamEl?.getChildText("start")
         @end = @mamEl?.getChildText("end")
+        @setRSM @mamEl
 
     matches: () ->
         @iq.attrs.type is 'get' &&

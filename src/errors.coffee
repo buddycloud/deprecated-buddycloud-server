@@ -57,6 +57,10 @@ class exports.NotFound extends ServerError
     condition: "item-not-found"
     type: "cancel"
 
+class exports.PolicyViolation extends ServerError
+    condition: "policy-violation"
+    type: "modify"
+
 ##
 # For wrapping errors from remote
 class exports.StanzaError extends Error

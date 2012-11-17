@@ -29,19 +29,22 @@ class exports.TestServer extends EventEmitter
         features: []
     disco: {
         info:
-            "test@example.org":      { identities: [], features: [] }
-            "picard@enterprise.sf":  { identities: [], features: [] }
-            "riker@enterprise.sf":   { identities: [], features: [] }
-            "data@enterprise.sf":    { identities: [], features: [] }
-            "laforge@enterprise.sf": { identities: [], features: [] }
-            "sisko@ds9.sf":          { identities: [], features: [] }
-            "odo@ds9.sf":            { identities: [], features: [] }
-            "dax@ds9.sf":            { identities: [], features: [] }
-            "janeway@voyager.sf":    { identities: [], features: [] }
-            "neelix@voyager.sf":     { identities: [], features: [] }
-            "7of9@voyager.sf":       { identities: [], features: [] }
-            "buddycloud.ds9.sf":     serverInfo
-            "buddycloud.voyager.sf": serverInfo
+            "picard@enterprise.sf":     { identities: [], features: [] }
+            "riker@enterprise.sf":      { identities: [], features: [] }
+            "data@enterprise.sf":       { identities: [], features: [] }
+            "laforge@enterprise.sf":    { identities: [], features: [] }
+            "sisko@ds9.sf":             { identities: [], features: [] }
+            "odo@ds9.sf":               { identities: [], features: [] }
+            "dax@ds9.sf":               { identities: [], features: [] }
+            "janeway@voyager.sf":       { identities: [], features: [] }
+            "neelix@voyager.sf":        { identities: [], features: [] }
+            "7of9@voyager.sf":          { identities: [], features: [] }
+            "buddycloud.ds9.sf":        serverInfo
+            "buddycloud.voyager.sf":    serverInfo
+
+            "test@example.org":         { identities: [], features: [] }
+            "mam-user.1@enterprise.sf": { identities: [], features: [] }
+            "mam-user.2@enterprise.sf": { identities: [], features: [] }
         items:
             "example.org":   [{jid: "buddycloud.example.org"}]
             "enterprise.sf": [{jid: "buddycloud.example.org"}]
@@ -173,6 +176,12 @@ class exports.TestServer extends EventEmitter
     makePubsubSetIq: (from, to, id) ->
         return @makeIq("set", from, to, id)
             .c("pubsub", xmlns: NS.PUBSUB)
+
+    # Prepare a PubSub#Owner "set" stanza.
+    # @return [ltx.Element] Stanza with `<pubsub/>` as active sub-Element
+    makePubsubOwnerSetIq: (from, to, id) ->
+        return @makeIq("set", from, to, id)
+            .c("pubsub", xmlns: NS.PUBSUB_OWNER)
 
     # Prepare a PubSub event message.
     # @return [ltx.Element] Message stanza with `<event/>` as active sub-Element

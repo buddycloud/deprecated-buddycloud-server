@@ -40,6 +40,11 @@ select test_set_config('/user/laforge@enterprise.sf/posts', 'publishModel', 'ope
 select test_subscribe('sisko@ds9.sf', FALSE, 'picard@enterprise.sf', TRUE, 'subscribed', 'publisher');
 select test_subscribe('picard@enterprise.sf', TRUE, 'sisko@ds9.sf', FALSE, 'subscribed', 'publisher');
 
+-- Now some boring channels used for testing subscriptions/affiliations without
+-- changing "important" channels.
+select test_create_channel('mam-user.1@enterprise.sf', TRUE);
+select test_create_channel('mam-user.2@enterprise.sf', TRUE);
+
 -- Local Variables:
 -- sql-product: postgres
 -- eval: (orgtbl-mode 1)

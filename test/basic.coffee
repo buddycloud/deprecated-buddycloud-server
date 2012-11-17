@@ -49,7 +49,8 @@ describe "buddycloud-server", ->
                 "http://jabber.org/protocol/pubsub#owner",
                 "http://jabber.org/protocol/pubsub#subscription-options",
                 "jabber:iq:register",
-                "jabber:iq:version"
+                "jabber:iq:version",
+                "urn:xmpp:mam:tmp"
             ]
             for feature in expectedFeatures
                 disco.features.should.include feature

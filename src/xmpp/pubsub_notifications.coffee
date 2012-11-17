@@ -37,6 +37,7 @@ class Notification
 class EventNotification extends Notification
     toStanza: (fromJid, toJid) ->
         eventEl = super.c('event', xmlns: NS.PUBSUB_EVENT)
+        affEls = {}
         for update in @opts
             switch update.type
                 when 'items'
@@ -57,12 +58,15 @@ class EventNotification extends Notification
                             subscription: update.subscription
                         )
                 when 'affiliation'
-                    eventEl.
-                        c('affiliation',
-                            jid: update.user
-                            node: update.node
-                            affiliation: update.affiliation
-                        )
+                    if update.node of affEls
+                        affEl = affEls[update.node]
+                    else
+                        affEl = eventEl.c('affiliations', node: update.node)
+                        affEls[update.node] = affEl
+                    affEl.c('affiliation',
+                        jid: update.user
+                        affiliation: update.affiliation
+                    )
                 when 'config'
                     eventEl.
                         c('configuration',

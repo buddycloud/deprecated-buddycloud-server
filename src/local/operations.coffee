@@ -9,6 +9,7 @@ NS = require('../xmpp/ns')
 {normalizeItem} = require('../normalize')
 {makeTombstone} = require('../tombstone')
 {Element} = require('node-xmpp')
+isodate = require('isodate')
 
 runTransaction = null
 exports.setModel = (model) ->
@@ -272,7 +273,7 @@ class BrowseInfo extends Operation
         cb null,
             features: [
                 NS.DISCO_INFO, NS.DISCO_ITEMS,
-                NS.REGISTER, NS.VERSION,
+                NS.REGISTER, NS.VERSION, NS.MAM,
                 NS.PUBSUB, NS.PUBSUB_CREATE_AND_CONFIGURE, NS.PUBSUB_CREATE_NODES,
                 NS.PUBSUB_OWNER, NS.PUBSUB_SUBSCRIPTION_OPTIONS
             ]
@@ -1148,11 +1149,23 @@ class AuthorizeSubscriber extends PrivilegedOperation
 # Doesn't care about about subscriptions nodes.
 class ReplayArchive extends ModelOperation
     transaction: (t, cb) ->
-        max = @req.rsm?.max or 50
+        max = @req.rsm?.max or 1000
         sent = 0
+        total = 0
+
+        try
+            if @req.start?
+                d = isodate @req.start
+                @req.start = d.toISOString()
+            if @req.end?
+                d = isodate @req.end
+                @req.end = d.toISOString()
+        catch e
+            return cb e
 
         async.waterfall [ (cb2) =>
             t.walkListenerArchive @req.sender, @req.start, @req.end, max, (results) =>
+                total += results.length
                 if sent < max
                     results.sort (a, b) ->
                         if a.updated < b.updated
@@ -1169,11 +1182,17 @@ class ReplayArchive extends ModelOperation
         , (cb2) =>
             sent = 0
             t.walkModeratorAuthorizationRequests @req.sender, (req) =>
+                total += 1
                 if sent < max
                     req.type = 'authorizationPrompt'
                     @sendNotification req
                     sent++
             , cb2
+        , (cb2) ->
+            if total > max
+                cb2 new errors.PolicyViolation("Too many results")
+            else
+                cb2 null
         ], cb
 
     sendNotification: (results) ->
