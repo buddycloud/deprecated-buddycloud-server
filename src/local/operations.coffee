@@ -1149,7 +1149,7 @@ class AuthorizeSubscriber extends PrivilegedOperation
 # Doesn't care about about subscriptions nodes.
 class ReplayArchive extends ModelOperation
     transaction: (t, cb) ->
-        max = @req.rsm?.max or 50
+        max = @req.rsm?.max or 1000
         sent = 0
         total = 0
 
