@@ -45,6 +45,10 @@ class exports.TestServer extends EventEmitter
             "test@example.org":         { identities: [], features: [] }
             "mam-user.1@enterprise.sf": { identities: [], features: [] }
             "mam-user.2@enterprise.sf": { identities: [], features: [] }
+            "push.1@enterprise.sf":     { identities: [], features: [] }
+            "push.2@enterprise.sf":     { identities: [], features: [] }
+            "push.1@ds9.sf":            { identities: [], features: [] }
+            "push.2@ds9.sf":            { identities: [], features: [] }
         items:
             "example.org":   [{jid: "buddycloud.example.org"}]
             "enterprise.sf": [{jid: "buddycloud.example.org"}]
@@ -77,6 +81,7 @@ class exports.TestServer extends EventEmitter
                 level: "TRACE"
                 file: "test-suite.log"
             checkCreateNode: -> true
+            pusherJid: "pusher.example.org"
             autosubscribeNewUsers: []
         @server = server.startServer @config
 

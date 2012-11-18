@@ -44,6 +44,10 @@ select test_subscribe('picard@enterprise.sf', TRUE, 'sisko@ds9.sf', FALSE, 'subs
 -- changing "important" channels.
 select test_create_channel('mam-user.1@enterprise.sf', TRUE);
 select test_create_channel('mam-user.2@enterprise.sf', TRUE);
+select test_create_channel('push.1@enterprise.sf', TRUE);
+select test_create_channel('push.2@enterprise.sf', TRUE);
+select test_create_channel('push.1@ds9.sf', FALSE);
+select test_create_channel('push.2@ds9.sf', FALSE);
 
 -- Local Variables:
 -- sql-product: postgres
