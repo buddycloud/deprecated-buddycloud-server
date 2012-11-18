@@ -396,6 +396,24 @@ describe "Posting", ->
                 should.exist itemEl, "missing element: <item/>"
                 itemEl.attrs.should.have.property "id", "test-C-2"
                 should.exist itemEl.getChild("entry", NS.ATOM), "missing element: <entry/>"
+
+        it "must not be replicated if the sender is not authoritative", (done) ->
+            async.series [(cb) ->
+                entryEl = server.makeAtom content: "Test post C3", author: "picard@enterprise.sf", id: "test-C-3"
+                msgEl = server.makePubsubEventMessage("buddycloud.ds9.sf", "buddycloud.example.org")
+                    .c("items", node: "/user/picard@enterprise.sf/posts")
+                    .c("item", id: "test-C-3")
+                    .cnode(entryEl)
+                server.emit "stanza", msgEl.root()
+                setTimeout cb, 250
+
+            , (cb) ->
+                iq = server.makePubsubGetIq("picard@enterprise.sf", "buddycloud.example.org", "retrieve-C-3")
+                    .c("items", node: "/user/picard@enterprise.sf/posts")
+                    .c("item", id: "test-C-3")
+
+                server.doTest iq, "got-iq-retrieve-C-3", cb, testErrorIq "cancel", "item-not-found"
+            ], (done)
     # }}}
     # {{{ a reply
     describe "a reply", ->
