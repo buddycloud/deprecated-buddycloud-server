@@ -405,16 +405,22 @@ class Transaction
         , (err, res) ->
             cb err, res?.rows?.map((row) -> row.listener)
 
-    walkModeratorAuthorizationRequests: (user, iter, cb) ->
+    walkModeratorAuthorizationRequests: (user, forPusher, iter, cb) ->
+        if forPusher
+            listenerCond = ''
+            params = []
+        else
+            listenerCond = 'AND "user"=$1'
+            params = [user]
         # TODO: make batched
         @db.query """SELECT "user", node
                      FROM subscriptions
                      WHERE subscription='pending'
                      AND node IN (SELECT node
                                   FROM affiliations
-                                  WHERE "user"=$1
-                                  AND (affiliation='owner' OR affiliation='moderator'))"""
-        , [user]
+                                  WHERE (affiliation='owner' OR affiliation='moderator')
+                                  #{listenerCond})"""
+        , params
         , (err, res) ->
             res?.rows?.forEach (row) -> iter(row)
             cb err
@@ -692,9 +698,14 @@ class Transaction
     # MAM
     #
     # @param cb: Function(err, results)
-    walkListenerArchive: (listener, start, end, max, iter, cb) ->
+    walkListenerArchive: (listener, start, end, max, forPusher, iter, cb) ->
         db = @db
-        params = [listener]
+        if forPusher
+            params = []
+            listenercond = ""
+        else
+            params = [listener]
+            listenerCond = "AND listener=$1"
         conds = ""
         i = params.length
         if start
@@ -710,7 +721,7 @@ class Transaction
             ""
 
         q = (fields, table, cb2, mapper) ->
-            db.query "SELECT #{fields}, updated FROM #{table} WHERE node in (SELECT node FROM subscriptions WHERE listener=$1 AND NOT temporary) #{conds} ORDER BY updated DESC #{limit}", params
+            db.query "SELECT #{fields}, updated FROM #{table} WHERE node in (SELECT node FROM subscriptions WHERE NOT temporary #{listenerCond}) #{conds} ORDER BY updated DESC #{limit}", params
             , (err, res) ->
                 if err
                     return cb2 err
@@ -722,7 +733,7 @@ class Transaction
                 cb2()
 
         async.parallel [ (cb2) ->
-            db.query "SELECT node, MAX(updated) AS updated FROM node_config WHERE node in (SELECT node FROM subscriptions WHERE listener=$1 AND NOT temporary) #{conds} GROUP BY node ORDER BY updated DESC #{limit}", params
+            db.query "SELECT node, MAX(updated) AS updated FROM node_config WHERE node in (SELECT node FROM subscriptions WHERE NOT temporary #{listenerCond}) #{conds} GROUP BY node ORDER BY updated DESC #{limit}", params
             , (err, res) =>
                 if err
                     return cb2 err

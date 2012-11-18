@@ -1163,8 +1163,10 @@ class ReplayArchive extends ModelOperation
         catch e
             return cb e
 
+        forPusher = (@req.sender is @router.pusherJid)
+
         async.waterfall [ (cb2) =>
-            t.walkListenerArchive @req.sender, @req.start, @req.end, max, (results) =>
+            t.walkListenerArchive @req.sender, @req.start, @req.end, max, forPusher, (results) =>
                 total += results.length
                 if sent < max
                     results.sort (a, b) ->
@@ -1181,7 +1183,7 @@ class ReplayArchive extends ModelOperation
             , cb2
         , (cb2) =>
             sent = 0
-            t.walkModeratorAuthorizationRequests @req.sender, (req) =>
+            t.walkModeratorAuthorizationRequests @req.sender, forPusher, (req) =>
                 total += 1
                 if sent < max
                     req.type = 'authorizationPrompt'
