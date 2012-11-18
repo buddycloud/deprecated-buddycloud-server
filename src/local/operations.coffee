@@ -1379,6 +1379,10 @@ class Notify extends ModelOperation
             , (err) =>
                 cb2 err, moderatorListeners, otherListeners
         , (moderatorListeners, otherListeners, cb2) =>
+            # If a pusher component is configured, it must be notified too
+            if @router.pusherJid?
+                moderatorListeners.push @router.pusherJid
+
             # Send out through backends
             if moderatorListeners.length > 0
                 for listener in moderatorListeners

@@ -69,7 +69,7 @@ exports.startServer = (config) ->
     model.start config.modelConfig
     model.checkSchemaVersion()
 
-    router = new (require('./router').Router)(model, config.checkCreateNode, config.autosubscribeNewUsers)
+    router = new (require('./router').Router)(model, config.checkCreateNode, config.autosubscribeNewUsers, config.pusherJid)
 
     # XMPP Connection, w/ presence tracking
     xmppConn = new (Connection.Connection)(config.xmpp)
