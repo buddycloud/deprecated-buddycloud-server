@@ -89,7 +89,7 @@ exports.checkSchemaVersion = ->
 
 exports.cleanupTemporaryData = (cb) ->
     withNextDb (db) ->
-        db.query "DELETE FROM subscriptions WHERE anonymous=TRUE OR temporary=TRUE", (err) ->
+        db.query "DELETE FROM subscriptions WHERE temporary=TRUE", (err) ->
             process.nextTick ->
                 dbIsAvailable db
             cb err
