@@ -537,6 +537,29 @@ describe "Posting", ->
                 server.doTest publishEl, "got-iq-publish-E-8", cb, testErrorIq "modify", "not-acceptable"
             ], done
 
+        it "should be possible for replies", (done) ->
+            async.series [(cb) ->
+                # Publish E18
+                publishEl = server.makePublishIq "picard@enterprise.sf", "buddycloud.example.org",
+                    "publish-E-18", "/user/picard@enterprise.sf/posts",
+                    content: "Test post E18", id: "test-E-18"
+                server.doTest publishEl, "got-iq-publish-E-18", cb, testPublishResultIq
+
+            , (cb) ->
+                # Publish E19 as reply to E18
+                publishEl = server.makePublishIq "picard@enterprise.sf", "buddycloud.example.org",
+                    "publish-E-19", "/user/picard@enterprise.sf/posts",
+                    content: "Test reply E19", id: "test-E-19", in_reply_to: "test-E-18"
+                server.doTest publishEl, "got-iq-publish-E-19", cb, testPublishResultIq
+
+            , (cb) ->
+                # Update E19
+                publishEl = server.makePublishIq "picard@enterprise.sf", "buddycloud.example.org",
+                    "publish-E-20", "/user/picard@enterprise.sf/posts",
+                    content: "Updated test reoply E19", id: "test-E-19", in_reply_to: "test-E-18"
+                server.doTest publishEl, "got-iq-publish-E-20", cb, testPublishResultIq
+            ], done
+
         it "should not allow adding an <in-reply-to/>", (done) ->
             async.series [(cb) ->
                 # Publish E9

@@ -554,7 +554,7 @@ class Transaction
             else
                 irt_query = "NULL"
             if isSet
-                db.query "UPDATE items SET xml=$3, updated=#{updated_query} WHERE node=$1 AND id=$2"
+                db.query "UPDATE items SET xml=$3, updated=#{updated_query}, in_reply_to=#{irt_query} WHERE node=$1 AND id=$2"
                 , params
                 , cb2
             else
