@@ -17,7 +17,7 @@ testPostMessage = (node, id) ->
 
 testSubscription = (server, el, done, node, jid, subscription="subscribed") ->
     gotSub = false
-    gotItem = false
+    gotItem = subscription is "pending" # no item for pending subscriptions
     nodeUser = /^\/user\/([^\/]+)\/?(.*)/.exec(node)[1]
 
     cb = (err) ->
@@ -64,6 +64,7 @@ testSubscription = (server, el, done, node, jid, subscription="subscribed") ->
 describe "Pusher component", ->
     server = new TestServer()
 
+# {{{ items
     it "should be notified of published items", (done) ->
         async.series [(cb) ->
             # Post to a local channel
@@ -119,7 +120,8 @@ describe "Pusher component", ->
                 tsEl = itemEl.getChild "deleted-entry", NS.TS
                 should.exist tsEl, "missing element: <deleted-entry/>"
         ], done
-
+# }}}
+# {{{ subscriptions
     it "should be notified of new subscriptions", (done) ->
         async.series [(cb) ->
             # Local subscription
@@ -136,8 +138,23 @@ describe "Pusher component", ->
             testSubscription server, msgEl, cb, "/user/push.1@ds9.sf/posts", "push.2@ds9.sf"
         ], done
 
-    it "should be notified of pending subscriptions"
-    it "should be notified of accepted subscriptions"
+    it "should be notified of pending subscriptions", (done) ->
+        async.series [(cb) ->
+            # Local subscription to a private channel
+            iq = server.makePubsubSetIq("push.1@enterprise.sf", "buddycloud.example.org", "push-B-2")
+                .c("subscribe", node: "/user/data@enterprise.sf/posts", jid: "push.1@enterprise.sf")
+
+            testSubscription server, iq, cb, "/user/data@enterprise.sf/posts", "push.1@enterprise.sf", "pending"
+
+        , (cb) ->
+            # FIXME: should this even be notified?
+            # Remote subscription to a private channel
+            msgEl = server.makePubsubEventMessage("buddycloud.ds9.sf", "buddycloud.example.org")
+                .c("subscription", node: "/user/push.2@ds9.sf/posts", jid: "push.1@ds9.sf", subscription: "pending")
+
+            testSubscription server, msgEl, cb, "/user/push.2@ds9.sf/posts", "push.1@ds9.sf", "pending"
+        ], done
+# }}}
     it "should be notified of new nodes"
     it "should be able to MAM everything"
 # }}}
