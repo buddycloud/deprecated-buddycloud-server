@@ -4,6 +4,15 @@ should = require('should')
 { NS, TestServer } = require('./test_server')
 
 # {{{ Helpers
+testConfigurationMessage = (node) ->
+    return (msg) ->
+        console.log "\n" + msg.root().toString()
+        msg.attrs.should.have.property "from", "buddycloud.example.org"
+        cfgEl = msg.getChild("event", NS.PUBSUB_EVENT)
+            ?.getChild("configuration")
+        should.exist cfgEl, "missing element: <configuration/>"
+        cfgEl.attrs.should.have.property "node", node
+
 testPostMessage = (node, id) ->
     return (msg) ->
         msg.attrs.should.have.property "from", "buddycloud.example.org"
@@ -224,6 +233,25 @@ describe "Pusher component", ->
         ], done
 # }}}
 # {{{ node configuration
+    it "should be notified of node configuration updates", (done) ->
+        async.series [(cb) ->
+            # Local
+            iq = server.makePubsubOwnerSetIq("push.1@enterprise.sf", "buddycloud.example.org", "push-D-1")
+                .c("configure", node: "/user/push.1@enterprise.sf/status")
+                .cnode(server.makeForm("submit", NS.PUBSUB_NODE_CONFIG, "pubsub#title": "Test title push-D-1"))
+
+            server.doTest iq, "got-message-pusher.example.org", cb, (msg) ->
+                testConfigurationMessage "/user/push.1@enterprise.sf/status"
+
+        , (cb) ->
+            # Remote
+            msg = server.makePubsubEventMessage("buddycloud.ds9.sf", "buddycloud.example.org")
+                .c("configuration", node: "/user/push.3@ds9.sf/status")
+                .cnode(server.makeForm("result", NS.PUBSUB_NODE_CONFIG, "pubsub#title": "Test title push-D-2"))
+
+            server.doTest msg, "got-message-pusher.example.org", cb, (msg) ->
+                testConfigurationMessage "/user/push.3@ds9.sf/status"
+        ], done
 # }}}
 # {{{ new nodes
     it "should be notified of new nodes"
