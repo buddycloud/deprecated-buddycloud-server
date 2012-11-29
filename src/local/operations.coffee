@@ -1324,7 +1324,7 @@ class Notify extends ModelOperation
                                 subscription.node.indexOf("/user/#{id}/") is 0
                             affiliations = {}
                             async.forEach userSubscriptions, (subscription, cb5) =>
-                                t.getAffiliation subscriber, subscription.node, (err, affiliation) =>
+                                t.getAffiliation subscription.node, subscriber, (err, affiliation) =>
                                     affiliations[subscription.node] = affiliation
                                     cb5(err)
                             , (err) =>

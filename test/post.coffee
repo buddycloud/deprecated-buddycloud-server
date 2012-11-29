@@ -396,6 +396,24 @@ describe "Posting", ->
                 should.exist itemEl, "missing element: <item/>"
                 itemEl.attrs.should.have.property "id", "test-C-2"
                 should.exist itemEl.getChild("entry", NS.ATOM), "missing element: <entry/>"
+
+        it "must not be replicated if the sender is not authoritative", (done) ->
+            async.series [(cb) ->
+                entryEl = server.makeAtom content: "Test post C3", author: "picard@enterprise.sf", id: "test-C-3"
+                msgEl = server.makePubsubEventMessage("buddycloud.ds9.sf", "buddycloud.example.org")
+                    .c("items", node: "/user/picard@enterprise.sf/posts")
+                    .c("item", id: "test-C-3")
+                    .cnode(entryEl)
+                server.emit "stanza", msgEl.root()
+                setTimeout cb, 250
+
+            , (cb) ->
+                iq = server.makePubsubGetIq("picard@enterprise.sf", "buddycloud.example.org", "retrieve-C-3")
+                    .c("items", node: "/user/picard@enterprise.sf/posts")
+                    .c("item", id: "test-C-3")
+
+                server.doTest iq, "got-iq-retrieve-C-3", cb, testErrorIq "cancel", "item-not-found"
+            ], (done)
     # }}}
     # {{{ a reply
     describe "a reply", ->
@@ -517,6 +535,29 @@ describe "Posting", ->
                     "publish-E-8", "/user/picard@enterprise.sf/posts",
                     content: "Updated test post E6", id: "test-E-6"
                 server.doTest publishEl, "got-iq-publish-E-8", cb, testErrorIq "modify", "not-acceptable"
+            ], done
+
+        it "should be possible for replies", (done) ->
+            async.series [(cb) ->
+                # Publish E18
+                publishEl = server.makePublishIq "picard@enterprise.sf", "buddycloud.example.org",
+                    "publish-E-18", "/user/picard@enterprise.sf/posts",
+                    content: "Test post E18", id: "test-E-18"
+                server.doTest publishEl, "got-iq-publish-E-18", cb, testPublishResultIq
+
+            , (cb) ->
+                # Publish E19 as reply to E18
+                publishEl = server.makePublishIq "picard@enterprise.sf", "buddycloud.example.org",
+                    "publish-E-19", "/user/picard@enterprise.sf/posts",
+                    content: "Test reply E19", id: "test-E-19", in_reply_to: "test-E-18"
+                server.doTest publishEl, "got-iq-publish-E-19", cb, testPublishResultIq
+
+            , (cb) ->
+                # Update E19
+                publishEl = server.makePublishIq "picard@enterprise.sf", "buddycloud.example.org",
+                    "publish-E-20", "/user/picard@enterprise.sf/posts",
+                    content: "Updated test reoply E19", id: "test-E-19", in_reply_to: "test-E-18"
+                server.doTest publishEl, "got-iq-publish-E-20", cb, testPublishResultIq
             ], done
 
         it "should not allow adding an <in-reply-to/>", (done) ->

@@ -69,3 +69,8 @@ describe "buddycloud-server", ->
             q = iq.children[0]
             q.should.have.property "name", "query"
             q.attrs.should.have.property "xmlns", "http://jabber.org/protocol/disco#items"
+
+    it "should have a valid example configuration file", ->
+        # Just check if it compiles (in case of a ninja-edit on GitHub)
+        require.extensions['.example'] = require.extensions['.js']
+        conf = require('../config.js.example')

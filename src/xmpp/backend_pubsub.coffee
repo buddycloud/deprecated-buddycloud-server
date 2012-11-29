@@ -147,12 +147,13 @@ class exports.PubsubBackend extends EventEmitter
                             user: child.attrs.jid
                             subscription: child.attrs.subscription
 
-                    if child.is('affiliation')
-                        updates.push
-                            type: 'affiliation'
-                            node: node
-                            user: child.attrs.jid
-                            affiliation: child.attrs.affiliation
+                    if child.is('affiliations')
+                        for affEl in child.getChildren('affiliation')
+                            updates.push
+                                type: 'affiliation'
+                                node: node
+                                user: affEl.attrs.jid
+                                affiliation: affEl.attrs.affiliation
 
                     if child.is('configuration')
                         xEl = child.getChild('x', NS.DATA)
