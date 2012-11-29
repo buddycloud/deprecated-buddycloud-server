@@ -256,7 +256,4 @@ describe "Pusher component", ->
 # {{{ new nodes
     it "should be notified of new nodes"
 # }}}
-# {{{ MAM
-    it "should be able to MAM everything"
-# }}}
 # }}}

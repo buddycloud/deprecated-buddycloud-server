@@ -49,6 +49,7 @@ class exports.TestServer extends EventEmitter
             "push.2@enterprise.sf":     { identities: [], features: [] }
             "push.1@ds9.sf":            { identities: [], features: [] }
             "push.2@ds9.sf":            { identities: [], features: [] }
+            "push.3@ds9.sf":            { identities: [], features: [] }
         items:
             "example.org":   [{jid: "buddycloud.example.org"}]
             "enterprise.sf": [{jid: "buddycloud.example.org"}]
