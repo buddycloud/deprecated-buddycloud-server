@@ -270,13 +270,21 @@ class PrivilegedOperation extends ModelOperation
 class BrowseInfo extends Operation
 
     run: (cb) ->
+        features = [
+            NS.DISCO_INFO, NS.DISCO_ITEMS, NS.REGISTER,
+            NS.VERSION, NS.MAM, NS.PUBSUB
+        ]
+        pubsubFeatures = [
+            'create-and-configure', 'create-nodes', 'config-node', 'delete-items', 'get-pending', 'item-ids',
+            'manage-subscriptions', 'meta-data', 'modify-affiliations', 'outcast-affiliation', 'owner', 'publish',
+            'publisher-affiliation', 'purge-nodes', 'retract-items', 'retrieve-affiliations', 'retrieve-items',
+            'retrieve-subscriptions', 'subscribe', 'subscription-options', 'subscription-notifications'
+        ]
+        for f in pubsubFeatures
+            features.push NS.PUBSUB + '#' + f
+
         cb null,
-            features: [
-                NS.DISCO_INFO, NS.DISCO_ITEMS,
-                NS.REGISTER, NS.VERSION, NS.MAM,
-                NS.PUBSUB, NS.PUBSUB_CREATE_AND_CONFIGURE, NS.PUBSUB_CREATE_NODES,
-                NS.PUBSUB_OWNER, NS.PUBSUB_SUBSCRIPTION_OPTIONS
-            ]
+            features: features
             identities: [{
                 category: "pubsub"
                 type: "service"
