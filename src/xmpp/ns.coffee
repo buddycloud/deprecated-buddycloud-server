@@ -1,7 +1,5 @@
 module.exports =
     PUBSUB: "http://jabber.org/protocol/pubsub"
-    PUBSUB_CREATE_AND_CONFIGURE: "http://jabber.org/protocol/pubsub#create-and-configure"
-    PUBSUB_CREATE_NODES: "http://jabber.org/protocol/pubsub#create-nodes"
     PUBSUB_EVENT: "http://jabber.org/protocol/pubsub#event"
     PUBSUB_OWNER: "http://jabber.org/protocol/pubsub#owner"
     PUBSUB_NODE_CONFIG: "http://jabber.org/protocol/pubsub#node_config"
