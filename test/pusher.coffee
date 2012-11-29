@@ -1,5 +1,6 @@
 async = require('async')
 should = require('should')
+{ inspect } = require('util')
 { NS, TestServer } = require('./test_server')
 
 # {{{ Helpers
@@ -15,9 +16,14 @@ testPostMessage = (node, id) ->
         itemEl.attrs.should.have.property "id", id
         should.exist itemEl.getChild("entry", NS.ATOM), "missing element: <entry/>"
 
-testSubscription = (server, el, done, node, jid, subscription="subscribed") ->
-    gotSub = false
-    gotItem = subscription is "pending" # no item for pending subscriptions
+testSubscription = (server, el, done, node, jid, els) ->
+    # els is an object. If it has a "subscription" property, we expect a
+    # <subscription/> message. If the expected subscription is not pending, we
+    # also expect an item in from the subscriptions node. If els has an
+    # "affiliation" property, we expect an <affiliations/> message and an item.
+    needAff = els.affiliation?
+    needSub = els.subscription?
+    needItem = els.affiliation? or (els.subscription? and els.subscription isnt 'pending')
     nodeUser = /^\/user\/([^\/]+)\/?(.*)/.exec(node)[1]
 
     cb = (err) ->
@@ -26,7 +32,7 @@ testSubscription = (server, el, done, node, jid, subscription="subscribed") ->
         done err
 
     timeout = setTimeout ->
-        cb new Error "gotSub: #{gotSub}, gotItem: #{gotItem}"
+        cb new Error "#{jid} --> #{node}: needAff: #{needAff}, needSub: #{needSub}, needItem: #{needItem}, els: #{inspect els}"
     , 1000
 
     server.on "got-message-pusher.example.org", (msg) ->
@@ -34,28 +40,39 @@ testSubscription = (server, el, done, node, jid, subscription="subscribed") ->
         evEl = msg.getChild "event", NS.PUBSUB_EVENT
         should.exist evEl, "missing element: <event/>"
 
+        affEl = evEl.getChild "affiliations"
+        if affEl?
+            needAff.should.equal true, "unexpected <affiliations/>"
+            affEl.attrs.should.have.property "node", node
+            for child in affEl.getChildren "affiliation"
+                child.attrs.should.have.property "jid"
+                child.attrs.should.have.property "affiliation"
+                if child.attrs.jid is jid and child.attrs.affiliation is els.affiliation
+                    needAff = false
+
         subEl = evEl.getChild "subscription"
-        itemsEl = evEl.getChild "items"
         if subEl?
+            needSub.should.equal true, "unexpected <subscription/>"
             subEl.attrs.should.have.property "node", node
             subEl.attrs.should.have.property "jid", jid
-            subEl.attrs.should.have.property "subscription", subscription
-            gotSub = true
+            subEl.attrs.should.have.property "subscription", els.subscription
+            needSub = false
+
+        itemsEl = evEl.getChild "items"
         if itemsEl?
+            needItem.should.equal true, "unexpected <items/>"
             should.exist itemsEl, "missing element: <items/>"
             itemsEl.attrs.should.have.property "node", "/user/#{jid}/subscriptions"
-
             itemEl = itemsEl.getChild "item"
             should.exist itemEl, "missing element: <item/>"
             itemEl.attrs.should.have.property "id", nodeUser
-
             qEl = itemEl.getChild("query", NS.DISCO_ITEMS)
             should.exist qEl, "missing element: <query/>"
-            gotItem = true
-        if not subEl? and not itemsEl?
-            cb new Error "<message/> without <subscription/> nor <items/>"
 
-        if gotSub and gotItem
+            # TODO: maybe check pubsub:subscription, pubsub:affiliation, etc.
+            needItem = false
+
+        unless needAff or needSub or needItem
             cb null
 
     server.emit "stanza", el.root()
@@ -128,14 +145,25 @@ describe "Pusher component", ->
             iq = server.makePubsubSetIq("push.1@enterprise.sf/abc", "buddycloud.example.org", "push-B-1")
                 .c("subscribe", node: "/user/push.2@enterprise.sf/posts", jid: "push.1@enterprise.sf")
 
-            testSubscription server, iq, cb, "/user/push.2@enterprise.sf/posts", "push.1@enterprise.sf"
+            testSubscription server, iq, cb, "/user/push.2@enterprise.sf/posts", "push.1@enterprise.sf",
+                subscription: "subscribed"
+                affiliation: "member"
+
+        #, (cb) ->
+            # Local unbsubscription
+            #TODO
 
         , (cb) ->
             # Remote subscription
             msgEl = server.makePubsubEventMessage("buddycloud.ds9.sf", "buddycloud.example.org")
                 .c("subscription", node: "/user/push.1@ds9.sf/posts", jid: "push.2@ds9.sf", subscription: "subscribed")
 
-            testSubscription server, msgEl, cb, "/user/push.1@ds9.sf/posts", "push.2@ds9.sf"
+            testSubscription server, msgEl, cb, "/user/push.1@ds9.sf/posts", "push.2@ds9.sf",
+                subscription: "subscribed"
+
+        #, (cb) ->
+            # Remote unsubscription
+            #TODO
         ], done
 
     it "should be notified of pending subscriptions", (done) ->
@@ -144,7 +172,8 @@ describe "Pusher component", ->
             iq = server.makePubsubSetIq("push.1@enterprise.sf", "buddycloud.example.org", "push-B-2")
                 .c("subscribe", node: "/user/data@enterprise.sf/posts", jid: "push.1@enterprise.sf")
 
-            testSubscription server, iq, cb, "/user/data@enterprise.sf/posts", "push.1@enterprise.sf", "pending"
+            testSubscription server, iq, cb, "/user/data@enterprise.sf/posts", "push.1@enterprise.sf",
+                subscription: "pending"
 
         , (cb) ->
             # FIXME: should this even be notified?
@@ -152,9 +181,45 @@ describe "Pusher component", ->
             msgEl = server.makePubsubEventMessage("buddycloud.ds9.sf", "buddycloud.example.org")
                 .c("subscription", node: "/user/push.2@ds9.sf/posts", jid: "push.1@ds9.sf", subscription: "pending")
 
-            testSubscription server, msgEl, cb, "/user/push.2@ds9.sf/posts", "push.1@ds9.sf", "pending"
+            testSubscription server, msgEl, cb, "/user/push.2@ds9.sf/posts", "push.1@ds9.sf",
+                subscription: "pending"
         ], done
 # }}}
+# {{{ affiliations
+    it "should be notified of affiliation changes", (done) ->
+        async.series [(cb) ->
+            # Local: subscription first
+            iq = server.makePubsubSetIq("push.2@enterprise.sf/abc", "buddycloud.example.org", "push-C-1")
+                .c("subscribe", node: "/user/push.1@enterprise.sf/posts", jid: "push.2@enterprise.sf")
+
+            server.doTest iq, "got-iq-push-C-1", cb, (iq) ->
+                iq.attrs.should.have.property "type", "result"
+
+        , (cb) ->
+            # Local: change affiliation
+            iq = server.makePubsubOwnerSetIq("push.1@enterprise.sf", "buddycloud.example.org", "push-C-2")
+                .c("affiliations", node: "/user/push.1@enterprise.sf/posts")
+                .c("affiliation", jid: "push.2@enterprise.sf", affiliation: "moderator")
+
+            testSubscription server, iq, cb, "/user/push.1@enterprise.sf/posts", "push.2@enterprise.sf",
+                affiliation: "moderator"
+
+        , (cb) ->
+            # Remote: change affiliation (push.1@enterprise.sf follows push.3@ds9.sf)
+            msg = server.makePubsubEventMessage("buddycloud.ds9.sf", "buddycloud.example.org")
+                .c("affiliations", node: "/user/push.3@ds9.sf/posts")
+                .c("affiliation", jid: "push.1@enterprise.sf", affiliation: "publisher")
+
+            testSubscription server, msg, cb, "/user/push.3@ds9.sf/posts", "push.1@enterprise.sf",
+                affiliation: "publisher"
+        ], done
+# }}}
+# {{{ node configuration
+# }}}
+# {{{ new nodes
     it "should be notified of new nodes"
+# }}}
+# {{{ MAM
     it "should be able to MAM everything"
+# }}}
 # }}}
