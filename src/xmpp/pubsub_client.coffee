@@ -28,7 +28,8 @@ class Request
                 catch e
                     logger.error e.stack
                     err = e
-                cb err, result
+                process.nextTick ->
+                    cb err, result
 
     checkFeatures: (cb) ->
         cb null
