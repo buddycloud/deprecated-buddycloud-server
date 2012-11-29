@@ -702,7 +702,7 @@ class Transaction
         db = @db
         if forPusher
             params = []
-            listenercond = ""
+            listenerCond = ""
         else
             params = [listener]
             listenerCond = "AND listener=$1"
