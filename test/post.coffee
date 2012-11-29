@@ -3,12 +3,6 @@ should = require('should')
 { NS, TestServer } = require('./test_server')
 
 # {{{ Helpers
-TestServer::makePublishIq = (from, to, id, node, atomOpts) ->
-    return @makePubsubSetIq(from, to, id)
-        .c("publish", node: node)
-        .c("item", id: atomOpts.id)
-        .cnode @makeAtom atomOpts
-
 testPublishResultIq = (iq) ->
     iq.attrs.should.have.property "type", "result"
     itemEl = iq.getChild("pubsub", NS.PUBSUB)

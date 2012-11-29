@@ -250,6 +250,15 @@ class exports.TestServer extends EventEmitter
             atom[name] = entry.getChildText name
         return atom
 
+    # Prepare a PubSub "set" IQ for publishing an Atom to a PubSub node
+    # @param [Object] atomOpts Data to store in the atom
+    # @return [ltx.Element] IQ stanza
+    makePublishIq: (from, to, id, node, atomOpts) ->
+        return @makePubsubSetIq(from, to, id)
+            .c("publish", node: node)
+            .c("item", id: atomOpts.id)
+            .cnode @makeAtom atomOpts
+
     # Run an asynchronous test safely.
     # @param [ltx.Element] stanza Stanza to send to the buddycloud server
     # @param [String] event Event that should be triggered by the sent stanza,
