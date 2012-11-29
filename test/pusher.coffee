@@ -18,12 +18,12 @@ testPostMessage = (node, id) ->
 
 testSubscription = (server, el, done, node, jid, els) ->
     # els is an object. If it has a "subscription" property, we expect a
-    # <subscription/> message. If the expected subscription is not pending, we
+    # <subscription/> message. If the expected subscription is "subscribed", we
     # also expect an item in from the subscriptions node. If els has an
     # "affiliation" property, we expect an <affiliations/> message and an item.
     needAff = els.affiliation?
     needSub = els.subscription?
-    needItem = els.affiliation? or (els.subscription? and els.subscription isnt 'pending')
+    needItem = els.affiliation? or (els.subscription? and els.subscription is 'subscribed')
     nodeUser = /^\/user\/([^\/]+)\/?(.*)/.exec(node)[1]
 
     cb = (err) ->
@@ -139,7 +139,7 @@ describe "Pusher component", ->
         ], done
 # }}}
 # {{{ subscriptions
-    it "should be notified of new subscriptions", (done) ->
+    it "should be notified of new subscriptions and unsubscriptions", (done) ->
         async.series [(cb) ->
             # Local subscription
             iq = server.makePubsubSetIq("push.1@enterprise.sf/abc", "buddycloud.example.org", "push-B-1")
@@ -149,27 +149,36 @@ describe "Pusher component", ->
                 subscription: "subscribed"
                 affiliation: "member"
 
-        #, (cb) ->
+        , (cb) ->
             # Local unbsubscription
-            #TODO
+            iq = server.makePubsubSetIq("push.1@enterprise.sf/abc", "buddycloud.example.org", "push-B-2")
+                .c("unsubscribe", node: "/user/push.2@enterprise.sf/posts", jid: "push.1@enterprise.sf")
+
+            testSubscription server, iq, cb, "/user/push.2@enterprise.sf/posts", "push.1@enterprise.sf",
+                subscription: "none"
+                affiliation: "none"
 
         , (cb) ->
             # Remote subscription
             msgEl = server.makePubsubEventMessage("buddycloud.ds9.sf", "buddycloud.example.org")
-                .c("subscription", node: "/user/push.1@ds9.sf/posts", jid: "push.2@ds9.sf", subscription: "subscribed")
+                .c("subscription", node: "/user/push.1@ds9.sf/posts", jid: "push.3@ds9.sf", subscription: "subscribed")
 
-            testSubscription server, msgEl, cb, "/user/push.1@ds9.sf/posts", "push.2@ds9.sf",
+            testSubscription server, msgEl, cb, "/user/push.1@ds9.sf/posts", "push.3@ds9.sf",
                 subscription: "subscribed"
 
-        #, (cb) ->
+        , (cb) ->
             # Remote unsubscription
-            #TODO
+            msgEl = server.makePubsubEventMessage("buddycloud.ds9.sf", "buddycloud.example.org")
+                .c("subscription", node: "/user/push.1@ds9.sf/posts", jid: "push.3@ds9.sf", subscription: "none")
+
+            testSubscription server, msgEl, cb, "/user/push.1@ds9.sf/posts", "push.3@ds9.sf",
+                subscription: "none"
         ], done
 
     it "should be notified of pending subscriptions", (done) ->
         async.series [(cb) ->
             # Local subscription to a private channel
-            iq = server.makePubsubSetIq("push.1@enterprise.sf", "buddycloud.example.org", "push-B-2")
+            iq = server.makePubsubSetIq("push.1@enterprise.sf", "buddycloud.example.org", "push-B-3")
                 .c("subscribe", node: "/user/data@enterprise.sf/posts", jid: "push.1@enterprise.sf")
 
             testSubscription server, iq, cb, "/user/data@enterprise.sf/posts", "push.1@enterprise.sf",
