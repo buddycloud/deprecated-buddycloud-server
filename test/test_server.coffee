@@ -45,6 +45,11 @@ class exports.TestServer extends EventEmitter
             "test@example.org":         { identities: [], features: [] }
             "mam-user.1@enterprise.sf": { identities: [], features: [] }
             "mam-user.2@enterprise.sf": { identities: [], features: [] }
+            "push.1@enterprise.sf":     { identities: [], features: [] }
+            "push.2@enterprise.sf":     { identities: [], features: [] }
+            "push.1@ds9.sf":            { identities: [], features: [] }
+            "push.2@ds9.sf":            { identities: [], features: [] }
+            "push.3@ds9.sf":            { identities: [], features: [] }
         items:
             "example.org":   [{jid: "buddycloud.example.org"}]
             "enterprise.sf": [{jid: "buddycloud.example.org"}]
@@ -77,6 +82,7 @@ class exports.TestServer extends EventEmitter
                 level: "TRACE"
                 file: "test-suite.log"
             checkCreateNode: -> true
+            pusherJid: "pusher.example.org"
             autosubscribeNewUsers: []
         @server = server.startServer @config
 
@@ -244,6 +250,15 @@ class exports.TestServer extends EventEmitter
         for name in ["content", "id", "published", "updated"]
             atom[name] = entry.getChildText name
         return atom
+
+    # Prepare a PubSub "set" IQ for publishing an Atom to a PubSub node
+    # @param [Object] atomOpts Data to store in the atom
+    # @return [ltx.Element] IQ stanza
+    makePublishIq: (from, to, id, node, atomOpts) ->
+        return @makePubsubSetIq(from, to, id)
+            .c("publish", node: node)
+            .c("item", id: atomOpts.id)
+            .cnode @makeAtom atomOpts
 
     # Run an asynchronous test safely.
     # @param [ltx.Element] stanza Stanza to send to the buddycloud server

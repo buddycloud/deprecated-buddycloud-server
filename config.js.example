@@ -44,6 +44,11 @@ exports.checkCreateNode = function(opts) {
 	(opts.nodeUser.split("@")[1] === "topics.EXAMPLE.COM");
 };
 
+// JID of the pusher. This component will be notified of *all* events, including
+// those on private channels. If you don't know what the pusher component is, or
+// if you don't have one, you really should leave this commented.
+//exports.pusherJid = "pusher.EXAMPLE.COM";
+
 // autosubscribe users to a few channels
 exports.autosubscribeNewUsers = [
     "help@topics.buddycloud.org",
