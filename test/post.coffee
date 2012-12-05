@@ -374,7 +374,7 @@ describe "Posting", ->
                 atom.should.have.property "content", "Test post C1"
 
         it "must be replicated locally", (done) ->
-            entryEl = server.makeAtom content: "Test post C2", author: "sisko@ds9.sf", id: "test-C-2"
+            entryEl = server.makeAtom content: "Test post C2", author_uri: "acct:sisko@ds9.sf", id: "test-C-2"
             msgEl = server.makePubsubEventMessage("buddycloud.ds9.sf", "buddycloud.example.org")
                 .c("items", node: "/user/sisko@ds9.sf/posts")
                 .c("item", id: "test-C-2")
@@ -390,6 +390,50 @@ describe "Posting", ->
                 should.exist itemEl, "missing element: <item/>"
                 itemEl.attrs.should.have.property "id", "test-C-2"
                 should.exist itemEl.getChild("entry", NS.ATOM), "missing element: <entry/>"
+
+        it "must not be replicated if the Atom is invalid", (done) ->
+            # The minimum we need for items is author/uri, content, published, updated and id.
+            msgs = [
+                server.makePubsubEventMessage("buddycloud.ds9.sf", "buddycloud.example.org")
+                    .c("items", node: "/user/sisko@ds9.sf/posts")
+                    .c("item", id: "test-C-4")
+                    .cnode(server.makeAtom(content: "Test post C4", author_uri: "acct:sisko@ds9.sf", id: "test-C-4")
+                        .getChild("author").remove("uri").root()),
+                server.makePubsubEventMessage("buddycloud.ds9.sf", "buddycloud.example.org")
+                    .c("items", node: "/user/sisko@ds9.sf/posts")
+                    .c("item", id: "test-C-5")
+                    .cnode(server.makeAtom(content: "Test post C5", author_uri: "acct:sisko@ds9.sf", id: "test-C-5")
+                        .remove("content")),
+                server.makePubsubEventMessage("buddycloud.ds9.sf", "buddycloud.example.org")
+                    .c("items", node: "/user/sisko@ds9.sf/posts")
+                    .c("item", id: "test-C-6")
+                    .cnode(server.makeAtom(content: "Test post C6", author_uri: "acct:sisko@ds9.sf", id: "test-C-6")
+                        .remove("published")),
+                server.makePubsubEventMessage("buddycloud.ds9.sf", "buddycloud.example.org")
+                    .c("items", node: "/user/sisko@ds9.sf/posts")
+                    .c("item", id: "test-C-7")
+                    .cnode(server.makeAtom(content: "Test post C7", author_uri: "acct:sisko@ds9.sf", id: "test-C-7")
+                        .remove("updated")),
+                server.makePubsubEventMessage("buddycloud.ds9.sf", "buddycloud.example.org")
+                    .c("items", node: "/user/sisko@ds9.sf/posts")
+                    .c("item", id: "test-C-8")
+                    .cnode(server.makeAtom(content: "Test post C8", author_uri: "acct:sisko@ds9.sf", id: "test-C-8")
+                        .remove("id"))
+            ]
+            async.series [(cb) ->
+                for msgEl in msgs
+                    server.emit "stanza", msgEl.root()
+                setTimeout cb, 500
+
+            , (cb) ->
+                async.forEach [4..8], (i, cb2) ->
+                    iq = server.makePubsubGetIq("picard@enterprise.sf", "buddycloud.example.org", "retrieve-C-#{i}")
+                        .c("items", node: "/user/sisko@ds9.sf/posts")
+                        .c("item", id: "test-C-#{i}")
+
+                    server.doTest iq, "got-iq-retrieve-C-#{i}", cb2, testErrorIq "cancel", "item-not-found"
+                , cb
+            ], done
 
         it "must not be replicated if the sender is not authoritative", (done) ->
             async.series [(cb) ->
