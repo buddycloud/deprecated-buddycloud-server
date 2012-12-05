@@ -261,9 +261,13 @@ class PubsubRequest extends Request
         @pubsubEl?
 
     reply: (child, rsm) ->
-        if child?.children?
+        if child? and (child.children? or child instanceof Array)
             pubsubEl = new xmpp.Element("pubsub", { xmlns: @xmlns })
-            pubsubEl.cnode child
+            if child instanceof Array
+                for el in child
+                    pubsubEl.cnode el if el?
+            else
+                pubsubEl.cnode child
             if rsm
                 rsm.rmRequestInfo()
                 pubsubEl.cnode rsm.toXml()
@@ -492,6 +496,43 @@ class PubsubItemsRequest extends PubsubRequest
 
     operation: 'retrieve-node-items'
 
+# <iq type='get'
+#     from='francisco@denmark.lit/barracks'
+#     to='pubsub.shakespeare.lit'
+#     id='recentitems1'>
+#   <pubsub xmlns='http://jabber.org/protocol/pubsub'>
+#     <recent-items xmlns='http://buddycloud.org/v1'
+#                   since='2012-12-04T23:36:51.123Z'
+#                   max='50'/>
+#   </pubsub>
+# </iq>
+class PubsubRecentItemsRequest extends PubsubRequest
+    constructor: (stanza) ->
+        super
+
+        @recentItemsEl = @pubsubEl?.getChild('recent-items', NS.BUDDYCLOUD_V1)
+        @since = @recentItemsEl?.attrs.since
+        @maxItems = @recentItemsEl?.attrs.max
+
+    matches: ->
+        super &&
+        @iq.attrs.type is 'get' &&
+        @recentItemsEl && @since && @maxItems
+
+    reply: (items) ->
+        items.rsm.setReplyInfo(items, 'globalId')
+
+        results = []
+        lastItemsEl = null
+        for item in items
+            unless lastItemsEl?.attrs.node is item.node
+                lastItemsEl = new xmpp.Element("items", node: item.node)
+                results.push lastItemsEl
+            lastItemsEl.c("item", id: item.id).cnode(item.el)
+
+        super results, items.rsm
+
+    operation: 'retrieve-recent-items'
 
 # <iq type='get'
 #     from='francisco@denmark.lit/barracks'
@@ -768,6 +809,7 @@ REQUESTS = [
     PubsubPublishRequest,
     PubsubRetractRequest,
     PubsubItemsRequest,
+    PubsubRecentItemsRequest,
     PubsubSubscriptionsRequest,
     PubsubAffiliationsRequest,
     PubsubOwnerGetSubscriptionsRequest,
