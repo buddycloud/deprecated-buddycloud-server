@@ -261,9 +261,13 @@ class PubsubRequest extends Request
         @pubsubEl?
 
     reply: (child, rsm) ->
-        if child?.children?
+        if child? and (child.children? or child instanceof Array)
             pubsubEl = new xmpp.Element("pubsub", { xmlns: @xmlns })
-            pubsubEl.cnode child
+            if child instanceof Array
+                for el in child
+                    pubsubEl.cnode el if el?
+            else
+                pubsubEl.cnode child
             if rsm
                 rsm.rmRequestInfo()
                 pubsubEl.cnode rsm.toXml()
