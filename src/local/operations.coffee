@@ -6,7 +6,7 @@ async = require('async')
 uuid = require('node-uuid')
 errors = require('../errors')
 NS = require('../xmpp/ns')
-{normalizeItem} = require('../normalize')
+{normalizeItem, validateItem} = require('../normalize')
 {makeTombstone} = require('../tombstone')
 {Element} = require('node-xmpp')
 isodate = require('isodate')
@@ -1257,6 +1257,14 @@ class PushInbox extends ModelOperation
             async.forEach updates, (update, cb3) ->
                 switch update.type
                     when 'items'
+                        update.items = update.items.filter (item) ->
+                            res = validateItem item.el
+                            unless res
+                                logger.warn "Rejecting invalid Atom #{item.id} from #{update.node}"
+                            res
+                        if update.items.length == 0
+                            return cb3()
+
                         notification.push update
                         {node, items} = update
                         async.forEach items, (item, cb4) ->
