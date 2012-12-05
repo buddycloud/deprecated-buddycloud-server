@@ -839,6 +839,24 @@ class RetrieveItems extends PrivilegedOperation
         ], cb
 
 
+class RetrieveRecentItems extends ModelOperation
+    transaction: (t, cb) ->
+        rsm = @req.rsm
+        since = @req.since
+        try
+            since = isodate(since).toISOString()
+        catch e
+            return cb e
+        maxItems = @req.maxItems
+
+        t.getRecentPosts @req.sender, since, maxItems, (err, items) ->
+            if err
+                return cb err
+
+            items = rsm.cropResults items, 'globalId'
+            cb null, items
+
+
 class RetractItems extends PrivilegedOperation
     privilegedTransaction: (t, cb) ->
         @retractedItems = []
@@ -1475,6 +1493,7 @@ OPERATIONS =
     'subscribe-node': Subscribe
     'unsubscribe-node': Unsubscribe
     'retrieve-node-items': RetrieveItems
+    'retrieve-recent-items': RetrieveRecentItems
     'retract-node-items': RetractItems
     'retrieve-user-subscriptions': RetrieveUserSubscriptions
     'retrieve-user-affiliations': RetrieveUserAffiliations
