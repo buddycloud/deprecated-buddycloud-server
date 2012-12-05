@@ -757,6 +757,83 @@ describe "Retrieving posts", ->
 
                     itemIds.should.eql ["test-H-7", "test-H-8"]
             ], done
+
+    it "must work for recent items requests", (done) ->
+        @timeout 4000
+        async.series [(cb) ->
+            publishEl = server.makePublishIq "riker@enterprise.sf", "buddycloud.example.org",
+                "publish-H-10", "/user/riker@enterprise.sf/posts",
+                content: "Test post H10", id: "test-H-10"
+            server.doTest publishEl, "got-iq-publish-H-10", cb, testPublishResultIq
+        , (cb) ->
+            setTimeout cb, 1200
+        , (cb) =>
+            @since = new Date().toISOString()
+            publishEl = server.makePublishIq "picard@enterprise.sf", "buddycloud.example.org",
+                "publish-H-11", "/user/picard@enterprise.sf/posts",
+                content: "Test post H11", id: "test-H-11"
+            server.doTest publishEl, "got-iq-publish-H-11", cb, testPublishResultIq
+        , (cb) ->
+            publishEl = server.makePublishIq "picard@enterprise.sf", "buddycloud.example.org",
+                "publish-H-12", "/user/picard@enterprise.sf/posts",
+                content: "Test post H12", id: "test-H-12"
+            server.doTest publishEl, "got-iq-publish-H-12", cb, testPublishResultIq
+        , (cb) ->
+            publishEl = server.makePublishIq "riker@enterprise.sf", "buddycloud.example.org",
+                "publish-H-13", "/user/riker@enterprise.sf/posts",
+                content: "Test post H13", id: "test-H-13"
+            server.doTest publishEl, "got-iq-publish-H-13", cb, testPublishResultIq
+        , (cb) ->
+            publishEl = server.makePublishIq "data@enterprise.sf", "buddycloud.example.org",
+                "publish-H-14", "/user/data@enterprise.sf/posts",
+                content: "Test post H14", id: "test-H-14"
+            server.doTest publishEl, "got-iq-publish-H-14", cb, testPublishResultIq
+        , (cb) ->
+            publishEl = server.makePublishIq "riker@enterprise.sf", "buddycloud.example.org",
+                "publish-H-15", "/user/riker@enterprise.sf/status",
+                content: "Test post H15", id: "test-H-15"
+            server.doTest publishEl, "got-iq-publish-H-15", cb, testPublishResultIq
+        , (cb) ->
+            publishEl = server.makePublishIq "picard@enterprise.sf", "buddycloud.example.org",
+                "publish-H-16", "/user/picard@enterprise.sf/posts",
+                content: "Test post H16", id: "test-H-16"
+            server.doTest publishEl, "got-iq-publish-H-16", cb, testPublishResultIq
+
+        , (cb) =>
+            # Query recent items
+            iq = server.makePubsubGetIq("picard@enterprise.sf", "buddycloud.example.org", "retrieve-H-17")
+                .c("recent-items", xmlns: NS.BUDDYCLOUD_V1, since: @since, max: 2)
+
+            server.doTest iq, "got-iq-retrieve-H-17", cb, (iq) ->
+                iq.attrs.should.have.property "type", "result"
+                pubsubEl = iq.getChild "pubsub", NS.PUBSUB
+                should.exist pubsubEl, "missing element: <pubsub/>"
+
+                gotItems = {}
+                for items in pubsubEl.getChildren("items")
+                    items.attrs.should.have.property "node"
+                    node = items.attrs.node
+                    unless node of gotItems
+                        gotItems[node] = []
+                    for item in items.children
+                        item.attrs.should.have.property "id"
+                        gotItems[node].push item.attrs.id
+
+                gotItems.should.have.property "/user/picard@enterprise.sf/posts"
+                gotItems.should.have.property "/user/riker@enterprise.sf/posts"
+                gotItems.should.not.have.property "/user/riker@enterprise.sf/status"
+                gotItems.should.not.have.property "/user/data@enterprise.sf/posts"
+
+                # Picard: there should be H-16 and H-12 (H-11 is too much).
+                # Riker: there should be H-13 but not H-10 (too old).
+                # H-14 (Data) and H-15 (/status) should not be there.
+                gotItems["/user/picard@enterprise.sf/posts"].should.include "test-H-16"
+                gotItems["/user/picard@enterprise.sf/posts"].should.include "test-H-12"
+                gotItems["/user/picard@enterprise.sf/posts"].should.not.include "test-H-11"
+
+                gotItems["/user/riker@enterprise.sf/posts"].should.include "test-H-13"
+                gotItems["/user/riker@enterprise.sf/posts"].should.not.include "test-H-10"
+        ], done
 # }}}
 # {{{ Retracting
 describe "Retracting", ->
