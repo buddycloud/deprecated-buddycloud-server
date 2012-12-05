@@ -374,7 +374,7 @@ describe "Posting", ->
                 atom.should.have.property "content", "Test post C1"
 
         it "must be replicated locally", (done) ->
-            entryEl = server.makeAtom content: "Test post C2", author: "sisko@ds9.sf", id: "test-C-2"
+            entryEl = server.makeAtom content: "Test post C2", author_uri: "acct:sisko@ds9.sf", id: "test-C-2"
             msgEl = server.makePubsubEventMessage("buddycloud.ds9.sf", "buddycloud.example.org")
                 .c("items", node: "/user/sisko@ds9.sf/posts")
                 .c("item", id: "test-C-2")

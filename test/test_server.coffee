@@ -226,10 +226,8 @@ class exports.TestServer extends EventEmitter
             atom.c("link", rel: "self", href: opts.link)
         if opts.object
             atom.c("object", xmlns: NS.AS).c("object-type").t(opts.object)
-        if opts.published
-            atom.c("published").t(opts.published)
-        if opts.updated
-            atom.c("updated").t(opts.updated)
+        atom.c("published").t(if opts.published? then opts.published else new Date().toISOString())
+        atom.c("updated").t(if opts.updated? then opts.updated else new Date().toISOString())
         if opts.verb
             atom.c("verb", xmlns: NS.AS).t(opts.verb)
         return atom
