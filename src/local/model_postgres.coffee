@@ -634,7 +634,7 @@ class Transaction
         , (res, cb2) ->
             async.map res?.rows, (row, cb3) ->
                 node = row.node
-                q = """SELECT id, node, xml FROM items
+                q = """SELECT id, node, xml, updated FROM items
                        WHERE node=$1
                        AND   updated >= $2::timestamp
                        ORDER BY updated DESC
@@ -648,6 +648,7 @@ class Transaction
                     node: row.node
                     id: row.id
                     globalId: "#{row.node};#{row.id}"
+                    updated: row.updated
                     el: parseEl(row.xml)
             cb2 null, items
         ], cb

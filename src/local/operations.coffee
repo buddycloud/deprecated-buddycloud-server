@@ -853,6 +853,8 @@ class RetrieveRecentItems extends ModelOperation
             if err
                 return cb err
 
+            items.sort (a, b) ->
+                if a.updated < b.updated then 1 else if a.updated > b.updated then -1 else 0
             items = rsm.cropResults items, 'globalId'
             cb null, items
 

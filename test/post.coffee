@@ -810,6 +810,7 @@ describe "Retrieving posts", ->
                 content: "Test post H10", id: "test-H-10"
             server.doTest publishEl, "got-iq-publish-H-10", cb, testPublishResultIq
         , (cb) ->
+            # Make sure we don't catch older messages by accident
             setTimeout cb, 1200
         , (cb) =>
             @since = new Date().toISOString()
@@ -853,30 +854,23 @@ describe "Retrieving posts", ->
                 pubsubEl = iq.getChild "pubsub", NS.PUBSUB
                 should.exist pubsubEl, "missing element: <pubsub/>"
 
-                gotItems = {}
+                gotNodes = []
+                gotItems = []
                 for items in pubsubEl.getChildren("items")
                     items.attrs.should.have.property "node"
                     node = items.attrs.node
-                    unless node of gotItems
-                        gotItems[node] = []
+                    unless node in gotNodes
+                        gotNodes.push node
                     for item in items.children
                         item.attrs.should.have.property "id"
-                        gotItems[node].push item.attrs.id
-
-                gotItems.should.have.property "/user/picard@enterprise.sf/posts"
-                gotItems.should.have.property "/user/riker@enterprise.sf/posts"
-                gotItems.should.not.have.property "/user/riker@enterprise.sf/status"
-                gotItems.should.not.have.property "/user/data@enterprise.sf/posts"
+                        gotItems.push item.attrs.id
 
                 # Picard: there should be H-16 and H-12 (H-11 is too much).
                 # Riker: there should be H-13 but not H-10 (too old).
                 # H-14 (Data) and H-15 (/status) should not be there.
-                gotItems["/user/picard@enterprise.sf/posts"].should.include "test-H-16"
-                gotItems["/user/picard@enterprise.sf/posts"].should.include "test-H-12"
-                gotItems["/user/picard@enterprise.sf/posts"].should.not.include "test-H-11"
-
-                gotItems["/user/riker@enterprise.sf/posts"].should.include "test-H-13"
-                gotItems["/user/riker@enterprise.sf/posts"].should.not.include "test-H-10"
+                # Items should be sorted by decreasing ID.
+                gotNodes.should.eql ["/user/picard@enterprise.sf/posts", "/user/riker@enterprise.sf/posts"]
+                gotItems.should.eql ["test-H-16", "test-H-13", "test-H-12"]
         ], done
 # }}}
 # {{{ Retracting
