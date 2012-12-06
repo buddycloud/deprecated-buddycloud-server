@@ -98,25 +98,6 @@ exports.transaction = (cb) ->
     withNextDb (db) ->
         new Transaction(db, cb)
 
-# TODO: currently unused, should re-check to delete local node after an unsubscribe
-exports.isListeningToNode = (node, listenerJids, cb) ->
-    i = 1
-    conditions = listenerJids.map((listenerJid) ->
-        i++
-        "listener = $#{i}"
-    ).join(" OR ")
-    unless conditions
-        # Short-cut
-        return cb null, false
-
-    withNextDb (db) ->
-        db.query "SELECT listener FROM subscriptions WHERE node = $1 AND (#{conditions}) LIMIT 1"
-        , [node, listenerJids...]
-        , (err, res) ->
-            process.nextTick ->
-                dbIsAvailable(db)
-            cb err, (res?.rows?[0]?)
-
 exports.nodeExists = (node, cb) ->
     withNextDb (db) ->
         db.query "SELECT node FROM nodes WHERE node=$1", [ node ], (err, res) ->
@@ -153,11 +134,6 @@ exports.getAllNodes = (cb) ->
             nodes = res?.rows?.map (row) ->
                 row.node
             cb null, nodes
-
-exports.getListenerNodes = (listener, cb) ->
-    db.query "SELECT DISTINCT node FROM subscriptions WHERE listener=$1", [listener], (err, res) ->
-        cb err, res?.rows?.map (row) -> row.node
-
 
 LOST_TRANSACTION_TIMEOUT = 60 * 1000
 
@@ -517,16 +493,6 @@ class Transaction
             )
         ], cb
 
-    getOwners: (node, cb) ->
-        db = @db
-        async.waterfall [(cb2) ->
-            db.query "SELECT \"user\" FROM affiliations WHERE node=$1 AND affiliation='owner' ORDER BY updated DESC", [ node ], cb2
-        , (res, cb2) ->
-            cb2 null, res.rows.map((row) ->
-                row.user
-            )
-        ], cb
-
     getOwnersByNodePrefix: (nodePrefix, cb) ->
         db = @db
         async.waterfall [(cb2) ->
@@ -596,33 +562,6 @@ class Transaction
             else
                 cb2 new errors.NotFound("No such item")
         ], cb
-
-    ##
-    # @param itemCb {Function} itemCb({ node: String, id: String, item: Element })
-    getUpdatesByTime: (subscriber, timeStart, timeEnd, itemCb, cb) ->
-        conditions = [ "node IN (SELECT node FROM subscriptions WHERE \"user\"=$1 AND subscription='subscribed')" ]
-        params = [ subscriber ]
-        i = 1
-        if timeStart
-            conditions.push "updated >= $" + (++i) + "::timestamp"
-            params.push timeStart
-        if timeEnd
-            conditions.push "updated <= $" + (++i) + "::timestamp"
-            params.push timeEnd
-        q = @db.query("SELECT id, node, xml FROM items WHERE " + conditions.join(" AND ") + " ORDER BY updated ASC", params)
-        q.on "row", (row) ->
-            if item
-                itemCb
-                    node: row.node
-                    id: row.id
-                    item: row.xml
-
-
-        q.on "error", (err_) ->
-            err = err_
-
-        q.on "end", ->
-            cb err
 
     getRecentPosts: (subscriber, timeStart, maxItems, cb) ->
         db = @db
