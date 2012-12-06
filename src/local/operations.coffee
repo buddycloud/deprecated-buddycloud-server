@@ -1287,11 +1287,11 @@ class PushInbox extends ModelOperation
             checks = []
             for own node, _ of unsubscribedNodes
                 checks.push (cb3) ->
-                    t.getNodeListeners node, (err, listeners) ->
+                    t.getNodeLocalListeners node, (err, listeners) ->
                         if err
                             return cb3 err
                         unless listeners? and listeners.length > 0
-                            t.purgeNode node, cb3
+                            t.purgeRemoteNode node, cb3
 
             async.parallel checks, cb2
         ], cb

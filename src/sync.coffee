@@ -110,12 +110,12 @@ class SubscriptionsSynchronization extends PaginatedSynchronization
                 cb.apply @, arguments
             # After all subscriptions have synced, check if any local
             # subscriptions are left:
-            t.getNodeListeners @node, (err, listeners) =>
+            t.getNodeLocalListeners @node, (err, listeners) =>
                 if err
                     logger.error "Cannot get node listeners: #{err.stack or err}"
 
                 unless listeners? and listeners.length > 0
-                    t.purgeNode @node, cb2
+                    t.purgeRemoteNode @node, cb2
 
             cb2()
 

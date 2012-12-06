@@ -235,19 +235,21 @@ class Transaction
                     cb2 err, true
         ], cb
 
-    purgeNode: (node, cb) ->
+    purgeRemoteNode: (node, cb) ->
         db = @db
         q = (sql) ->
             (cb2) ->
                 db.query sql, [ node ], cb2
         async.series [
+            # Don't remove subscriptions: remote users are still subscribed to
+            # the remote node
             q "DELETE FROM items WHERE node=$1"
-            q "DELETE FROM subscriptions WHERE node=$1"
             q "DELETE FROM affiliations WHERE node=$1"
             q "DELETE FROM node_config WHERE node=$1"
-            q "DELETE FROM nodes WHERE node=$1"
+            q "DELETE FROM nodes WHERE node=$1 AND node NOT IN (SELECT node FROM subscriptions)"
         ], (err) ->
-            logger.info "Purged all data of node #{node}"
+            unless err
+                logger.info "Purged all data of node #{node}"
             cb err
 
     ##
@@ -387,6 +389,16 @@ class Transaction
                      WHERE node=$1
                      AND subscription='subscribed'
                      AND listener IS NOT NULL"""
+        , [node]
+        , (err, res) ->
+            cb err, res?.rows?.map((row) -> row.listener)
+
+    getNodeLocalListeners: (node, cb) ->
+        @db.query """SELECT DISTINCT listener
+                     FROM subscriptions
+                     WHERE node=$1
+                     AND listener=\"user\"
+                     AND subscription='subscribed'"""
         , [node]
         , (err, res) ->
             cb err, res?.rows?.map((row) -> row.listener)
