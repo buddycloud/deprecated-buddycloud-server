@@ -10,14 +10,12 @@ UPDATE items
            ))[1] AS TEXT);
 CREATE INDEX items_in_reply_to ON items (node, in_reply_to);
 
--- subscriptions: we need to about anonymous users and temporary subscriptions
-ALTER TABLE subscriptions
-      ADD COLUMN anonymous BOOLEAN DEFAULT FALSE;
+-- subscriptions: we need to know about temporary subscriptions
 ALTER TABLE subscriptions
       ADD COLUMN "temporary" BOOLEAN DEFAULT FALSE;
-UPDATE subscriptions
-       SET anonymous=TRUE
-       WHERE "user" LIKE '%@anon.%';
+
+-- remove subscriptions that look like anonymous users
+DELETE FROM subscriptions WHERE "user" LIKE '%@anon.%';
 
 -- remove subscriptions from items table
 DELETE FROM items WHERE node LIKE '%/subscriptions';
