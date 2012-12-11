@@ -1,5 +1,6 @@
 logger = require('./logger').makeLogger 'normalize'
 { JID } = require('node-xmpp')
+isodate = require('isodate')
 errors = require('./errors')
 
 NS_ATOM = "http://www.w3.org/2005/Atom"
@@ -142,5 +143,11 @@ exports.validateItem = (el) ->
     for name in ['content', 'id', 'published', 'updated']
         nameEl = el.getChild(name, NS_ATOM)
         return false unless nameEl?.getText().length > 0
+
+    for name in ['published', 'updated']
+        try
+            isodate el.getChild(name, NS_ATOM).getText()
+        catch e
+            return false
 
     return true
