@@ -418,7 +418,15 @@ describe "Posting", ->
                     .c("items", node: "/user/sisko@ds9.sf/posts")
                     .c("item", id: "test-C-8")
                     .cnode(server.makeAtom(content: "Test post C8", author_uri: "acct:sisko@ds9.sf", id: "test-C-8")
-                        .remove("id"))
+                        .remove("id")),
+                server.makePubsubEventMessage("buddycloud.ds9.sf", "buddycloud.example.org")
+                    .c("items", node: "/user/sisko@ds9.sf/posts")
+                    .c("item", id: "test-C-9")
+                    .cnode(server.makeAtom(content: "Test post C9", author_uri: "acct:sisko@ds9.sf", id: "test-C-9", published: "not a date")),
+                server.makePubsubEventMessage("buddycloud.ds9.sf", "buddycloud.example.org")
+                    .c("items", node: "/user/sisko@ds9.sf/posts")
+                    .c("item", id: "test-C-10")
+                    .cnode(server.makeAtom(content: "Test post C10", author_uri: "acct:sisko@ds9.sf", id: "test-C-10", updated: "not a date")),
             ]
             async.series [(cb) ->
                 for msgEl in msgs
@@ -426,7 +434,7 @@ describe "Posting", ->
                 setTimeout cb, 500
 
             , (cb) ->
-                async.forEach [4..8], (i, cb2) ->
+                async.forEach [4..10], (i, cb2) ->
                     iq = server.makePubsubGetIq("picard@enterprise.sf", "buddycloud.example.org", "retrieve-C-#{i}")
                         .c("items", node: "/user/sisko@ds9.sf/posts")
                         .c("item", id: "test-C-#{i}")
