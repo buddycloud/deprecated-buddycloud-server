@@ -587,8 +587,12 @@ class Subscribe extends PrivilegedOperation
         , (cb2) =>
             @fetchNodeConfig t, cb2
         , (cb2) =>
+            # Anonymous users can only do temporary susbcriptions
+            if @req.actorType is 'anonymous'
+                @req.temporary = true
+
             # Prevent existing persistent subscriptions from being made temporary
-            if @req.temporary
+            else if @req.temporary
                 t.getTemporarySubscription @req.node, @req.actor, (err, subscription, temporary) ->
                     if err
                         return cb2 err
