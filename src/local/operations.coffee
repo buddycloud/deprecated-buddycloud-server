@@ -156,7 +156,10 @@ class PrivilegedOperation extends ModelOperation
         unless @req.node
             return cb()
 
-        if @req.actor.indexOf('@') >= 0
+        if @req.actorType is 'anonymous'
+            @actorAffiliation = 'none'
+
+        else if @req.actorType is 'user'
             t.getAffiliation @req.node, @req.actor, (err, affiliation) =>
                 if err
                     return cb err
