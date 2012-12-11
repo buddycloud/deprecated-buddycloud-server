@@ -156,7 +156,10 @@ class PrivilegedOperation extends ModelOperation
         unless @req.node
             return cb()
 
-        if @req.actor.indexOf('@') >= 0
+        if @req.actorType is 'anonymous'
+            @actorAffiliation = 'none'
+
+        else if @req.actorType is 'user'
             t.getAffiliation @req.node, @req.actor, (err, affiliation) =>
                 if err
                     return cb err
@@ -592,8 +595,12 @@ class Subscribe extends PrivilegedOperation
         , (cb2) =>
             @fetchNodeConfig t, cb2
         , (cb2) =>
+            # Anonymous users can only do temporary susbcriptions
+            if @req.actorType is 'anonymous'
+                @req.temporary = true
+
             # Prevent existing persistent subscriptions from being made temporary
-            if @req.temporary
+            else if @req.temporary
                 t.getTemporarySubscription @req.node, @req.actor, (err, subscription, temporary) ->
                     if err
                         return cb2 err
