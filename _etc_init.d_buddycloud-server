@@ -18,7 +18,7 @@
 # Do NOT "set -e"
 
 # PATH should only include /usr/* if it runs after the mountnfs.sh script
-PATH=/sbin:/usr/sbin:/bin:/usr/bin
+PATH=/sbin:/usr/sbin:/bin:/usr/bin:/usr/local/bin
 DESC="buddycloud server"
 NAME=buddycloud
 RUN_AS_USER=buddycloud
@@ -28,11 +28,11 @@ DAEMON_ARGS="lib/main.js --config config.js"
 PIDDIR=/var/run/buddycloud-server
 PIDFILE="$PIDDIR/$NAME.pid"
 SCRIPTNAME=/etc/init.d/$NAME
-LOGDIR=/var/log/buddycloud-server
+LOGDIR=/var/log
 LOGFILE="$LOGDIR/buddycloud-server.log"
 
 # Exit if the package is not installed
-[ -x "$DAEMON" ] || exit 0
+[ -x "$DAEMON" ] || exit 1
 
 # Read configuration variable file if it is present
 [ -r /etc/default/$NAME ] && . /etc/default/$NAME
