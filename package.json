@@ -25,7 +25,7 @@
         ,"path": "git://github.com/buddycloud/buddycloud-server.git"
         }]
 ,"scripts": {
-    "install": "cake build",
+    "install": "./node_modules/.bin/cake build",
     "start": "./bin/buddycloud-server --nobuild"
 }
 ,"homepage": "http://buddycloud.org"
