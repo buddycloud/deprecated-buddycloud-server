@@ -27,7 +27,7 @@
         ,"path": "git://github.com/buddycloud/buddycloud-server.git"
         }]
 ,"scripts": {
-    "install": "cake build",
+    "install": "./node_modules/.bin/cake build",
     "start": "./bin/buddycloud-server --nobuild",
     "test": "./test/prepare-db.sh && ./node_modules/.bin/mocha -r should -R spec --compilers coffee:coffee-script"
 }
