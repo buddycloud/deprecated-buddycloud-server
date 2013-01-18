@@ -39,5 +39,5 @@
         }
 ,"contributors": ["Stephan Maka", "Jonas Smedegaard", "Simon Tennant", "dodo", "James Tait", "Thomas Jost", "Lloyd Watkin"]
 ,"licenses": [{"type": "APL2"}]
-, "engines": {"node": ">= 0.4"}
+, "engines": {"node": ">= 0.8"}
 }
