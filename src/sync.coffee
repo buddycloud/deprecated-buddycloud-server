@@ -171,7 +171,11 @@ exports.syncNode = (router, model, node, cb) ->
         SubscriptionsSynchronization, AffiliationsSynchronization
     ]
     , (syncClass, cb2) ->
-        syncQueue.push { router, model, node, syncClass }, cb2
+        # For some reason syncClass is sometimes undefined...
+        if syncClass?
+            syncQueue.push { router, model, node, syncClass }, cb2
+        else
+            cb2()
     , (err) ->
         if err and err.constructor is errors.SeeLocal
             logger.debug "Omitted syncing local node #{node}"
