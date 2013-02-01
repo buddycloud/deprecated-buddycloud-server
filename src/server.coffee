@@ -146,7 +146,8 @@ exports.startServer = (config) ->
                         logger.error "cleanup temporary data: #{err.stack or err}"
                     cb err
             , (cb) ->
-                router.setupSync Math.ceil((config.modelConfig.poolSize or 2) / 2)
+                unless config.testMode
+                    router.setupSync Math.ceil((config.modelConfig.poolSize or 2) / 2)
                 cb null
             ], (err) ->
                 if err

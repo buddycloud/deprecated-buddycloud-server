@@ -62,6 +62,7 @@ class exports.TestServer extends EventEmitter
     constructor: ->
         dbUser = if process.env["TRAVIS"] is "true" then "postgres" else "buddycloud-server-test"
         @config =
+            testMode: true
             modelBackend: "postgres"
             modelConfig:
                 host: "localhost"
