@@ -1266,11 +1266,14 @@ class PushInbox extends ModelOperation
             async.forEach updates, (update, cb3) ->
                 switch update.type
                     when 'items'
-                        update.items = update.items.filter (item) ->
-                            res = validateItem item.el
-                            unless res
-                                logger.warn "Rejecting invalid Atom #{item.id} from #{update.node}"
-                            res
+                        # Validate Atoms in /posts and /status nodes
+                        nodeType = getNodeType update.node
+                        if nodeType in ['posts', 'status']
+                            update.items = update.items.filter (item) ->
+                                res = validateItem item.el
+                                unless res
+                                    logger.warn "Rejecting invalid Atom #{item.id} from #{update.node}"
+                                res
                         if update.items.length == 0
                             return cb3()
 
