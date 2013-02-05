@@ -46,7 +46,11 @@ class Request
                    results.length > 0
                     # Retry with smaller result set
                     logger.warn "MaxStanzaSizeExceeded: #{results.length} items"
-                    smallerResults = results?.slice(0, results.length - 1)
+                    if results.length >= 20
+                        newLength = Math.floor(results.length / 2)
+                    else
+                        newLength = results.length - 1
+                    smallerResults = results?.slice(0, newLength)
                     smallerResults.rsm ?= results?.rsm
                     @callback err, smallerResults
                 else
@@ -58,7 +62,6 @@ class Request
         actorEl = childEl?.getChild("actor", NS.BUDDYCLOUD_V1)
         if actorEl?
             @actor = actorEl.getText()
-            @actorType ?= actorEl.attrs.type
         # Elsewhile @actor stays @sender (see @constructor)
 
     setRSM: (childEl) ->
@@ -258,9 +261,13 @@ class PubsubRequest extends Request
         @pubsubEl?
 
     reply: (child, rsm) ->
-        if child?.children?
+        if child? and (child.children? or child instanceof Array)
             pubsubEl = new xmpp.Element("pubsub", { xmlns: @xmlns })
-            pubsubEl.cnode child
+            if child instanceof Array
+                for el in child
+                    pubsubEl.cnode el if el?
+            else
+                pubsubEl.cnode child
             if rsm
                 rsm.rmRequestInfo()
                 pubsubEl.cnode rsm.toXml()
@@ -311,6 +318,14 @@ class PubsubCreateRequest extends PubsubRequest
 #     id='sub1'>
 #   <pubsub xmlns='http://jabber.org/protocol/pubsub'>
 #     <subscribe node='princely_musings'/>
+#     <options node='princely_musings' jid='francisco@denmark.lit'>
+#       <x xmlns='jabber:x:data' type='submit'>
+#         <field var='FORM_TYPE' type='hidden'>
+#           <value>http://jabber.org/protocol/pubsub#subscribe_options</value>
+#         </field>
+#         <field var='pubsub#expire'><value>presence</value></field>
+#       </x>
+#     </options>
 #   </pubsub>
 # </iq>
 class PubsubSubscribeRequest extends PubsubRequest
@@ -319,6 +334,14 @@ class PubsubSubscribeRequest extends PubsubRequest
 
         @subscribeEl = @pubsubEl?.getChild("subscribe")
         @node = @subscribeEl?.attrs.node
+        @temporary = false
+
+        optionsEl = @pubsubEl?.getChild("options")
+        formEl = optionsEl?.getChild("x")
+        if formEl
+            for field in formEl.getChildren("field")
+                if field.attrs.var == 'pubsub#expire'
+                    @temporary = field.getChild("value")?.getText() is 'presence'
 
     matches: () ->
         super &&
@@ -328,8 +351,9 @@ class PubsubSubscribeRequest extends PubsubRequest
     reply: (result) ->
         attrs =
             node: @node
-        attrs.jid ?= result?.user
-        attrs.subscription ?= result?.subscription
+            jid: result?.user
+            subscription: result?.subscription
+            temporary: if result?.temporary then '1' else '0'
         super new xmpp.Element("subscription", attrs)
 
     operation: 'subscribe-node'
@@ -430,7 +454,8 @@ class PubsubRetractRequest extends PubsubRequest
     matches: () ->
         super &&
         @iq.attrs.type is 'set' &&
-        @node
+        @node &&
+        @items.length > 0
 
     operation: 'retract-node-items'
 
@@ -471,6 +496,43 @@ class PubsubItemsRequest extends PubsubRequest
 
     operation: 'retrieve-node-items'
 
+# <iq type='get'
+#     from='francisco@denmark.lit/barracks'
+#     to='pubsub.shakespeare.lit'
+#     id='recentitems1'>
+#   <pubsub xmlns='http://jabber.org/protocol/pubsub'>
+#     <recent-items xmlns='http://buddycloud.org/v1'
+#                   since='2012-12-04T23:36:51.123Z'
+#                   max='50'/>
+#   </pubsub>
+# </iq>
+class PubsubRecentItemsRequest extends PubsubRequest
+    constructor: (stanza) ->
+        super
+
+        @recentItemsEl = @pubsubEl?.getChild('recent-items', NS.BUDDYCLOUD_V1)
+        @since = @recentItemsEl?.attrs.since
+        @maxItems = @recentItemsEl?.attrs.max
+
+    matches: ->
+        super &&
+        @iq.attrs.type is 'get' &&
+        @recentItemsEl && @since && @maxItems
+
+    reply: (items) ->
+        items.rsm.setReplyInfo(items, 'globalId')
+
+        results = []
+        lastItemsEl = null
+        for item in items
+            unless lastItemsEl?.attrs.node is item.node
+                lastItemsEl = new xmpp.Element("items", node: item.node)
+                results.push lastItemsEl
+            lastItemsEl.c("item", id: item.id).cnode(item.el)
+
+        super results, items.rsm
+
+    operation: 'retrieve-recent-items'
 
 # <iq type='get'
 #     from='francisco@denmark.lit/barracks'
@@ -726,6 +788,7 @@ class MessageArchiveRequest extends Request
         @queryId = @mamEl?.attrs?.queryid
         @start = @mamEl?.getChildText("start")
         @end = @mamEl?.getChildText("end")
+        @setRSM @mamEl
 
     matches: () ->
         @iq.attrs.type is 'get' &&
@@ -746,6 +809,7 @@ REQUESTS = [
     PubsubPublishRequest,
     PubsubRetractRequest,
     PubsubItemsRequest,
+    PubsubRecentItemsRequest,
     PubsubSubscriptionsRequest,
     PubsubAffiliationsRequest,
     PubsubOwnerGetSubscriptionsRequest,

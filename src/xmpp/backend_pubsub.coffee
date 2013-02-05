@@ -35,7 +35,7 @@ class exports.PubsubBackend extends EventEmitter
             unless reqClass
                 return cb(new errors.FeatureNotImplemented("Operation #{opts.operation} not implemented for remote pubsub"))
 
-            req = new reqClass @conn, opts, (err, result) ->
+            req = new reqClass @conn, @disco, opts, (err, result) ->
                 if err
                     cb err
                 else
@@ -147,12 +147,13 @@ class exports.PubsubBackend extends EventEmitter
                             user: child.attrs.jid
                             subscription: child.attrs.subscription
 
-                    if child.is('affiliation')
-                        updates.push
-                            type: 'affiliation'
-                            node: node
-                            user: child.attrs.jid
-                            affiliation: child.attrs.affiliation
+                    if child.is('affiliations')
+                        for affEl in child.getChildren('affiliation')
+                            updates.push
+                                type: 'affiliation'
+                                node: node
+                                user: affEl.attrs.jid
+                                affiliation: affEl.attrs.affiliation
 
                     if child.is('configuration')
                         xEl = child.getChild('x', NS.DATA)
@@ -201,12 +202,10 @@ class exports.PubsubBackend extends EventEmitter
             async.map updates, (update, cb2) =>
                 if update.type is 'subscription'
                     @disco.findService update.user, (err, service) =>
-                        if err
-                            cb2 err, null
-                        else
+                        if service?
                             # If remote user, listener = sender. If local user, listener = user.
                             update.listener = if @getMyJids().indexOf(service) >= 0 then update.user else sender
-                            cb2 null, update
+                        cb2 err, update
                 else
                     cb2 null, update
             , (err, updates) =>
@@ -223,10 +222,10 @@ class exports.PubsubBackend extends EventEmitter
 class BuddycloudDiscovery
     constructor: (@conn) ->
         @infoCache = new RequestCache (id, cb) =>
-            new pubsubClient.DiscoverInfo(@conn, { jid: id }, cb)
+            new pubsubClient.DiscoverInfo(@conn, @, { jid: id }, cb)
         @itemsCache = new RequestCache (id, cb) =>
             logger.debug "discover items of #{id}"
-            new pubsubClient.DiscoverItems(@conn, { jid: id }, cb)
+            new pubsubClient.DiscoverItems(@conn, @, { jid: id }, cb)
 
     authorizeFor: (sender, actor, cb) =>
         @itemsCache.get getUserDomain(actor), (err, items) ->
@@ -266,6 +265,10 @@ class BuddycloudDiscovery
                 pending++
             # `pending' initialized with 1, to not miss the items=[] case
             done()
+
+    findFeatures: (jid, cb) =>
+        @infoCache.get jid, (err, results) ->
+            cb err, results?.features
 
     ##
     # @param user {String} Bare JID

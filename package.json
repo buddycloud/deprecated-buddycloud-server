@@ -1,5 +1,5 @@
 { "name": "buddycloud-server"
-,"version": "0.3.5"
+,"version": "0.4.0"
 ,"bin": { "buddycloud-server": "./bin/buddycloud-server" }
 ,"description": "buddycloud channels service for XMPP"
 ,"dependencies": {
@@ -13,20 +13,23 @@
         "pg": ">=0.6.14",
         "underscore.logger": ">=0.3.1",
         "ain2": ">=1.1.0",
-        "glob": "<3"
+        "isodate": ">=0.1.1"
         }
 ,"devDependencies":  {
         "colors": ">=0.6.0-1",
         "tarballify": ">=0.0.5",
         "muffin": ">=0.2.7",
-        "coffee-script": ">=1.2.0"
+        "coffee-script": ">=1.2.0",
+        "mocha": ">=1.4.0",
+        "should": ">=1.2.0"
         }
 ,"repositories": [{"type": "git"
         ,"path": "git://github.com/buddycloud/buddycloud-server.git"
         }]
 ,"scripts": {
     "install": "./node_modules/.bin/cake build",
-    "start": "./bin/buddycloud-server --nobuild"
+    "start": "./bin/buddycloud-server --nobuild",
+    "test": "./test/prepare-db.sh && ./node_modules/.bin/mocha -r should -R spec --compilers coffee:coffee-script"
 }
 ,"homepage": "http://buddycloud.org"
 ,"bugs": "http://github.com/buddycloud/buddycloud-server/issues"
@@ -34,7 +37,7 @@
         ,"email": "astro@spaceboyz.net"
         ,"web": "http://spaceboyz.net/~astro/"
         }
-,"contributors": ["Stephan Maka", "Jonas Smedegaard", "Simon Tennant", "dodo", "James Tait", "Thomas Jost", "Lloyd Watkin"]
+,"contributors": ["Stephan Maka", "Jonas Smedegaard", "Simon Tennant", "dodo", "James Tait", "Thomas Jost", "Lloyd Watkin", "Denis Washington"]
 ,"licenses": [{"type": "APL2"}]
-, "engines": {"node": ">= 0.4"}
+, "engines": {"node": ">= 0.8"}
 }

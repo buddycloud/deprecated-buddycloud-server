@@ -94,6 +94,8 @@ class SubscriptionsSynchronization extends PaginatedSynchronization
         # Preserve the subscriptions listeners that are local, which
         # is only a small subset of the global subscriptions to a
         # remote node.
+        # Also preserve temporary subscriptions since they are not included in
+        # the remote results.
         t.resetSubscriptions @node, (err, @userListeners) =>
             cb err
 
@@ -108,12 +110,12 @@ class SubscriptionsSynchronization extends PaginatedSynchronization
                 cb.apply @, arguments
             # After all subscriptions have synced, check if any local
             # subscriptions are left:
-            t.getNodeListeners @node, (err, listeners) =>
+            t.getNodeLocalListeners @node, (err, listeners) =>
                 if err
                     logger.error "Cannot get node listeners: #{err.stack or err}"
 
                 unless listeners? and listeners.length > 0
-                    t.purgeNode @node, cb2
+                    t.purgeRemoteNode @node, cb2
 
             cb2()
 
@@ -121,7 +123,7 @@ class SubscriptionsSynchronization extends PaginatedSynchronization
     writeResults: (t, results, cb) ->
         async.forEach results, (item, cb2) =>
             listener = @userListeners[item.user]
-            t.setSubscription @node, item.user, listener, item.subscription, cb2
+            t.setSubscription @node, item.user, listener, item.subscription, false, cb2
         , cb
 
 class AffiliationsSynchronization extends PaginatedSynchronization
@@ -169,7 +171,11 @@ exports.syncNode = (router, model, node, cb) ->
         SubscriptionsSynchronization, AffiliationsSynchronization
     ]
     , (syncClass, cb2) ->
-        syncQueue.push { router, model, node, syncClass }, cb2
+        # For some reason syncClass is sometimes undefined...
+        if syncClass?
+            syncQueue.push { router, model, node, syncClass }, cb2
+        else
+            cb2()
     , (err) ->
         if err and err.constructor is errors.SeeLocal
             logger.debug "Omitted syncing local node #{node}"

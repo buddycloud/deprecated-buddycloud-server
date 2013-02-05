@@ -6,9 +6,10 @@ async = require('async')
 uuid = require('node-uuid')
 errors = require('../errors')
 NS = require('../xmpp/ns')
-{normalizeItem} = require('../normalize')
+{normalizeItem, validateItem} = require('../normalize')
 {makeTombstone} = require('../tombstone')
 {Element} = require('node-xmpp')
+isodate = require('isodate')
 
 runTransaction = null
 exports.setModel = (model) ->
@@ -155,7 +156,10 @@ class PrivilegedOperation extends ModelOperation
         unless @req.node
             return cb()
 
-        if @req.actor.indexOf('@') >= 0
+        if @req.actorType is 'anonymous'
+            @actorAffiliation = 'none'
+
+        else if @req.actorType is 'user'
             t.getAffiliation @req.node, @req.actor, (err, affiliation) =>
                 if err
                     return cb err
@@ -269,12 +273,21 @@ class PrivilegedOperation extends ModelOperation
 class BrowseInfo extends Operation
 
     run: (cb) ->
+        features = [
+            NS.DISCO_INFO, NS.DISCO_ITEMS, NS.REGISTER,
+            NS.VERSION, NS.MAM, NS.PUBSUB
+        ]
+        pubsubFeatures = [
+            'create-and-configure', 'create-nodes', 'config-node', 'delete-items', 'get-pending', 'item-ids',
+            'manage-subscriptions', 'meta-data', 'modify-affiliations', 'outcast-affiliation', 'owner', 'publish',
+            'publisher-affiliation', 'purge-nodes', 'retract-items', 'retrieve-affiliations', 'retrieve-items',
+            'retrieve-subscriptions', 'subscribe', 'subscription-options', 'subscription-notifications'
+        ]
+        for f in pubsubFeatures
+            features.push NS.PUBSUB + '#' + f
+
         cb null,
-            features: [
-                NS.DISCO_INFO, NS.DISCO_ITEMS,
-                NS.REGISTER,
-                NS.PUBSUB, NS.PUBSUB_OWNER
-            ]
+            features: features
             identities: [{
                 category: "pubsub"
                 type: "service"
@@ -420,7 +433,7 @@ class Register extends ModelOperation
             created = created_
             t.setAffiliation node, user, 'owner', cb2
         , (cb2) =>
-            t.setSubscription node, user, @req.sender, 'subscribed', cb2
+            t.setSubscription node, user, @req.sender, 'subscribed', false, cb2
         , (cb2) ->
             # if already present, don't overwrite config
             if created
@@ -488,7 +501,7 @@ class CreateNode extends ModelOperation
             # Set
             t.setConfig @req.node, config, cb2
         , (cb2) =>
-            t.setSubscription @req.node, @req.actor, @req.sender, 'subscribed', cb2
+            t.setSubscription @req.node, @req.actor, @req.sender, 'subscribed', false, cb2
         , (cb2) =>
             t.setAffiliation @req.node, @req.actor, 'owner', cb2
         ], cb
@@ -497,8 +510,11 @@ class Publish extends PrivilegedOperation
     # checks affiliation with @checkPublishModel below
 
     privilegedTransaction: (t, cb) ->
-        if @subscriptionsNode?
+        if @subscriptionsNodeOwner?
             return cb new errors.NotAllowed("The subscriptions node is automagically populated")
+
+        if @req.actorType isnt "user"
+            return cb new errors.BadRequest("Actor should be an user")
 
         async.waterfall [ (cb2) =>
             @checkPublishModel t, cb2
@@ -516,13 +532,51 @@ class Publish extends PrivilegedOperation
                                 else
                                     cb4 err, item
                     , (oldItem, cb4) =>
-                        normalizeItem @req, oldItem, item, cb4
+                        normalizeItem @req, oldItem, item, (err, newItem) ->
+                            cb4 err, oldItem, newItem
+                    , (oldItem, newItem, cb4) =>
+                        if oldItem?
+                            @checkUpdatedItem oldItem, newItem, cb4
+                        else
+                            cb4 null, newItem
+                    , (newItem, cb4) =>
+                        # When replying, the original item must exist
+                        irtEl = newItem.el.getChild('in-reply-to', 'http://purl.org/syndication/thread/1.0')
+                        if irtEl?.attrs.ref?
+                            t.getItem @req.node, irtEl.attrs.ref, (err, item) ->
+                                if err and err.constructor is errors.NotFound
+                                    cb4 new errors.NotAcceptable "Can't reply to a non-existent item"
+                                else
+                                    cb4 null, newItem
+                        else
+                            cb4 null, newItem
                     , (newItem, cb4) =>
                         t.writeItem @req.node, newItem.id, newItem.el, (err) ->
                             cb4 err, newItem.id
                     ], cb3
             ), cb2
         ], cb
+
+    checkUpdatedItem: (oldItem, newItem, cb) ->
+        if oldItem.name is 'deleted-entry'
+            return cb new errors.NotAcceptable "You can't update a deleted item"
+
+        # Only the original author can update an item
+        itemActor = oldItem.getChild("author")?.getChild("uri")?.getText()
+        if itemActor isnt "acct:#{@req.actor}"
+            return cb new errors.Forbidden "You're not allowed to update this item"
+
+        # Check if in-reply-to is the same
+        oldIrt = oldItem.getChild('in-reply-to', 'http://purl.org/syndication/thread/1.0')?.attrs.ref
+        newIrt = newItem.el.getChild('in-reply-to', 'http://purl.org/syndication/thread/1.0')?.attrs.ref
+        if oldIrt? and not newIrt?
+            return cb new errors.NotAcceptable "You can't remove <in-reply-to/>"
+        else if newIrt? and not oldIrt?
+            return cb new errors.NotAcceptable "You can't add <in-reply-to/>"
+        else if newIrt? and newIrt isnt oldIrt
+            return cb new errors.NotAcceptable "You can't change <in-reply-to/>"
+
+        cb null, newItem
 
     notification: ->
         [{
@@ -541,16 +595,37 @@ class Subscribe extends PrivilegedOperation
         , (cb2) =>
             @fetchNodeConfig t, cb2
         , (cb2) =>
-            if @nodeConfig.accessModel is 'authorize'
-                @subscription = 'pending'
-                # Immediately return:
+            # Anonymous users can only do temporary susbcriptions
+            if @req.actorType is 'anonymous'
+                @req.temporary = true
+
+            # Prevent existing persistent subscriptions from being made temporary
+            else if @req.temporary
+                t.getTemporarySubscription @req.node, @req.actor, (err, subscription, temporary) ->
+                    if err
+                        return cb2 err
+                    if subscription is 'subscribed' and not temporary
+                        return cb2 new errors.NotAllowed('Cannot make existing subscription temporary')
+                    else
+                        return cb2()
+            else
                 return cb2()
+        , (cb2) =>
+            if @nodeConfig.accessModel is 'authorize'
+                if @req.temporary
+                    return cb2 new errors.NotAllowed('Cannot subscribe temporarily to private node')
+                else
+                    @subscription = 'pending'
+                    # Immediately return:
+                    return cb2()
 
             @subscription = 'subscribed'
-            defaultAffiliation = @nodeConfig.defaultAffiliation or 'none'
-            unless isAffiliationAtLeast @actorAffiliation, defaultAffiliation
-                # Less than current affiliation? Bump up to defaultAffiliation
-                @affiliation = @nodeConfig.defaultAffiliation or 'member'
+            # Temporary subscriptions always have affiliation 'none'
+            unless @req.temporary
+                defaultAffiliation = @nodeConfig.defaultAffiliation or 'none'
+                unless isAffiliationAtLeast @actorAffiliation, defaultAffiliation
+                    # Less than current affiliation? Bump up to defaultAffiliation
+                    @affiliation = @nodeConfig.defaultAffiliation or 'member'
 
             @checkAccessModel t, cb2
         ], (err) =>
@@ -561,7 +636,7 @@ class Subscribe extends PrivilegedOperation
 
     privilegedTransaction: (t, cb) ->
         async.waterfall [ (cb2) =>
-            t.setSubscription @req.node, @req.actor, @req.sender, @subscription, cb2
+            t.setSubscription @req.node, @req.actor, @req.sender, @subscription, @req.temporary, cb2
         , (cb2) =>
             if @affiliation
                 t.setAffiliation @req.node, @req.actor, @affiliation, cb2
@@ -571,21 +646,23 @@ class Subscribe extends PrivilegedOperation
             cb err,
                 user: @req.actor
                 subscription: @subscription
+                temporary: @req.temporary
 
     notification: ->
-        ns = [{
-                type: 'subscription'
-                node: @req.node
-                user: @req.actor
-                subscription: @subscription
-            }]
-        if @affiliation
-            ns.push
-                type: 'affiliation'
-                node: @req.node
-                user: @req.actor
-                affiliation: @affiliation
-        ns
+        unless @req.temporary
+            ns = [{
+                    type: 'subscription'
+                    node: @req.node
+                    user: @req.actor
+                    subscription: @subscription
+                }]
+            if @affiliation
+                ns.push
+                    type: 'affiliation'
+                    node: @req.node
+                    user: @req.actor
+                    affiliation: @affiliation
+            ns
 
     moderatorNotification: ->
         if @subscription is 'pending'
@@ -601,7 +678,9 @@ class Unsubscribe extends PrivilegedOperation
             return cb new errors.Forbidden("You may not unsubscribe from your own nodes")
 
         async.waterfall [ (cb2) =>
-            t.setSubscription @req.node, @req.actor, @req.sender, 'none', cb2
+            t.getTemporarySubscription @req.node, @req.actor, cb2
+        , (_, @temporary, cb2) =>
+            t.setSubscription @req.node, @req.actor, @req.sender, 'none', false, cb2
         , (cb2) =>
             @fetchActorAffiliation t, cb2
         , (cb2) =>
@@ -617,17 +696,18 @@ class Unsubscribe extends PrivilegedOperation
         ], cb
 
     notification: ->
-        [{
-            type: 'subscription'
-            node: @req.node
-            user: @req.actor
-            subscription: 'none'
-        }, {
-            type: 'affiliation'
-            node: @req.node
-            user: @req.actor
-            affiliation: @actorAffiliation
-        }]
+        unless @temporary
+            [{
+                type: 'subscription'
+                node: @req.node
+                user: @req.actor
+                subscription: 'none'
+            }, {
+                type: 'affiliation'
+                node: @req.node
+                user: @req.actor
+                affiliation: @actorAffiliation
+            }]
 
 
 class RetrieveItems extends PrivilegedOperation
@@ -766,6 +846,26 @@ class RetrieveItems extends PrivilegedOperation
         ], cb
 
 
+class RetrieveRecentItems extends ModelOperation
+    transaction: (t, cb) ->
+        rsm = @req.rsm
+        since = @req.since
+        try
+            since = isodate(since).toISOString()
+        catch e
+            return cb e
+        maxItems = @req.maxItems
+
+        t.getRecentPosts @req.sender, since, maxItems, (err, items) ->
+            if err
+                return cb err
+
+            items.sort (a, b) ->
+                if a.updated < b.updated then 1 else if a.updated > b.updated then -1 else 0
+            items = rsm.cropResults items, 'globalId'
+            cb null, items
+
+
 class RetractItems extends PrivilegedOperation
     privilegedTransaction: (t, cb) ->
         @retractedItems = []
@@ -801,7 +901,7 @@ class RetractItems extends PrivilegedOperation
                 # Authenticated!
                 cb2()
             else
-                cb2 new errors.NotAllowed("You may not retract other people's posts")
+                cb2 new errors.Forbidden("You may not retract other people's posts")
         , (err) =>
             if err?
                 cb err
@@ -892,7 +992,7 @@ class ManageNodeSubscriptions extends PrivilegedOperation
                        subscription isnt 'subscribed'
                         cb4 new errors.Forbidden("You may not unsubscribe the owner")
                     else
-                        t.setSubscription @req.node, user, null, subscription, cb4
+                        t.setSubscription @req.node, user, null, subscription, false, cb4
                 , (cb4) =>
                     t.getAffiliation @req.node, user, cb4
                 , (affiliation, cb4) =>
@@ -1015,6 +1115,24 @@ class RemoveUser extends ModelOperation
             t.clearUserSubscriptions @req.actor, (err) =>
                 cb err, subscriptions
 
+class CleanOfflineUser extends ModelOperation
+    transaction: (t, cb) ->
+        notification = []
+
+        # Does the user have temporary subscriptions?
+        t.getUserTemporarySubscriptions @req.actor, (err, subscriptions) =>
+            if err
+                return cb(err)
+
+            # Send unsubscribe requests to remote servers
+            async.forEach subscriptions, (subscription, cb2) =>
+                opts =
+                    operation: 'unsubscribe-node'
+                    node: subscription.node
+                    actor: @req.actor
+                    writes: true
+                @router.run opts, cb2
+            , cb
 
 class AuthorizeSubscriber extends PrivilegedOperation
     requiredAffiliation: =>
@@ -1033,7 +1151,7 @@ class AuthorizeSubscriber extends PrivilegedOperation
             @subscription = 'none'
 
         async.waterfall [ (cb2) =>
-            t.setSubscription @req.node, @req.user, @req.sender, @subscription, cb2
+            t.setSubscription @req.node, @req.user, @req.sender, @subscription, false, cb2
         , (cb2) =>
             if @affiliation
                 t.setAffiliation @req.node, @req.user, @affiliation, cb2
@@ -1066,11 +1184,25 @@ class AuthorizeSubscriber extends PrivilegedOperation
 # Doesn't care about about subscriptions nodes.
 class ReplayArchive extends ModelOperation
     transaction: (t, cb) ->
-        max = @req.rsm?.max or 50
+        max = @req.rsm?.max or 1000
         sent = 0
+        total = 0
+
+        try
+            if @req.start?
+                d = isodate @req.start
+                @req.start = d.toISOString()
+            if @req.end?
+                d = isodate @req.end
+                @req.end = d.toISOString()
+        catch e
+            return cb e
+
+        forPusher = (@req.sender is @router.pusherJid)
 
         async.waterfall [ (cb2) =>
-            t.walkListenerArchive @req.sender, @req.start, @req.end, max, (results) =>
+            t.walkListenerArchive @req.sender, @req.start, @req.end, max, forPusher, (results) =>
+                total += results.length
                 if sent < max
                     results.sort (a, b) ->
                         if a.updated < b.updated
@@ -1086,12 +1218,18 @@ class ReplayArchive extends ModelOperation
             , cb2
         , (cb2) =>
             sent = 0
-            t.walkModeratorAuthorizationRequests @req.sender, (req) =>
+            t.walkModeratorAuthorizationRequests @req.sender, forPusher, (req) =>
+                total += 1
                 if sent < max
                     req.type = 'authorizationPrompt'
                     @sendNotification req
                     sent++
             , cb2
+        , (cb2) ->
+            if total > max
+                cb2 new errors.PolicyViolation("Too many results")
+            else
+                cb2 null
         ], cb
 
     sendNotification: (results) ->
@@ -1128,6 +1266,17 @@ class PushInbox extends ModelOperation
             async.forEach updates, (update, cb3) ->
                 switch update.type
                     when 'items'
+                        # Validate Atoms in /posts and /status nodes
+                        nodeType = getNodeType update.node
+                        if nodeType in ['posts', 'status']
+                            update.items = update.items.filter (item) ->
+                                res = validateItem item.el
+                                unless res
+                                    logger.warn "Rejecting invalid Atom #{item.id} from #{update.node}"
+                                res
+                        if update.items.length == 0
+                            return cb3()
+
                         notification.push update
                         {node, items} = update
                         async.forEach items, (item, cb4) ->
@@ -1136,11 +1285,12 @@ class PushInbox extends ModelOperation
                         , cb3
 
                     when 'subscription'
-                        notification.push update
-                        {node, user, listener, subscription} = update
+                        {node, user, listener, subscription, temporary} = update
+                        unless temporary
+                            notification.push update
                         if subscription isnt 'subscribed'
                             unsubscribedNodes[node] = yes
-                        t.setSubscription node, user, listener, subscription, cb3
+                        t.setSubscription node, user, listener, subscription, temporary, cb3
 
                     when 'affiliation'
                         notification.push update
@@ -1185,11 +1335,11 @@ class PushInbox extends ModelOperation
             checks = []
             for own node, _ of unsubscribedNodes
                 checks.push (cb3) ->
-                    t.getNodeListeners node, (err, listeners) ->
+                    t.getNodeLocalListeners node, (err, listeners) ->
                         if err
                             return cb3 err
                         unless listeners? and listeners.length > 0
-                            t.purgeNode node, cb3
+                            t.purgeRemoteNode node, cb3
 
             async.parallel checks, cb2
         ], cb
@@ -1220,7 +1370,7 @@ class Notify extends ModelOperation
                                 subscription.node.indexOf("/user/#{id}/") is 0
                             affiliations = {}
                             async.forEach userSubscriptions, (subscription, cb5) =>
-                                t.getAffiliation subscriber, subscription.node, (err, affiliation) =>
+                                t.getAffiliation subscription.node, subscriber, (err, affiliation) =>
                                     affiliations[subscription.node] = affiliation
                                     cb5(err)
                             , (err) =>
@@ -1277,6 +1427,10 @@ class Notify extends ModelOperation
             , (err) =>
                 cb2 err, moderatorListeners, otherListeners
         , (moderatorListeners, otherListeners, cb2) =>
+            # If a pusher component is configured, it must be notified too
+            if @router.pusherJid?
+                moderatorListeners.push @router.pusherJid
+
             # Send out through backends
             if moderatorListeners.length > 0
                 for listener in moderatorListeners
@@ -1359,6 +1513,7 @@ OPERATIONS =
     'subscribe-node': Subscribe
     'unsubscribe-node': Unsubscribe
     'retrieve-node-items': RetrieveItems
+    'retrieve-recent-items': RetrieveRecentItems
     'retract-node-items': RetractItems
     'retrieve-user-subscriptions': RetrieveUserSubscriptions
     'retrieve-user-affiliations': RetrieveUserAffiliations
@@ -1369,6 +1524,7 @@ OPERATIONS =
     'manage-node-affiliations': ManageNodeAffiliations
     'manage-node-configuration': ManageNodeConfiguration
     'remove-user': RemoveUser
+    'clean-offline-user': CleanOfflineUser
     'confirm-subscriber-authorization': AuthorizeSubscriber
     'replay-archive': ReplayArchive
     'push-inbox': PushInbox
@@ -1467,7 +1623,8 @@ generateSubscriptionsNotifications = (updates) ->
     itemIdsSeen = {}
     updates.filter((update) ->
         (update.type is 'subscription' and
-         update.subscription is 'subscribed') or
+         update.subscription is 'subscribed' and
+         not (update.temporary? and update.temporary)) or
         update.type is 'affiliation'
     ).map((update) ->
         followee = update.node.match(NODE_OWNER_TYPE_REGEXP)?[1]

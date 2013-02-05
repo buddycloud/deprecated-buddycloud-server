@@ -1,0 +1,6 @@
+before_install:
+  - sudo apt-get install libicu-dev
+language: node_js
+node_js:
+  - 0.8
+services: postgresql

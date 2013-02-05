@@ -1,0 +1,13 @@
+[Unit]
+Description=buddycloud server
+After=network.target prosody.service ejabberd.service openfire.service
+
+[Service]
+User=buddycloud
+Group=buddycloud
+WorkingDirectory=/opt/buddycloud-server
+Type=simple
+ExecStart=/usr/bin/node -- lib/main.js
+
+[Install]
+WantedBy=multi-user.target

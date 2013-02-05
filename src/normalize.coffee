@@ -1,4 +1,6 @@
 logger = require('./logger').makeLogger 'normalize'
+{ JID } = require('node-xmpp')
+isodate = require('isodate')
 errors = require('./errors')
 
 NS_ATOM = "http://www.w3.org/2005/Atom"
@@ -126,3 +128,26 @@ normalizeLink = (req) ->
             rel: 'self'
             href: link
         )
+
+##
+# Check if an Atom is valid. A valid Atom must have an author URI and non-empty
+# <content/>, <id/>, <published/> and <updated/> elements.
+exports.validateItem = (el) ->
+    return false unless el? and el.is('entry', NS_ATOM)
+
+    authorUri = el.getChild('author')?.getChild('uri')
+    return false unless authorUri?
+    m = /^acct\:(.+)/.exec authorUri.getText()
+    return false unless m? and m[1]? and new JID(m[1]).bare().toString() is m[1]
+
+    for name in ['content', 'id', 'published', 'updated']
+        nameEl = el.getChild(name, NS_ATOM)
+        return false unless nameEl?.getText().length > 0
+
+    for name in ['published', 'updated']
+        try
+            isodate el.getChild(name, NS_ATOM).getText()
+        catch e
+            return false
+
+    return true

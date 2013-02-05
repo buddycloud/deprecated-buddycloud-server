@@ -76,7 +76,7 @@ class RemoteRouter
 # Decides whether operations can be served from the local DB by an
 # Operation, or to go remote
 class exports.Router
-    constructor: (@model, checkCreateNode, @autosubscribeNewUsers) ->
+    constructor: (@model, checkCreateNode, @autosubscribeNewUsers, @pusherJid) ->
         @remote = new RemoteRouter(@)
 
         @operations = require('./local/operations')
@@ -149,6 +149,7 @@ class exports.Router
                                 req = Object.create(opts)
                                 req.operation = 'subscribe-node'
                                 req.node = "/user/#{userid}/#{type}"
+                                req.temporary = false
                                 req.writes = yes
                                 @run req
             else if opts.writes
@@ -285,10 +286,14 @@ class exports.Router
     # * Disco info may not be available anymore
     # * If missing from anonymousUsers no clean-up is needed
     onUserOffline: (user) ->
-        if @anonymousUsers.hasOwnProperty(user) and @anonymousUsers[user]
-            delete @anonymousUsers[user]
-            req =
-                operation: 'remove-user'
-                actor: user
-                sender: user
-            @runLocally req, ->
+        req =
+            operation: 'clean-offline-user'
+            actor: user
+        @runLocally req, =>
+            if @anonymousUsers.hasOwnProperty(user) and @anonymousUsers[user]
+                delete @anonymousUsers[user]
+                req =
+                    operation: 'remove-user'
+                    actor: user
+                    sender: user
+                @runLocally req, ->

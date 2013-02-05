@@ -11,6 +11,9 @@ ltx = require("ltx")  # for item XML parsing & serialization
 async = require("async")
 errors = require("../errors")
 
+# Required schema version -- don't forget to bump it as needed!
+required_schema_version = 1
+
 # ready DB connections
 pool = []
 # waiting transaction requests
@@ -67,28 +70,33 @@ exports.start = (config) ->
     for i in [0..(config.poolSize or 4)]
         connectDB config
 
+exports.checkSchemaVersion = ->
+    withNextDb (db) ->
+        db.query "SELECT MAX(version) FROM schema_version", (err, res) ->
+            process.nextTick ->
+                dbIsAvailable(db)
+
+            version = 0
+            if res?.rows?[0]?.max?
+                version = res.rows[0].max
+
+            if version < required_schema_version
+                logger.error "Database schema too old: require version #{required_schema_version} but using #{version}. Please backup your DB and upgrade it using the scripts in the postgres folder."
+                process.exit 1
+            else if version > required_schema_version
+                logger.error "Database schema too recent: require version #{required_schema_version} but using #{version}. Please update the server to a version that matches your DB."
+                process.exit 1
+
+exports.cleanupTemporaryData = (cb) ->
+    withNextDb (db) ->
+        db.query "DELETE FROM subscriptions WHERE temporary=TRUE", (err) ->
+            process.nextTick ->
+                dbIsAvailable db
+            cb err
+
 exports.transaction = (cb) ->
     withNextDb (db) ->
         new Transaction(db, cb)
-
-# TODO: currently unused, should re-check to delete local node after an unsubscribe
-exports.isListeningToNode = (node, listenerJids, cb) ->
-    i = 1
-    conditions = listenerJids.map((listenerJid) ->
-        i++
-        "listener = $#{i}"
-    ).join(" OR ")
-    unless conditions
-        # Short-cut
-        return cb null, false
-
-    withNextDb (db) ->
-        db.query "SELECT listener FROM subscriptions WHERE node = $1 AND (#{conditions}) LIMIT 1"
-        , [node, listenerJids...]
-        , (err, res) ->
-            process.nextTick ->
-                dbIsAvailable(db)
-            cb err, (res?.rows?[0]?)
 
 exports.nodeExists = (node, cb) ->
     withNextDb (db) ->
@@ -126,11 +134,6 @@ exports.getAllNodes = (cb) ->
             nodes = res?.rows?.map (row) ->
                 row.node
             cb null, nodes
-
-exports.getListenerNodes = (listener, cb) ->
-    db.query "SELECT DISTINCT node FROM subscriptions WHERE listener=$1", [listener], (err, res) ->
-        cb err, res?.rows?.map (row) -> row.node
-
 
 LOST_TRANSACTION_TIMEOUT = 60 * 1000
 
@@ -208,19 +211,21 @@ class Transaction
                     cb2 err, true
         ], cb
 
-    purgeNode: (node, cb) ->
+    purgeRemoteNode: (node, cb) ->
         db = @db
         q = (sql) ->
             (cb2) ->
                 db.query sql, [ node ], cb2
         async.series [
+            # Don't remove subscriptions: remote users are still subscribed to
+            # the remote node
             q "DELETE FROM items WHERE node=$1"
-            q "DELETE FROM subscriptions WHERE node=$1"
             q "DELETE FROM affiliations WHERE node=$1"
             q "DELETE FROM node_config WHERE node=$1"
-            q "DELETE FROM nodes WHERE node=$1"
+            q "DELETE FROM nodes WHERE node=$1 AND node NOT IN (SELECT node FROM subscriptions)"
         ], (err) ->
-            logger.info "Purged all data of node #{node}"
+            unless err
+                logger.info "Purged all data of node #{node}"
             cb err
 
     ##
@@ -261,7 +266,7 @@ class Transaction
         , (err, res) ->
             cb err, res?.rows?[0]?.listener or "none"
 
-    setSubscription: (node, user, listener, subscription, cb) ->
+    setSubscription: (node, user, listener, subscription, temporary, cb) ->
         unless node
             return cb(new Error("No node"))
         unless user
@@ -274,25 +279,25 @@ class Transaction
             db.query "SELECT subscription FROM subscriptions WHERE node=$1 AND \"user\"=$2", [ node, user ], cb2
         , (res, cb2) ->
             isSet = res?.rows?[0]?
-            logger.debug "setSubscription #{node} #{user} isSet=#{isSet} toDelete=#{toDelete}"
+            logger.debug "setSubscription #{node} #{user} temporary=#{temporary} isSet=#{isSet} toDelete=#{toDelete}"
             if isSet and not toDelete
                 if listener
-                    db.query "UPDATE subscriptions SET listener=$1, subscription=$2, updated=CURRENT_TIMESTAMP WHERE node=$3 AND \"user\"=$4"
-                    , [ listener, subscription, node, user ]
+                    db.query "UPDATE subscriptions SET listener=$1, subscription=$2, temporary=$3, updated=CURRENT_TIMESTAMP WHERE node=$4 AND \"user\"=$5"
+                    , [ listener, subscription, temporary, node, user ]
                     , cb2
                 else
-                    db.query "UPDATE subscriptions SET subscription=$1, updated=CURRENT_TIMESTAMP WHERE node=$2 AND \"user\"=$3"
-                    , [ subscription, node, user ]
+                    db.query "UPDATE subscriptions SET subscription=$1, temporary=$2, updated=CURRENT_TIMESTAMP WHERE node=$3 AND \"user\"=$4"
+                    , [ subscription, temporary, node, user ]
                     , cb2
             else if not isSet and not toDelete
                 # listener=null is allowed for 3rd-party inboxes
                 if listener
-                    db.query "INSERT INTO subscriptions (node, \"user\", listener, subscription, updated) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)"
-                    , [ node, user, listener, subscription ]
+                    db.query "INSERT INTO subscriptions (node, \"user\", listener, subscription, temporary, updated) VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)"
+                    , [ node, user, listener, subscription, temporary ]
                     , cb2
                 else
-                    db.query "INSERT INTO subscriptions (node, \"user\", subscription, updated) VALUES ($1, $2, $3, CURRENT_TIMESTAMP)"
-                    , [ node, user, subscription ]
+                    db.query "INSERT INTO subscriptions (node, \"user\", subscription, temporary, updated) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)"
+                    , [ node, user, subscription, temporary ]
                     , cb2
             else if isSet and toDelete
                 db.query "DELETE FROM subscriptions WHERE node=$1 AND \"user\"=$2"
@@ -311,7 +316,7 @@ class Transaction
 
         db = @db
         async.waterfall [(cb2) ->
-            db.query "SELECT \"user\", subscription FROM subscriptions WHERE node=$1 ORDER BY updated DESC", [ node ], cb2
+            db.query "SELECT \"user\", subscription FROM subscriptions WHERE node=$1 AND temporary=FALSE ORDER BY updated DESC", [ node ], cb2
         , (res, cb2) ->
             subscribers = for row in res.rows
                 { user: row.user, subscription: row.subscription }
@@ -319,11 +324,29 @@ class Transaction
             cb2 null, subscribers
         ], cb
 
+    getTemporarySubscription: (node, user, cb) ->
+        unless node
+            return cb(new Error("No node"))
+        unless user
+            return cb(new Error("No user"))
+
+        @db.query "SELECT subscription, temporary FROM subscriptions WHERE node=$1 AND \"user\"=$2"
+        , [ node, user ]
+        , (err, res) ->
+            cb err, res?.rows?[0]?.subscription or "none", res?.rows?[0]?.temporary or false
+
+    getUserTemporarySubscriptions: (user, cb) ->
+        unless user
+            return cb(new Error("No user"))
+
+        @db.query "SELECT node, listener, subscription FROM subscriptions WHERE \"user\"=$1 AND temporary=TRUE ORDER BY updated DESC", [ user ], (err, res) ->
+            cb err, res?.rows
+
     ##
     # Not only by users but also by listeners.
     # @param cb {Function} cb(Error, { user, node, subscription })
     getSubscriptions: (actor, cb) ->
-        @db.query "SELECT \"user\", node, subscription FROM subscriptions WHERE \"user\"=$1 OR listener=$1 ORDER BY updated DESC", [ actor ], (err, res) ->
+        @db.query "SELECT \"user\", node, subscription FROM subscriptions WHERE (\"user\"=$1 OR listener=$1) AND temporary=FALSE ORDER BY updated DESC", [ actor ], (err, res) ->
             cb err, res?.rows
 
     getPending: (node, cb) ->
@@ -346,6 +369,16 @@ class Transaction
         , (err, res) ->
             cb err, res?.rows?.map((row) -> row.listener)
 
+    getNodeLocalListeners: (node, cb) ->
+        @db.query """SELECT DISTINCT listener
+                     FROM subscriptions
+                     WHERE node=$1
+                     AND listener=\"user\"
+                     AND subscription='subscribed'"""
+        , [node]
+        , (err, res) ->
+            cb err, res?.rows?.map((row) -> row.listener)
+
     getNodeModeratorListeners: (node, cb) ->
         # TODO: on subscriptions.listener=affiliations.listener
         @db.query """SELECT DISTINCT listener
@@ -360,16 +393,22 @@ class Transaction
         , (err, res) ->
             cb err, res?.rows?.map((row) -> row.listener)
 
-    walkModeratorAuthorizationRequests: (user, iter, cb) ->
+    walkModeratorAuthorizationRequests: (user, forPusher, iter, cb) ->
+        if forPusher
+            listenerCond = ''
+            params = []
+        else
+            listenerCond = 'AND "user"=$1'
+            params = [user]
         # TODO: make batched
         @db.query """SELECT "user", node
                      FROM subscriptions
                      WHERE subscription='pending'
                      AND node IN (SELECT node
                                   FROM affiliations
-                                  WHERE "user"=$1
-                                  AND (affiliation='owner' OR affiliation='moderator'))"""
-        , [user]
+                                  WHERE (affiliation='owner' OR affiliation='moderator')
+                                  #{listenerCond})"""
+        , params
         , (err, res) ->
             res?.rows?.forEach (row) -> iter(row)
             cb err
@@ -422,9 +461,9 @@ class Transaction
             isSet = res and res.rows and res.rows[0]
             toDelete = not affiliation or affiliation == "none"
             if isSet and not toDelete
-                db.query "UPDATE affiliations SET affiliation=$1 WHERE node=$2 AND \"user\"=$3", [ affiliation, node, user ], cb2
+                db.query "UPDATE affiliations SET affiliation=$1, updated=CURRENT_TIMESTAMP WHERE node=$2 AND \"user\"=$3", [ affiliation, node, user ], cb2
             else if not isSet and not toDelete
-                db.query "INSERT INTO affiliations (node, \"user\", affiliation) VALUES ($1, $2, $3)", [ node, user, affiliation ], cb2
+                db.query "INSERT INTO affiliations (node, \"user\", affiliation, updated) VALUES ($1, $2, $3, CURRENT_TIMESTAMP)", [ node, user, affiliation ], cb2
             else if isSet and toDelete
                 db.query "DELETE FROM affiliations WHERE node=$1 AND \"user\"=$2", [ node, user ], cb2
             else if not isSet and toDelete
@@ -448,7 +487,7 @@ class Transaction
     getAffiliated: (node, cb) ->
         db = @db
         async.waterfall [(cb2) ->
-            db.query "SELECT \"user\", affiliation FROM affiliations WHERE node=$1 ORDER BY updated DESC", [ node ], cb2
+            db.query "SELECT \"user\", affiliation FROM affiliations JOIN subscriptions USING (\"user\", node) WHERE affiliations.node=$1 AND subscriptions.temporary=FALSE ORDER BY affiliations.updated DESC", [ node ], cb2
         , (res, cb2) ->
             affiliations = for row in res.rows
                 { user: row.user, affiliation: row.affiliation }
@@ -460,16 +499,6 @@ class Transaction
         db = @db
         async.waterfall [(cb2) ->
             db.query "SELECT \"user\" FROM affiliations WHERE affiliation = 'outcast' AND node = $1 ORDER BY updated DESC", [ node ], cb2
-        , (res, cb2) ->
-            cb2 null, res.rows.map((row) ->
-                row.user
-            )
-        ], cb
-
-    getOwners: (node, cb) ->
-        db = @db
-        async.waterfall [(cb2) ->
-            db.query "SELECT \"user\" FROM affiliations WHERE node=$1 AND affiliation='owner' ORDER BY updated DESC", [ node ], cb2
         , (res, cb2) ->
             cb2 null, res.rows.map((row) ->
                 row.user
@@ -494,19 +523,26 @@ class Transaction
             isSet = res and res.rows and res.rows[0]
             xml = el.toString()
             params = [ node, id, xml ]
+            pos = 4
             updated = el.getChildText('updated') or
                 el.getChildText('published')
             if updated
                 params.push updated
-                updated_query = "$4"
+                updated_query = "$" + (pos++)
             else
                 updated_query = "CURRENT_TIMESTAMP"
+            irtEl = el.getChild('in-reply-to', 'http://purl.org/syndication/thread/1.0')
+            if irtEl?.attrs.ref?
+                params.push irtEl.attrs.ref
+                irt_query = "$" + (pos++)
+            else
+                irt_query = "NULL"
             if isSet
-                db.query "UPDATE items SET xml=$3, updated=#{updated_query} WHERE node=$1 AND id=$2"
+                db.query "UPDATE items SET xml=$3, updated=#{updated_query}, in_reply_to=#{irt_query} WHERE node=$1 AND id=$2"
                 , params
                 , cb2
-            else unless isSet
-                db.query "INSERT INTO items (node, id, xml, updated) VALUES ($1, $2, $3, #{updated_query})"
+            else
+                db.query "INSERT INTO items (node, id, xml, updated, in_reply_to) VALUES ($1, $2, $3, #{updated_query}, #{irt_query})"
                 , params
                 , cb2
         ], cb
@@ -539,32 +575,34 @@ class Transaction
                 cb2 new errors.NotFound("No such item")
         ], cb
 
-    ##
-    # @param itemCb {Function} itemCb({ node: String, id: String, item: Element })
-    getUpdatesByTime: (subscriber, timeStart, timeEnd, itemCb, cb) ->
-        conditions = [ "node IN (SELECT node FROM subscriptions WHERE \"user\"=$1 AND subscription='subscribed')" ]
-        params = [ subscriber ]
-        i = 1
-        if timeStart
-            conditions.push "updated >= $" + (++i) + "::timestamp"
-            params.push timeStart
-        if timeEnd
-            conditions.push "updated <= $" + (++i) + "::timestamp"
-            params.push timeEnd
-        q = @db.query("SELECT id, node, xml FROM items WHERE " + conditions.join(" AND ") + " ORDER BY updated ASC", params)
-        q.on "row", (row) ->
-            if item
-                itemCb
+    getRecentPosts: (subscriber, timeStart, maxItems, cb) ->
+        db = @db
+        async.waterfall [(cb2) ->
+            db.query """SELECT node FROM subscriptions
+                        WHERE  \"user\"=$1
+                        AND    node LIKE '%/posts'
+                        AND    subscription='subscribed'""", [ subscriber ], cb2
+        , (res, cb2) ->
+            async.map res?.rows, (row, cb3) ->
+                node = row.node
+                q = """SELECT id, node, xml, updated FROM items
+                       WHERE node=$1
+                       AND   updated >= $2::timestamp
+                       ORDER BY updated DESC
+                       LIMIT $3"""
+                db.query q, [ node, timeStart, maxItems ], cb3
+            , cb2
+        , (res, cb2) ->
+            items = []
+            for r in res
+                items = items.concat r?.rows.map (row) ->
                     node: row.node
                     id: row.id
-                    item: row.xml
-
-
-        q.on "error", (err_) ->
-            err = err_
-
-        q.on "end", ->
-            cb err
+                    globalId: "#{row.node};#{row.id}"
+                    updated: row.updated
+                    el: parseEl(row.xml)
+            cb2 null, items
+        ], cb
 
     ##
     # Config management
@@ -622,7 +660,7 @@ class Transaction
     ##
     # Calls back with { User: Listener }
     resetSubscriptions: (node, cb) ->
-        @db.query "SELECT \"user\", listener FROM subscriptions WHERE node=$1 AND listener IS NOT NULL", [node], (err, res) =>
+        @db.query "SELECT \"user\", listener FROM subscriptions WHERE node=$1 AND listener IS NOT NULL AND temporary=FALSE", [node], (err, res) =>
             if err
                 return cb err
 
@@ -630,7 +668,7 @@ class Transaction
             for row in res.rows
                 userListeners[row.user] = row.listener
 
-            @db.query "DELETE FROM subscriptions WHERE node=$1", [node], (err) ->
+            @db.query "DELETE FROM subscriptions WHERE node=$1 AND temporary=FALSE", [node], (err) ->
                 cb err, userListeners
 
     resetAffiliations: (node, cb) ->
@@ -640,9 +678,14 @@ class Transaction
     # MAM
     #
     # @param cb: Function(err, results)
-    walkListenerArchive: (listener, start, end, max, iter, cb) ->
+    walkListenerArchive: (listener, start, end, max, forPusher, iter, cb) ->
         db = @db
-        params = [listener]
+        if forPusher
+            params = []
+            listenerCond = ""
+        else
+            params = [listener]
+            listenerCond = "AND listener=$1"
         conds = ""
         i = params.length
         if start
@@ -658,7 +701,7 @@ class Transaction
             ""
 
         q = (fields, table, cb2, mapper) ->
-            db.query "SELECT #{fields}, updated FROM #{table} WHERE node in (SELECT node FROM subscriptions WHERE listener=$1) #{conds} ORDER BY updated DESC #{limit}", params
+            db.query "SELECT #{fields}, updated FROM #{table} WHERE node in (SELECT node FROM subscriptions WHERE NOT temporary #{listenerCond}) #{conds} ORDER BY updated DESC #{limit}", params
             , (err, res) ->
                 if err
                     return cb2 err
@@ -670,7 +713,7 @@ class Transaction
                 cb2()
 
         async.parallel [ (cb2) ->
-            db.query "SELECT node, MAX(updated) AS updated FROM node_config WHERE node in (SELECT node FROM subscriptions WHERE listener=$1) #{conds} GROUP BY node ORDER BY updated DESC #{limit}", params
+            db.query "SELECT node, MAX(updated) AS updated FROM node_config WHERE node in (SELECT node FROM subscriptions WHERE NOT temporary #{listenerCond}) #{conds} GROUP BY node ORDER BY updated DESC #{limit}", params
             , (err, res) =>
                 if err
                     return cb2 err
