@@ -8,14 +8,11 @@ xmpp       = require('node-xmpp')
 NS         = require('./xmpp/ns')
 version    = require('./version')
 
-# In Node.js 0.8.x, existsSync moved from path to fs.
-existsSync = fs.existsSync or path.existsSync
-
 exports.getConfig = (cb) ->
     # Config
     config = require('jsconfig')
     defaultConfigFile = path.join(__dirname,"..","config.js")
-    if existsSync(defaultConfigFile)
+    if fs.existsSync(defaultConfigFile)
         config.defaults defaultConfigFile
 
     config.set 'ignore unknown', yes
@@ -42,7 +39,7 @@ exports.getConfig = (cb) ->
                 opts.config = path.join(process.cwd(), opts.config)
             # Always reload config for -c argument
             config.merge(opts.config)
-        else if existsSync("/etc/buddycloud-server/config.js")
+        else if fs.existsSync("/etc/buddycloud-server/config.js")
             config.merge("/etc/buddycloud-server/config.js")
 
         # Kludge:
