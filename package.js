@@ -26,6 +26,7 @@ tarball.pipe(fs.createWriteStream(path.join(__dirname, name+"-"+version+".tar.gz
     "node_modules/ltx/lib/sax_saxjs.js",
     // server files
     "_etc_init.d_buddycloud-server",
+    "buddycloud-server.service",
     "bin/buddycloud-server",
     "config.js.example",
     "package.json",
