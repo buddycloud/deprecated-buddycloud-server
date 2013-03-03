@@ -1,7 +1,8 @@
 // buddycloud-server config file
 // change EXAMPLE.COM to match your domain
 
-// jid referrs to your server component
+// jid referrs to the DNS entry that you setup for your buddycloud-server
+// by default this is buddycloud.<your domain>
 exports.xmpp = { jid: 'buddycloud.EXAMPLE.COM',
 		 password: 'tellnoone',
 		 host: 'localhost',
