@@ -7,25 +7,8 @@ Installation instructions
 When installing the server, you must first execute `install.sql`, then all the
 upgrade files in order, i.e. first `upgrade-1.sql`, then `upgrade-2.sql`, etc.:
 
-    # switch to the postgres user
-    sudo su - postgres
- 
-    # create the database user and assign them a password
-    createuser buddycloud_server --pwprompt --no-superuser --no-createdb --no-createrole
- 
-    # create the database
-    createdb --owner buddycloud_server --encoding UTF8 buddycloud_server
-    
-    # install the schema files
-    psql -U buddycloud_server -d buddycloud_server < install.sql
-    psql -U buddycloud_server -d buddycloud_server < upgrade-1.sql
-    
-    # Test the database is installed
-    psql -h 127.0.0.1 --username buddycloud_server -d buddycloud_server -c "select * from nodes;"
-    Password for user buddycloud_server: 
-    node
-    ------
-    (0 rows) #  0 or more rows means that your buddycloud server database schema been installed successfully.
+    psql -U <username> -d <db> < install.sql
+    psql -U <username> -d <db> < upgrade-1.sql
 
 
 Upgrade instructions
