@@ -114,10 +114,10 @@ class SubscriptionsSynchronization extends PaginatedSynchronization
                 if err
                     logger.error "Cannot get node listeners: #{err.stack or err}"
 
-                unless listeners? and listeners.length > 0
+                if listeners? and listeners.length > 0
+                    cb2()
+                else
                     t.purgeRemoteNode @node, cb2
-
-            cb2()
 
     # TODO: none left? remove whole node.
     writeResults: (t, results, cb) ->
