@@ -11,6 +11,6 @@ buddycloud-server is distributed under the Apache License 2.0. See the `LICENSE`
 https://buddycloud.org/wiki/Build
 
 
-## Installation
+## Installing
 
 https://buddycloud.org/wiki/Install
