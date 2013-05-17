@@ -583,24 +583,28 @@ class Transaction
                         AND    node LIKE '%/posts'
                         AND    subscription='subscribed'""", [ subscriber ], cb2
         , (res, cb2) ->
-            async.map res?.rows, (row, cb3) ->
+            ph = 1
+            prepArgs = []
+            q = ""
+            for row in res?.rows
                 node = row.node
-                q = """SELECT id, node, xml, updated FROM items
-                       WHERE node=$1
-                       AND   updated >= $2::timestamp
-                       ORDER BY updated DESC
-                       LIMIT $3"""
-                db.query q, [ node, timeStart, maxItems ], cb3
-            , cb2
+                q = (q + " UNION ALL ") if ph > 1
+                q = q + """(SELECT id, node, xml, updated FROM items
+                           WHERE node=$#{ph++}
+                           AND   updated >= $#{ph++}::timestamp
+                           ORDER BY updated DESC
+                           LIMIT $#{ph++})"""
+                prepArgs.push node
+                prepArgs.push timeStart
+                prepArgs.push maxItems
+            db.query q, prepArgs, cb2
         , (res, cb2) ->
-            items = []
-            for r in res
-                items = items.concat r?.rows.map (row) ->
-                    node: row.node
-                    id: row.id
-                    globalId: "#{row.node};#{row.id}"
-                    updated: row.updated
-                    el: parseEl(row.xml)
+            items = res?.rows.map (row) ->
+                node: row.node
+                id: row.id
+                globalId: "#{row.node};#{row.id}"
+                updated: row.updated
+                el: parseEl(row.xml)
             cb2 null, items
         ], cb
 
