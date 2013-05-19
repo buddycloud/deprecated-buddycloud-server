@@ -15,20 +15,15 @@ exports.normalizeItem = (req, oldItem, item, cb) ->
 
     nodeType = m[2]
     # TODO: apply according to pubsub#type config
-    if nodeType is 'posts' or
-       nodeType is 'status'
-        if item.el?.is('entry', NS_ATOM)
-            req2 = Object.create(req)
-            req2.nodeType = nodeType
-            req2.oldItem = oldItem
-            req2.item = item
-            normalizeEntry req2, (err, req3) ->
-                cb err, req3?.item
-        else
-            cb new errors.BadRequest("Item payload must be an ATOM entry")
+    if item.el?.is('entry', NS_ATOM)
+        req2 = Object.create(req)
+        req2.nodeType = nodeType
+        req2.oldItem = oldItem
+        req2.item = item
+        normalizeEntry req2, (err, req3) ->
+            cb err, req3?.item
     else
-        # Other nodeType, no ATOM to enforce
-        cb null, item
+        cb new errors.BadRequest("Item payload must be an ATOM entry")
 
 ##
 # Normalize an ATOM entry
