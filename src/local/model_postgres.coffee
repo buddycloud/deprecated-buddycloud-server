@@ -575,6 +575,22 @@ class Transaction
                 cb2 new errors.NotFound("No such item")
         ], cb
 
+    getReplies: (node, id, cb) ->
+        db = @db
+        async.waterfall [(cb2) ->
+            db.query """SELECT id, node, xml, updated FROM items 
+                        WHERE node=$1 AND in_reply_to=$2 
+                        ORDER BY updated""", [ node, id ], cb2
+        , (res, cb2) ->
+            items = res?.rows.map (row) ->
+                node: row.node
+                id: row.id
+                globalId: "#{row.node};#{row.id}"
+                updated: row.updated
+                el: parseEl(row.xml)
+            cb2 null, items
+        ], cb
+
     getRecentPosts: (subscriber, timeStart, maxItems, cb) ->
         db = @db
         async.waterfall [(cb2) ->
