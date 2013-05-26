@@ -865,17 +865,24 @@ class RetrieveRecentItems extends ModelOperation
             items = rsm.cropResults items, 'globalId'
             cb null, items
 
+
 class RetrieveReplies extends PrivilegedOperation
     privilegedTransaction: (t, cb) ->
         rsm = @req.rsm
         node = @req.node
         itemId = @req.itemId
 
-        t.getReplies node, itemId, (err, items) ->
-            if err
-                return cb err
+        async.waterfall [(cb2) ->
+            # Check that the post exists
+            t.getItem node, itemId, cb2
+        , (item, cb2) ->
+            # If it does, fetch its replies
+            t.getReplies node, itemId, cb2
+        , (items, cb2) ->
             items = rsm.cropResults items, 'id'
-            cb null, items
+            cb2 null, items
+        ], cb
+
 
 class RetractItems extends PrivilegedOperation
     privilegedTransaction: (t, cb) ->

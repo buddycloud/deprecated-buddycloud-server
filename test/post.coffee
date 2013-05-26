@@ -881,7 +881,7 @@ describe "Retrieving posts", ->
                 gotItems.should.eql ["test-H-16", "test-H-13", "test-H-12"]
         ], done
 
-    it "must work for replies requests", (done) ->
+    it "must work for replies requests for existing posts", (done) ->
         async.series [(cb) ->
             publishEl = server.makePublishIq "riker@enterprise.sf", "buddycloud.example.org",
                 "publish-H-18", "/user/riker@enterprise.sf/posts",
@@ -923,6 +923,12 @@ describe "Retrieving posts", ->
 
                 ids.should.eql ["test-H-21", "test-H-19"]
         ], done
+
+    it "must fail for replies requests for missing posts", (done) ->
+        iq = server.makePubsubGetIq("picard@enterprise.sf", "buddycloud.example.org", "retrieve-H-23")
+            .c("replies", xmlns: NS.BUDDYCLOUD_V1, node: "/user/picard@enterprise.sf/posts", item_id: "missing-post-H-23")
+            server.doTest iq, "got-iq-retrieve-H-23", done,
+                testErrorIq "cancel", "item-not-found"
 # }}}
 # {{{ Retracting
 describe "Retracting", ->
