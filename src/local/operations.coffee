@@ -865,6 +865,18 @@ class RetrieveRecentItems extends ModelOperation
             items = rsm.cropResults items, 'globalId'
             cb null, items
 
+class RetrieveReplies extends PrivilegedOperation
+    privilegedTransaction: (t, cb) ->
+        rsm = @req.rsm
+        node = @req.node
+        itemId = @req.itemId
+
+        t.getReplies node, itemId, (err, items) ->
+            if err
+                return cb err
+            
+            items = rsm.cropResults items, 'globalId'
+            cb null, items
 
 class RetractItems extends PrivilegedOperation
     privilegedTransaction: (t, cb) ->
@@ -1514,6 +1526,7 @@ OPERATIONS =
     'unsubscribe-node': Unsubscribe
     'retrieve-node-items': RetrieveItems
     'retrieve-recent-items': RetrieveRecentItems
+    'retrieve-replies': RetrieveReplies
     'retract-node-items': RetractItems
     'retrieve-user-subscriptions': RetrieveUserSubscriptions
     'retrieve-user-affiliations': RetrieveUserAffiliations
