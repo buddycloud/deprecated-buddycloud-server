@@ -29,7 +29,17 @@ ADD CONSTRAINT node_config_node_nodes_node
    REFERENCES nodes(node)
    ON DELETE CASCADE;
 
+-- Add timezones
+ALTER TABLE affiliations
+  ALTER COLUMN updated TYPE TIMESTAMP WITH TIME ZONE;
+ALTER TABLE items
+  ALTER COLUMN updated TYPE TIMESTAMP WITH TIME ZONE;
+ALTER TABLE node_config
+  ALTER COLUMN updated TYPE TIMESTAMP WITH TIME ZONE;
+ALTER TABLE subscriptions
+  ALTER COLUMN updated TYPE TIMESTAMP WITH TIME ZONE;
+
 INSERT INTO schema_version (version, "when", description)
-       VALUES (2, 'now', 'Cascading deletes from nodes table');
+       VALUES (2, 'now', 'Cascading deletes from nodes table, timestamps with time zones');
 
 COMMIT;

@@ -12,7 +12,7 @@ async = require("async")
 errors = require("../errors")
 
 # Required schema version -- don't forget to bump it as needed!
-required_schema_version = 1
+required_schema_version = 2
 
 # ready DB connections
 pool = []
@@ -591,7 +591,7 @@ class Transaction
                 q = (q + " UNION ALL ") if ph > 1
                 q = q + """(SELECT id, node, xml, updated FROM items
                            WHERE node=$#{ph++}
-                           AND   updated >= $#{ph++}::timestamp
+                           AND   updated >= $#{ph++}::timestamptz
                            ORDER BY updated DESC
                            LIMIT $#{ph++})"""
                 prepArgs.push node
@@ -693,10 +693,10 @@ class Transaction
         conds = ""
         i = params.length
         if start
-            conds += "AND updated >= $#{i += 1}::timestamp"
+            conds += "AND updated >= $#{i += 1}::timestamptz"
             params.push start
         if end
-            conds += " AND updated <= $#{i += 1}::timestamp"
+            conds += " AND updated <= $#{i += 1}::timestamptz"
             params.push end
         limit = if max
             params.push max
