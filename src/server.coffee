@@ -3,6 +3,7 @@ fs         = require('fs')
 path       = require('path')
 async      = require('async')
 {inspect}  = require('util')
+moment     = require('moment')
 Connection = require('./xmpp/connection')
 xmpp       = require('node-xmpp')
 NS         = require('./xmpp/ns')
@@ -50,6 +51,9 @@ exports.getConfig = (cb) ->
 
 exports.startServer = (config) ->
     process.title = "buddycloud-server #{version}"
+
+    # Date format
+    moment.defaultFormat = "YYYY-MM-DDTHH:mm:ss.SSSZ"
 
     # Logger
     logger_ = require('./logger')

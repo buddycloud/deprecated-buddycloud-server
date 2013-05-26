@@ -9,7 +9,7 @@ NS = require('../xmpp/ns')
 {normalizeItem, validateItem} = require('../normalize')
 {makeTombstone} = require('../tombstone')
 {Element} = require('node-xmpp')
-isodate = require('isodate')
+moment = require('moment')
 
 runTransaction = null
 exports.setModel = (model) ->
@@ -418,7 +418,7 @@ class Register extends ModelOperation
             do (nodeType, config) =>
                 jobs.push (cb2) =>
                     node = "/user/#{user}/#{nodeType}"
-                    config.creationDate = new Date().toISOString()
+                    config.creationDate = moment.utc().format()
                     @createNodeWithConfig t, node, config, cb2
         async.series jobs, (err) ->
             cb err
@@ -481,7 +481,7 @@ class CreateNode extends ModelOperation
                 cb2 new errors.Conflict("Node #{@req.node} already exists")
         , (cb2) =>
             config = @req.config or {}
-            config.creationDate = new Date().toISOString()
+            config.creationDate = moment.utc().format()
 
             # Pick config defaults
             if isTopic
@@ -849,11 +849,10 @@ class RetrieveItems extends PrivilegedOperation
 class RetrieveRecentItems extends ModelOperation
     transaction: (t, cb) ->
         rsm = @req.rsm
-        since = @req.since
-        try
-            since = isodate(since).toISOString()
-        catch e
-            return cb e
+        since = moment @req.since
+        unless since.isValid()
+            return cb new Error('Invalid date format')
+        since = since.utc().format()
         maxItems = @req.maxItems
 
         t.getRecentPosts @req.sender, since, maxItems, (err, items) ->
@@ -1188,15 +1187,16 @@ class ReplayArchive extends ModelOperation
         sent = 0
         total = 0
 
-        try
-            if @req.start?
-                d = isodate @req.start
-                @req.start = d.toISOString()
-            if @req.end?
-                d = isodate @req.end
-                @req.end = d.toISOString()
-        catch e
-            return cb e
+        if @req.start?
+            d = moment @req.start
+            unless d.isValid()
+                return cb new Error('Invalid date format')
+            @req.start = d.utc().format()
+        if @req.end?
+            d = moment @req.end
+            unless d.isValid()
+                return cb new Error('Invalid date format')
+            @req.end = d.utc().format()
 
         forPusher = (@req.sender is @router.pusherJid)
 

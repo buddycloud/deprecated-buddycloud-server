@@ -1,5 +1,6 @@
 async = require('async')
 should = require('should')
+moment = require('moment')
 { NS, TestServer } = require('./test_server')
 
 # {{{ Helpers
@@ -821,7 +822,7 @@ describe "Retrieving posts", ->
             # Make sure we don't catch older messages by accident
             setTimeout cb, 1200
         , (cb) =>
-            @since = new Date().toISOString()
+            @since = moment.utc().format()
             publishEl = server.makePublishIq "picard@enterprise.sf", "buddycloud.example.org",
                 "publish-H-11", "/user/picard@enterprise.sf/posts",
                 content: "Test post H11", id: "test-H-11"

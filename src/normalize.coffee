@@ -1,6 +1,6 @@
 logger = require('./logger').makeLogger 'normalize'
 { JID } = require('node-xmpp')
-isodate = require('isodate')
+moment = require('moment')
 errors = require('./errors')
 
 NS_ATOM = "http://www.w3.org/2005/Atom"
@@ -85,8 +85,7 @@ normalizeId = (req) ->
 
 normalizePublished = (req) ->
     req.item.el.remove "published", NS_ATOM
-    # The local now by default
-    published = new Date().toISOString()
+    published = moment.utc().format()
     # Find previous published date
     if req.oldItem?
         req.oldItem.getChildren("published").forEach (publishedEl) ->
@@ -96,7 +95,7 @@ normalizePublished = (req) ->
 
 normalizeUpdated = (req) ->
     req.item.el.remove "updated", NS_ATOM
-    updated = new Date().toISOString()
+    updated = moment.utc().format()
     req.item.el.c("updated").
         t(updated)
 
@@ -145,9 +144,8 @@ exports.validateItem = (el) ->
         return false unless nameEl?.getText().length > 0
 
     for name in ['published', 'updated']
-        try
-            isodate el.getChild(name, NS_ATOM).getText()
-        catch e
-            return false
+        nameEl = el.getChild(name, NS_ATOM)
+        txt = nameEl?.getText()
+        return false unless txt?.length > 0 and moment(txt).isValid()
 
     return true
