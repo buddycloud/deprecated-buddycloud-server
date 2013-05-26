@@ -597,6 +597,7 @@ class Transaction
                 prepArgs.push node
                 prepArgs.push timeStart
                 prepArgs.push maxItems
+            q += " ORDER BY updated DESC"
             db.query q, prepArgs, cb2
         , (res, cb2) ->
             items = res?.rows.map (row) ->
