@@ -558,7 +558,7 @@ class PubsubRepliesRequest extends PubsubRequest
         @repliesEl && @node && @itemId
 
     reply: (items) ->
-        items.rsm.setReplyInfo(items, 'globalId')
+        items.rsm.setReplyInfo(items, 'id')
 
         results = []
         itemsEl = new xmpp.Element("items")

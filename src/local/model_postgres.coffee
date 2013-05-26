@@ -585,7 +585,6 @@ class Transaction
             items = res?.rows.map (row) ->
                 node: row.node
                 id: row.id
-                globalId: "#{row.node};#{row.id}"
                 updated: row.updated
                 el: parseEl(row.xml)
             cb2 null, items

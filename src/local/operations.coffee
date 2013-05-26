@@ -874,8 +874,7 @@ class RetrieveReplies extends PrivilegedOperation
         t.getReplies node, itemId, (err, items) ->
             if err
                 return cb err
-            
-            items = rsm.cropResults items, 'globalId'
+            items = rsm.cropResults items, 'id'
             cb null, items
 
 class RetractItems extends PrivilegedOperation
