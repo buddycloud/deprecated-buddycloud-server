@@ -1,5 +1,6 @@
 BEGIN TRANSACTION;
 
+-- Add cascading delete
 ALTER TABLE items
 DROP CONSTRAINT items_node_fkey,
 ADD CONSTRAINT items_node_nodes_node
@@ -29,6 +30,6 @@ ADD CONSTRAINT node_config_node_nodes_node
    ON DELETE CASCADE;
 
 INSERT INTO schema_version (version, "when", description)
-       VALUES (2, 'now', 'Adding cascading deletes from nodes table');
+       VALUES (2, 'now', 'Cascading deletes from nodes table');
 
 COMMIT;
