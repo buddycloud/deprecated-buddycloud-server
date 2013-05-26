@@ -862,6 +862,24 @@ class RetrieveRecentItems extends ModelOperation
             cb null, items
 
 
+class RetrieveReplies extends PrivilegedOperation
+    privilegedTransaction: (t, cb) ->
+        rsm = @req.rsm
+        node = @req.node
+        itemId = @req.itemId
+
+        async.waterfall [(cb2) ->
+            # Check that the post exists
+            t.getItem node, itemId, cb2
+        , (item, cb2) ->
+            # If it does, fetch its replies
+            t.getReplies node, itemId, cb2
+        , (items, cb2) ->
+            items = rsm.cropResults items, 'id'
+            cb2 null, items
+        ], cb
+
+
 class RetractItems extends PrivilegedOperation
     privilegedTransaction: (t, cb) ->
         @retractedItems = []
@@ -1511,6 +1529,7 @@ OPERATIONS =
     'unsubscribe-node': Unsubscribe
     'retrieve-node-items': RetrieveItems
     'retrieve-recent-items': RetrieveRecentItems
+    'retrieve-replies': RetrieveReplies
     'retract-node-items': RetractItems
     'retrieve-user-subscriptions': RetrieveUserSubscriptions
     'retrieve-user-affiliations': RetrieveUserAffiliations
