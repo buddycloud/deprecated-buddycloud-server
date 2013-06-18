@@ -316,7 +316,7 @@ class Transaction
 
         db = @db
         async.waterfall [(cb2) ->
-            db.query "SELECT \"user\", subscription FROM subscriptions WHERE node=$1 AND temporary=FALSE ORDER BY updated DESC", [ node ], cb2
+            db.query "SELECT \"user\", subscription FROM subscriptions WHERE node=$1 AND temporary=FALSE ORDER BY updated ASC", [ node ], cb2
         , (res, cb2) ->
             subscribers = for row in res.rows
                 { user: row.user, subscription: row.subscription }
@@ -339,20 +339,20 @@ class Transaction
         unless user
             return cb(new Error("No user"))
 
-        @db.query "SELECT node, listener, subscription FROM subscriptions WHERE \"user\"=$1 AND temporary=TRUE ORDER BY updated DESC", [ user ], (err, res) ->
+        @db.query "SELECT node, listener, subscription FROM subscriptions WHERE \"user\"=$1 AND temporary=TRUE ORDER BY updated ASC", [ user ], (err, res) ->
             cb err, res?.rows
 
     ##
     # Not only by users but also by listeners.
     # @param cb {Function} cb(Error, { user, node, subscription })
     getSubscriptions: (actor, cb) ->
-        @db.query "SELECT \"user\", node, subscription FROM subscriptions WHERE (\"user\"=$1 OR listener=$1) AND temporary=FALSE ORDER BY updated DESC", [ actor ], (err, res) ->
+        @db.query "SELECT \"user\", node, subscription FROM subscriptions WHERE (\"user\"=$1 OR listener=$1) AND temporary=FALSE ORDER BY updated ASC", [ actor ], (err, res) ->
             cb err, res?.rows
 
     getPending: (node, cb) ->
         db = @db
         async.waterfall [(cb2) ->
-            db.query "SELECT \"user\" FROM subscriptions WHERE subscription = 'pending' AND node = $1 ORDER BY updated DESC", [ node ], cb2
+            db.query "SELECT \"user\" FROM subscriptions WHERE subscription = 'pending' AND node = $1 ORDER BY updated ASC", [ node ], cb2
         , (res, cb2) ->
             cb2 null, res.rows.map((row) ->
                 row.user
@@ -477,7 +477,7 @@ class Transaction
 
         db = @db
         async.waterfall [(cb2) ->
-            db.query "SELECT node, affiliation FROM affiliations WHERE \"user\"=$1 ORDER BY updated DESC", [ user ], cb2
+            db.query "SELECT node, affiliation FROM affiliations WHERE \"user\"=$1 ORDER BY updated ASC", [ user ], cb2
         , (res, cb2) ->
             affiliations = for row in res.rows
                 { node: row.node, affiliation: row.affiliation }
@@ -487,7 +487,7 @@ class Transaction
     getAffiliated: (node, cb) ->
         db = @db
         async.waterfall [(cb2) ->
-            db.query "SELECT \"user\", affiliation FROM affiliations JOIN subscriptions USING (\"user\", node) WHERE affiliations.node=$1 AND subscriptions.temporary=FALSE ORDER BY affiliations.updated DESC", [ node ], cb2
+            db.query "SELECT \"user\", affiliation FROM affiliations JOIN subscriptions USING (\"user\", node) WHERE affiliations.node=$1 AND subscriptions.temporary=FALSE ORDER BY affiliations.updated ASC", [ node ], cb2
         , (res, cb2) ->
             affiliations = for row in res.rows
                 { user: row.user, affiliation: row.affiliation }
@@ -498,7 +498,7 @@ class Transaction
     getOutcast: (node, cb) ->
         db = @db
         async.waterfall [(cb2) ->
-            db.query "SELECT \"user\" FROM affiliations WHERE affiliation = 'outcast' AND node = $1 ORDER BY updated DESC", [ node ], cb2
+            db.query "SELECT \"user\" FROM affiliations WHERE affiliation = 'outcast' AND node = $1 ORDER BY updated ASC", [ node ], cb2
         , (res, cb2) ->
             cb2 null, res.rows.map((row) ->
                 row.user
@@ -689,10 +689,10 @@ class Transaction
         conds = ""
         i = params.length
         if start
-            conds += "AND updated >= $#{i += 1}::timestamp"
+            conds += "AND updated <= $#{i += 1}::timestamp"
             params.push start
         if end
-            conds += " AND updated <= $#{i += 1}::timestamp"
+            conds += " AND updated >= $#{i += 1}::timestamp"
             params.push end
         limit = if max
             params.push max
@@ -701,7 +701,7 @@ class Transaction
             ""
 
         q = (fields, table, cb2, mapper) ->
-            db.query "SELECT #{fields}, updated FROM #{table} WHERE node in (SELECT node FROM subscriptions WHERE NOT temporary #{listenerCond}) #{conds} ORDER BY updated DESC #{limit}", params
+            db.query "SELECT #{fields}, updated FROM #{table} WHERE node in (SELECT node FROM subscriptions WHERE NOT temporary #{listenerCond}) #{conds} ORDER BY updated ASC #{limit}", params
             , (err, res) ->
                 if err
                     return cb2 err
@@ -713,7 +713,7 @@ class Transaction
                 cb2()
 
         async.parallel [ (cb2) ->
-            db.query "SELECT node, MAX(updated) AS updated FROM node_config WHERE node in (SELECT node FROM subscriptions WHERE NOT temporary #{listenerCond}) #{conds} GROUP BY node ORDER BY updated DESC #{limit}", params
+            db.query "SELECT node, MAX(updated) AS updated FROM node_config WHERE node in (SELECT node FROM subscriptions WHERE NOT temporary #{listenerCond}) #{conds} GROUP BY node ORDER BY updated ASC #{limit}", params
             , (err, res) =>
                 if err
                     return cb2 err
