@@ -1,5 +1,6 @@
 logger = require('./logger').makeLogger 'tombstone'
 {Element} = require('node-xmpp')
+moment = require('moment')
 
 NS_AS = "http://activitystrea.ms/spec/1.0/"
 NS_AT = "http://purl.org/atompub/tombstones/1.0"
@@ -8,7 +9,7 @@ NS_THR = "http://purl.org/syndication/thread/1.0"
 
 exports.makeTombstone = (item) ->
     ref = item.getChild('link', NS_ATOM).attrs.href
-    now = new Date().toISOString()
+    now = moment.utc().format()
     tsEl = new Element('deleted-entry', xmlns: NS_AT, ref: ref, when: now).
         c("updated", xmlns: NS_ATOM).t(now).up()
 

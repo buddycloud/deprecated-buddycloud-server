@@ -1,6 +1,7 @@
 { EventEmitter } = require('events')
 ltx = require('ltx')
 should = require('should')
+moment = require('moment')
 
 server = require('../lib/server')
 NS = require('../lib/xmpp/ns')
@@ -227,8 +228,8 @@ class exports.TestServer extends EventEmitter
             atom.c("link", rel: "self", href: opts.link)
         if opts.object
             atom.c("object", xmlns: NS.AS).c("object-type").t(opts.object)
-        atom.c("published").t(if opts.published? then opts.published else new Date().toISOString())
-        atom.c("updated").t(if opts.updated? then opts.updated else new Date().toISOString())
+        atom.c("published").t(if opts.published? then opts.published else moment.utc().format())
+        atom.c("updated").t(if opts.updated? then opts.updated else moment.utc().format())
         if opts.verb
             atom.c("verb", xmlns: NS.AS).t(opts.verb)
         return atom

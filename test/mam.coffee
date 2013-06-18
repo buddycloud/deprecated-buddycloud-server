@@ -1,5 +1,6 @@
 async = require('async')
 should = require('should')
+moment = require('moment')
 { NS, TestServer } = require('./test_server')
 
 describe "MAM", ->
@@ -186,7 +187,7 @@ describe "MAM", ->
             setTimeout cb, 2000
 
         , (cb) =>
-            @mam_begin = new Date().toISOString()
+            @mam_begin = moment.utc().format()
             async.forEachSeries testIQs, (iq, cb2) ->
                 id = iq.root().attrs.id
                 server.doTest iq, "got-iq-#{id}", cb2, (iq) ->
@@ -217,8 +218,6 @@ describe "MAM", ->
             "1969-07-20T21:56:15-05:00",
         ]
         bad_dates = [
-            "1969-07-21 02:56:15Z",
-            "1969-07-21T02:56:15",
             "01:23:45",
             "notadate",
         ]
@@ -248,7 +247,7 @@ describe "MAM", ->
 
 
     it "must fail when there are too many results", (done) ->
-        mam_begin = new Date(Date.now() - 60000).toISOString()
+        mam_begin = moment().subtract('minutes', 1).utc().format()
 
         # Publish 2 posts, then MAM with a RSM max
         async.series [(cb) ->

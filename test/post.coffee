@@ -1,5 +1,6 @@
 async = require('async')
 should = require('should')
+moment = require('moment')
 { NS, TestServer } = require('./test_server')
 
 # {{{ Helpers
@@ -821,7 +822,7 @@ describe "Retrieving posts", ->
             # Make sure we don't catch older messages by accident
             setTimeout cb, 1200
         , (cb) =>
-            @since = new Date().toISOString()
+            @since = moment.utc().format()
             publishEl = server.makePublishIq "picard@enterprise.sf", "buddycloud.example.org",
                 "publish-H-11", "/user/picard@enterprise.sf/posts",
                 content: "Test post H11", id: "test-H-11"
@@ -880,6 +881,55 @@ describe "Retrieving posts", ->
                 gotNodes.should.eql ["/user/picard@enterprise.sf/posts", "/user/riker@enterprise.sf/posts"]
                 gotItems.should.eql ["test-H-16", "test-H-13", "test-H-12"]
         ], done
+
+    it "must work for replies requests for existing posts", (done) ->
+        async.series [(cb) ->
+            publishEl = server.makePublishIq "riker@enterprise.sf", "buddycloud.example.org",
+                "publish-H-18", "/user/riker@enterprise.sf/posts",
+                content: "Test post H18", id: "test-H-18"
+            server.doTest publishEl, "got-iq-publish-H-18", cb, testPublishResultIq
+        , (cb) ->
+            publishEl = server.makePublishIq "picard@enterprise.sf", "buddycloud.example.org",
+                "publish-H-19", "/user/riker@enterprise.sf/posts",
+                content: "Test reply H19", id: "test-H-19", in_reply_to: "test-H-18"
+            server.doTest publishEl, "got-iq-publish-H-19", cb, testPublishResultIq
+        , (cb) ->
+            publishEl = server.makePublishIq "picard@enterprise.sf", "buddycloud.example.org",
+                "publish-H-20", "/user/riker@enterprise.sf/posts",
+                content: "Test post H20", id: "test-H-20"
+            server.doTest publishEl, "got-iq-publish-H-20", cb, testPublishResultIq
+        , (cb) ->
+            publishEl = server.makePublishIq "picard@enterprise.sf", "buddycloud.example.org",
+                "publish-H-21", "/user/riker@enterprise.sf/posts",
+                content: "Test reply H21", id: "test-H-21", in_reply_to: "test-H-18"
+            server.doTest publishEl, "got-iq-publish-H-21", cb, testPublishResultIq
+
+        , (cb) ->
+            # Retrieve replies to test-H-18
+            iq = server.makePubsubGetIq("laforge@enterprise.sf", "buddycloud.example.org", "retrieve-H-22")
+                .c("replies", xmlns: NS.BUDDYCLOUD_V1, node: "/user/riker@enterprise.sf/posts", item_id: "test-H-18")
+
+            server.doTest iq, "got-iq-retrieve-H-22", cb, (iq) ->
+                iq.attrs.should.have.property "type", "result"
+                pubsubEl = iq.getChild "pubsub", NS.PUBSUB
+                should.exist pubsubEl, "missing element: <pubsub/>"
+
+                itemsEl = pubsubEl.getChild "items"
+                should.exist itemsEl, "missing element: <items/>"
+
+                ids = []
+                for item in itemsEl.getChildren("item")
+                    item.attrs.should.have.property "id"
+                    ids.push item.attrs.id
+
+                ids.should.eql ["test-H-21", "test-H-19"]
+        ], done
+
+    it "must fail for replies requests for missing posts", (done) ->
+        iq = server.makePubsubGetIq("picard@enterprise.sf", "buddycloud.example.org", "retrieve-H-23")
+            .c("replies", xmlns: NS.BUDDYCLOUD_V1, node: "/user/picard@enterprise.sf/posts", item_id: "missing-post-H-23")
+            server.doTest iq, "got-iq-retrieve-H-23", done,
+                testErrorIq "cancel", "item-not-found"
 # }}}
 # {{{ Retracting
 describe "Retracting", ->

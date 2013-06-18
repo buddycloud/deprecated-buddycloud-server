@@ -537,6 +537,42 @@ class PubsubRecentItemsRequest extends PubsubRequest
 # <iq type='get'
 #     from='francisco@denmark.lit/barracks'
 #     to='pubsub.shakespeare.lit'
+#     id='recentitems1'>
+#   <pubsub xmlns='http://jabber.org/protocol/pubsub'>
+#     <replies xmlns='http://buddycloud.org/v1'
+#              node='princely_musings'
+#              item_id='ae890ac52d0df67ed7cfdf51b644e901'/>
+#   </pubsub>
+# </iq>
+class PubsubRepliesRequest extends PubsubRequest
+    constructor: (stanza) ->
+        super
+
+        @repliesEl = @pubsubEl?.getChild('replies', NS.BUDDYCLOUD_V1)
+        @node = @repliesEl?.attrs.node
+        @itemId = @repliesEl?.attrs.item_id
+
+    matches: ->
+        super &&
+        @iq.attrs.type is 'get' &&
+        @repliesEl && @node && @itemId
+
+    reply: (items) ->
+        items.rsm.setReplyInfo(items, 'id')
+
+        results = []
+        itemsEl = new xmpp.Element("items")
+        results.push itemsEl
+        for item in items
+            itemsEl.c("item", id: item.id).cnode(item.el)
+
+        super results, items.rsm
+
+    operation: 'retrieve-replies'
+
+# <iq type='get'
+#     from='francisco@denmark.lit/barracks'
+#     to='pubsub.shakespeare.lit'
 #     id='subscriptions1'>
 #   <pubsub xmlns='http://jabber.org/protocol/pubsub'>
 #     <subscriptions/>
@@ -810,6 +846,7 @@ REQUESTS = [
     PubsubRetractRequest,
     PubsubItemsRequest,
     PubsubRecentItemsRequest,
+    PubsubRepliesRequest,
     PubsubSubscriptionsRequest,
     PubsubAffiliationsRequest,
     PubsubOwnerGetSubscriptionsRequest,

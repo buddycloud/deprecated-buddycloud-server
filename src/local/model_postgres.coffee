@@ -12,7 +12,7 @@ async = require("async")
 errors = require("../errors")
 
 # Required schema version -- don't forget to bump it as needed!
-required_schema_version = 1
+required_schema_version = 2
 
 # ready DB connections
 pool = []
@@ -575,6 +575,21 @@ class Transaction
                 cb2 new errors.NotFound("No such item")
         ], cb
 
+    getReplies: (node, id, cb) ->
+        db = @db
+        async.waterfall [(cb2) ->
+            db.query """SELECT id, node, xml, updated FROM items
+                        WHERE node=$1 AND in_reply_to=$2
+                        ORDER BY updated DESC""", [ node, id ], cb2
+        , (res, cb2) ->
+            items = res?.rows.map (row) ->
+                node: row.node
+                id: row.id
+                updated: row.updated
+                el: parseEl(row.xml)
+            cb2 null, items
+        ], cb
+
     getRecentPosts: (subscriber, timeStart, maxItems, cb) ->
         db = @db
         async.waterfall [(cb2) ->
@@ -583,24 +598,29 @@ class Transaction
                         AND    node LIKE '%/posts'
                         AND    subscription='subscribed'""", [ subscriber ], cb2
         , (res, cb2) ->
-            async.map res?.rows, (row, cb3) ->
+            ph = 1
+            prepArgs = []
+            q = ""
+            for row in res?.rows
                 node = row.node
-                q = """SELECT id, node, xml, updated FROM items
-                       WHERE node=$1
-                       AND   updated >= $2::timestamp
-                       ORDER BY updated DESC
-                       LIMIT $3"""
-                db.query q, [ node, timeStart, maxItems ], cb3
-            , cb2
+                q = (q + " UNION ALL ") if ph > 1
+                q = q + """(SELECT id, node, xml, updated FROM items
+                           WHERE node=$#{ph++}
+                           AND   updated >= $#{ph++}::timestamptz
+                           ORDER BY updated DESC
+                           LIMIT $#{ph++})"""
+                prepArgs.push node
+                prepArgs.push timeStart
+                prepArgs.push maxItems
+            q += " ORDER BY updated DESC"
+            db.query q, prepArgs, cb2
         , (res, cb2) ->
-            items = []
-            for r in res
-                items = items.concat r?.rows.map (row) ->
-                    node: row.node
-                    id: row.id
-                    globalId: "#{row.node};#{row.id}"
-                    updated: row.updated
-                    el: parseEl(row.xml)
+            items = res?.rows.map (row) ->
+                node: row.node
+                id: row.id
+                globalId: "#{row.node};#{row.id}"
+                updated: row.updated
+                el: parseEl(row.xml)
             cb2 null, items
         ], cb
 
@@ -689,10 +709,11 @@ class Transaction
         conds = ""
         i = params.length
         if start
-            conds += "AND updated <= $#{i += 1}::timestamp"
+            conds += "AND updated <= $#{i += 1}::timestamptz"
             params.push start
         if end
-            conds += " AND updated >= $#{i += 1}::timestamp"
+            conds += " AND updated >= $#{i += 1}::timestamptz"
+
             params.push end
         limit = if max
             params.push max
