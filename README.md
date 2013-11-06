@@ -1,3 +1,9 @@
+Note: this server is deprecated and not spec compliant.
+
+Please use https://github.com/buddycloud/buddycloud-server-java instead.
+- no support
+- no love
+
 # buddycloud-server
 
 [![Build Status](https://secure.travis-ci.org/buddycloud/buddycloud-server.png)](http://travis-ci.org/buddycloud/buddycloud-server)
